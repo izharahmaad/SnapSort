@@ -2,12 +2,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApp, getApps, initializeApp } from "firebase/app";
 import {
   getAuth,
+  getReactNativePersistence,
   initializeAuth,
   onAuthStateChanged,
   type Auth,
   type User,
 } from "firebase/auth";
-import { getReactNativePersistence } from "firebase/auth/react-native";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -18,6 +18,7 @@ const firebaseConfig = {
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
+
 const firebaseApp = getApps().length
   ? getApp()
   : initializeApp(firebaseConfig);

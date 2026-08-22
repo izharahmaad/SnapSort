@@ -6,13 +6,13 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Card, Chip, Text } from "react-native-paper";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { categoryMeta } from "../../constants/categories";
 import { colors } from "../../constants/theme";
-import { useAuthStore } from "../../stores/auth.store";
 import { getUserScans } from "../../services/firebase/scans.service";
+import { useAuthStore } from "../../stores/auth.store";
 import { SavedScan } from "../../types/scan";
 
 export default function HistoryScreen() {
@@ -30,8 +30,9 @@ export default function HistoryScreen() {
 
     try {
       setIsLoading(true);
-      const userScans = await getUserScans(user.uid);
-      setScans(userScans);
+
+      const savedScans = await getUserScans(user.uid);
+      setScans(savedScans);
     } catch (error) {
       console.warn("Could not load scans:", error);
     } finally {

@@ -13,6 +13,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import OnboardingScreen from "./src/screens/onboarding/OnboardingScreen";
 import RootNavigator from "./src/navigation/RootNavigator";
 import { appTheme, colors } from "./src/constants/theme";
+import { observeAuth } from "./src/services/firebase/firebase";
+import { useAuthStore } from "./src/stores/auth.store";
 import { useOnboardingStore } from "./src/stores/onboarding.store";
 
 export default function App() {
@@ -22,17 +24,37 @@ export default function App() {
     Poppins_700Bold,
   });
 
+  const setUser = useAuthStore((state) => state.setUser);
+  const setReady = useAuthStore((state) => state.setReady);
+
   const {
-    isLoading,
+    isLoading: onboardingLoading,
     hasCompletedOnboarding,
     loadOnboardingStatus,
   } = useOnboardingStore();
 
   useEffect(() => {
     loadOnboardingStatus();
-  }, [loadOnboardingStatus]);
 
-  if (!fontsLoaded || isLoading) {
+    const unsubscribe = observeAuth((firebaseUser) => {
+      setUser(
+        firebaseUser
+          ? {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+            }
+          : null
+      );
+
+      setReady(true);
+    });
+
+    return unsubscribe;
+  }, [loadOnboardingStatus, setReady, setUser]);
+
+  if (!fontsLoaded || onboardingLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -44,7 +66,12 @@ export default function App() {
     <SafeAreaProvider>
       <PaperProvider theme={appTheme}>
         <StatusBar style="dark" />
-        {hasCompletedOnboarding ? <RootNavigator /> : <OnboardingScreen />}
+
+        {hasCompletedOnboarding ? (
+          <RootNavigator />
+        ) : (
+          <OnboardingScreen />
+        )}
       </PaperProvider>
     </SafeAreaProvider>
   );

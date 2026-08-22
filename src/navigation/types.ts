@@ -6,4 +6,5 @@ export type RootStackParamList = {
   Preview: undefined;
   Result: undefined;
   History: undefined;
+  Profile: undefined;
 };
