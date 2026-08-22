@@ -15,9 +15,14 @@ export async function saveScan(
   result: AnalysisResult,
   imageUri?: string
 ) {
-  const scansCollection = collection(db, "users", userId, "scans");
+  const scansReference = collection(
+    db,
+    "users",
+    userId,
+    "scans"
+  );
 
-  return addDoc(scansCollection, {
+  return addDoc(scansReference, {
     itemName: result.itemName,
     category: result.category,
     confidence: result.confidence,
@@ -33,10 +38,15 @@ export async function saveScan(
 export async function getUserScans(
   userId: string
 ): Promise<SavedScan[]> {
-  const scansCollection = collection(db, "users", userId, "scans");
+  const scansReference = collection(
+    db,
+    "users",
+    userId,
+    "scans"
+  );
 
   const scansQuery = query(
-    scansCollection,
+    scansReference,
     orderBy("createdAt", "desc")
   );
 

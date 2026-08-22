@@ -1,19 +1,23 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Button, Card, Chip, Divider, Text } from "react-native-paper";
 
 import { categoryMeta } from "../../constants/categories";
 import { colors } from "../../constants/theme";
 import { RootStackParamList } from "../../navigation/types";
 import { useScanStore } from "../../stores/scan.store";
+import { useAuthStore } from "../../stores/auth.store";
+import { saveScan } from "../../services/firebase/scans.service";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Result">;
 
 export default function ResultScreen({ navigation }: Props) {
   const result = useScanStore((state) => state.result);
+  const imageUri = useScanStore((state) => state.imageUri);
   const resetScan = useScanStore((state) => state.resetScan);
+  const user = useAuthStore((state) => state.user);
 
   if (!result) {
     return (
@@ -39,24 +43,41 @@ export default function ResultScreen({ navigation }: Props) {
 
   const meta = categoryMeta[result.category];
 
-  const handleSaveDemo = async () => {
-    await Haptics.notificationAsync(
-      Haptics.NotificationFeedbackType.Success
-    );
+  const handleSave = async () => {
+    if (!user) {
+      Alert.alert(
+        "Login required",
+        "Please sign in before saving a scan."
+      );
+      return;
+    }
 
-    Alert.alert(
-      "Saved successfully",
-      "This scan will be saved to your history when Firebase is connected.",
-      [
-        {
-          text: "Scan another",
-          onPress: () => {
-            resetScan();
-            navigation.popToTop();
+    try {
+      await saveScan(user.uid, result, imageUri ?? undefined);
+
+      await Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success
+      );
+
+      Alert.alert(
+        "Scan saved",
+        "Your result was added to your scan history.",
+        [
+          {
+            text: "Done",
+            onPress: () => {
+              resetScan();
+              navigation.popToTop();
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert(
+        "Save failed",
+        error?.message ?? "Could not save this scan."
+      );
+    }
   };
 
   const handleScanAnother = () => {
@@ -102,6 +123,7 @@ export default function ResultScreen({ navigation }: Props) {
               { backgroundColor: meta.color },
             ]}
           />
+
           <Text style={styles.confidenceText}>
             {result.confidence} confidence
           </Text>
@@ -120,12 +142,15 @@ export default function ResultScreen({ navigation }: Props) {
 
           <View style={styles.scoreCopy}>
             <Text style={styles.scoreLabel}>Eco score</Text>
+
             <Text style={styles.scoreDescription}>
               Your choice can help reduce waste.
             </Text>
           </View>
 
-          <Text style={styles.scoreValue}>{result.ecoScore}/10</Text>
+          <Text style={styles.scoreValue}>
+            {result.ecoScore}/10
+          </Text>
         </Card.Content>
       </Card>
 
@@ -140,16 +165,20 @@ export default function ResultScreen({ navigation }: Props) {
               />
             </View>
 
-            <Text style={styles.cardTitle}>What should you do?</Text>
+            <Text style={styles.cardTitle}>
+              What should you do?
+            </Text>
           </View>
 
           <Divider style={styles.divider} />
 
-          <Text style={styles.bodyText}>{result.disposalAdvice}</Text>
+          <Text style={styles.bodyText}>
+            {result.disposalAdvice}
+          </Text>
         </Card.Content>
       </Card>
 
-      {result.reuseIdea.length > 0 && (
+      {result.reuseIdea.trim().length > 0 && (
         <Card style={styles.reuseCard}>
           <Card.Content>
             <View style={styles.cardHeader}>
@@ -161,17 +190,21 @@ export default function ResultScreen({ navigation }: Props) {
                 />
               </View>
 
-              <Text style={styles.cardTitle}>Creative reuse idea</Text>
+              <Text style={styles.cardTitle}>
+                Creative reuse idea
+              </Text>
             </View>
 
             <Divider style={styles.divider} />
 
-            <Text style={styles.bodyText}>{result.reuseIdea}</Text>
+            <Text style={styles.bodyText}>
+              {result.reuseIdea}
+            </Text>
           </Card.Content>
         </Card>
       )}
 
-      {result.warning.length > 0 && (
+      {result.warning.trim().length > 0 && (
         <Card style={styles.warningCard}>
           <Card.Content>
             <View style={styles.cardHeader}>
@@ -186,7 +219,9 @@ export default function ResultScreen({ navigation }: Props) {
               <Text style={styles.warningTitle}>Important</Text>
             </View>
 
-            <Text style={styles.warningText}>{result.warning}</Text>
+            <Text style={styles.warningText}>
+              {result.warning}
+            </Text>
           </Card.Content>
         </Card>
       )}
@@ -195,7 +230,7 @@ export default function ResultScreen({ navigation }: Props) {
         mode="contained"
         icon="content-save-outline"
         contentStyle={styles.saveButton}
-        onPress={handleSaveDemo}
+        onPress={handleSave}
       >
         Save to history
       </Button>
@@ -210,7 +245,8 @@ export default function ResultScreen({ navigation }: Props) {
       </Button>
 
       <Text style={styles.disclaimer}>
-        SnapSort provides general guidance only. Local disposal rules may vary.
+        SnapSort provides general guidance only. Local disposal
+        rules may vary.
       </Text>
     </ScrollView>
   );
