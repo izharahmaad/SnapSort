@@ -1,0 +1,27 @@
+from pathlib import Path
+
+from pydantic_settings import (
+    BaseSettings,
+    SettingsConfigDict,
+)
+
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+ENV_FILE = BACKEND_DIR / ".env"
+
+
+class Settings(BaseSettings):
+    gemini_api_key: str
+    gemini_model: str = "gemini-3.6-flash"
+    firebase_service_account_path: str = (
+        "./serviceAccountKey.json"
+    )
+
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE,
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
+settings = Settings()

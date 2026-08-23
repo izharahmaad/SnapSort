@@ -22,26 +22,37 @@ import {
 
 import { colors } from "../../constants/theme";
 import { auth } from "../../services/firebase/firebase";
-import { RootStackParamList } from "../../navigation/types";
+import type { RootStackParamList } from "../../navigation/types";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Register">;
+type Props = NativeStackScreenProps<
+  RootStackParamList,
+  "Register"
+>;
 
 export default function RegisterScreen({ navigation }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] =
+    useState("");
 
   const [nameError, setNameError] = useState("");
   const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const [passwordError, setPasswordError] =
+    useState("");
+  const [
+    confirmPasswordError,
+    setConfirmPasswordError,
+  ] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [
+    showConfirmPassword,
+    setShowConfirmPassword,
+  ] = useState(false);
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     let isValid = true;
 
     setNameError("");
@@ -49,18 +60,23 @@ export default function RegisterScreen({ navigation }: Props) {
     setPasswordError("");
     setConfirmPasswordError("");
 
-    if (!name.trim()) {
+    const cleanName = name.trim();
+    const cleanEmail = email.trim();
+
+    if (!cleanName) {
       setNameError("Your name is required.");
       isValid = false;
-    } else if (name.trim().length < 2) {
+    } else if (cleanName.length < 2) {
       setNameError("Enter at least 2 characters.");
       isValid = false;
     }
 
-    if (!email.trim()) {
+    if (!cleanEmail) {
       setEmailError("Email is required.");
       isValid = false;
-    } else if (!email.includes("@")) {
+    } else if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)
+    ) {
       setEmailError("Enter a valid email address.");
       isValid = false;
     }
@@ -69,15 +85,21 @@ export default function RegisterScreen({ navigation }: Props) {
       setPasswordError("Password is required.");
       isValid = false;
     } else if (password.length < 6) {
-      setPasswordError("Password must contain at least 6 characters.");
+      setPasswordError(
+        "Password must contain at least 6 characters."
+      );
       isValid = false;
     }
 
     if (!confirmPassword) {
-      setConfirmPasswordError("Please confirm your password.");
+      setConfirmPasswordError(
+        "Please confirm your password."
+      );
       isValid = false;
     } else if (password !== confirmPassword) {
-      setConfirmPasswordError("Passwords do not match.");
+      setConfirmPasswordError(
+        "Passwords do not match."
+      );
       isValid = false;
     }
 
@@ -85,22 +107,37 @@ export default function RegisterScreen({ navigation }: Props) {
   };
 
   const handleRegister = async () => {
-    if (!validateForm()) return;
+    if (isLoading || !validateForm()) return;
 
     try {
       setIsLoading(true);
 
-      const credential = await createUserWithEmailAndPassword(
-        auth,
-        email.trim().toLowerCase(),
-        password
-      );
+      const credential =
+        await createUserWithEmailAndPassword(
+          auth,
+          email.trim().toLowerCase(),
+          password
+        );
 
       await updateProfile(credential.user, {
         displayName: name.trim(),
       });
-    } catch (error: any) {
-      Alert.alert("Registration failed", getAuthErrorMessage(error?.code));
+
+      // RootNavigator will switch to the authenticated
+      // screens after Firebase updates the auth state.
+    } catch (error: unknown) {
+      const code =
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        typeof error.code === "string"
+          ? error.code
+          : undefined;
+
+      Alert.alert(
+        "Registration failed",
+        getAuthErrorMessage(code)
+      );
     } finally {
       setIsLoading(false);
     }
@@ -109,7 +146,9 @@ export default function RegisterScreen({ navigation }: Props) {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={
+        Platform.OS === "ios" ? "padding" : undefined
+      }
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -128,7 +167,8 @@ export default function RegisterScreen({ navigation }: Props) {
           <Text style={styles.title}>Join SnapSort</Text>
 
           <Text style={styles.subtitle}>
-            Start building smarter and more sustainable habits.
+            Start building smarter and more sustainable
+            habits.
           </Text>
         </View>
 
@@ -143,18 +183,27 @@ export default function RegisterScreen({ navigation }: Props) {
               setNameError("");
             }}
             autoCapitalize="words"
+            autoCorrect={false}
+            editable={!isLoading}
             left={
               <TextInput.Icon
                 icon="account-outline"
                 color={colors.muted}
               />
             }
-            outlineColor={nameError ? colors.hazardous : colors.border}
+            outlineColor={
+              nameError
+                ? colors.hazardous
+                : colors.border
+            }
             activeOutlineColor={colors.primary}
             style={styles.input}
           />
 
-          <HelperText type="error" visible={Boolean(nameError)}>
+          <HelperText
+            type="error"
+            visible={Boolean(nameError)}
+          >
             {nameError}
           </HelperText>
 
@@ -170,18 +219,26 @@ export default function RegisterScreen({ navigation }: Props) {
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="email-address"
+            editable={!isLoading}
             left={
               <TextInput.Icon
                 icon="email-outline"
                 color={colors.muted}
               />
             }
-            outlineColor={emailError ? colors.hazardous : colors.border}
+            outlineColor={
+              emailError
+                ? colors.hazardous
+                : colors.border
+            }
             activeOutlineColor={colors.primary}
             style={styles.input}
           />
 
-          <HelperText type="error" visible={Boolean(emailError)}>
+          <HelperText
+            type="error"
+            visible={Boolean(emailError)}
+          >
             {emailError}
           </HelperText>
 
@@ -195,6 +252,9 @@ export default function RegisterScreen({ navigation }: Props) {
               setPasswordError("");
             }}
             secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!isLoading}
             left={
               <TextInput.Icon
                 icon="lock-outline"
@@ -203,17 +263,30 @@ export default function RegisterScreen({ navigation }: Props) {
             }
             right={
               <TextInput.Icon
-                icon={showPassword ? "eye-off-outline" : "eye-outline"}
+                icon={
+                  showPassword
+                    ? "eye-off-outline"
+                    : "eye-outline"
+                }
                 color={colors.muted}
-                onPress={() => setShowPassword((value) => !value)}
+                onPress={() =>
+                  setShowPassword((value) => !value)
+                }
               />
             }
-            outlineColor={passwordError ? colors.hazardous : colors.border}
+            outlineColor={
+              passwordError
+                ? colors.hazardous
+                : colors.border
+            }
             activeOutlineColor={colors.primary}
             style={styles.input}
           />
 
-          <HelperText type="error" visible={Boolean(passwordError)}>
+          <HelperText
+            type="error"
+            visible={Boolean(passwordError)}
+          >
             {passwordError}
           </HelperText>
 
@@ -227,6 +300,9 @@ export default function RegisterScreen({ navigation }: Props) {
               setConfirmPasswordError("");
             }}
             secureTextEntry={!showConfirmPassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!isLoading}
             left={
               <TextInput.Icon
                 icon="lock-check-outline"
@@ -242,7 +318,9 @@ export default function RegisterScreen({ navigation }: Props) {
                 }
                 color={colors.muted}
                 onPress={() =>
-                  setShowConfirmPassword((value) => !value)
+                  setShowConfirmPassword(
+                    (value) => !value
+                  )
                 }
               />
             }
@@ -266,17 +344,24 @@ export default function RegisterScreen({ navigation }: Props) {
             mode="contained"
             loading={isLoading}
             disabled={isLoading}
-            icon="account-check-outline"
+            icon={
+              isLoading
+                ? undefined
+                : "account-check-outline"
+            }
             onPress={handleRegister}
             contentStyle={styles.registerButton}
             labelStyle={styles.registerButtonLabel}
           >
-            Create account
+            {isLoading
+              ? "Creating account..."
+              : "Create account"}
           </Button>
 
           <Button
             mode="text"
             textColor={colors.primary}
+            disabled={isLoading}
             onPress={() => navigation.navigate("Login")}
             style={styles.loginButton}
           >
@@ -285,14 +370,17 @@ export default function RegisterScreen({ navigation }: Props) {
         </View>
 
         <Text style={styles.footerText}>
-          Your account helps us keep your scan history safe and personal.
+          Your account helps us keep your scan history safe
+          and personal.
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-function getAuthErrorMessage(code?: string) {
+function getAuthErrorMessage(
+  code?: string
+): string {
   switch (code) {
     case "auth/email-already-in-use":
       return "An account with this email already exists.";
@@ -305,6 +393,12 @@ function getAuthErrorMessage(code?: string) {
 
     case "auth/network-request-failed":
       return "Check your internet connection and try again.";
+
+    case "auth/operation-not-allowed":
+      return "Email/password registration is not enabled in Firebase.";
+
+    case "auth/quota-exceeded":
+      return "The sign-up limit was reached. Try again later.";
 
     default:
       return "Something went wrong. Please try again.";

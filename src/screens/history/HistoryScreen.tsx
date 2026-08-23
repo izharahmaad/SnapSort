@@ -1,442 +1,447 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Alert, ScrollView, StyleSheet, View } from "react-native";
-import * as Haptics from "expo-haptics";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Button, Card, Chip, Divider, Text } from "react-native-paper";
+import { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  View,
+} from "react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Button, Card, Chip, Text } from "react-native-paper";
 
 import { categoryMeta } from "../../constants/categories";
 import { colors } from "../../constants/theme";
 import { RootStackParamList } from "../../navigation/types";
-import { useScanStore } from "../../stores/scan.store";
 import { useAuthStore } from "../../stores/auth.store";
-import { saveScan } from "../../services/firebase/scans.service";
+import {
+  deleteScan,
+  getUserScans,
+} from "../../services/firebase/scans.service";
+import type {
+  DisposalCategory,
+  ScanRecord,
+} from "../../types/scan";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Result">;
+type Props = NativeStackScreenProps<
+  RootStackParamList,
+  "History"
+>;
 
-export default function ResultScreen({ navigation }: Props) {
-  const result = useScanStore((state) => state.result);
-  const imageUri = useScanStore((state) => state.imageUri);
-  const resetScan = useScanStore((state) => state.resetScan);
+const fallbackMeta = {
+  label: "Other",
+  icon: "help-circle-outline",
+  color: colors.muted,
+};
+
+function getSafeCategory(
+  value: unknown
+): DisposalCategory {
+  if (
+    value === "recycle" ||
+    value === "compost" ||
+    value === "trash" ||
+    value === "reuse" ||
+    value === "hazardous"
+  ) {
+    return value;
+  }
+
+  return "trash";
+}
+
+function getDateText(value: unknown): string {
+  if (
+    value &&
+    typeof value === "object" &&
+    "toDate" in value &&
+    typeof value.toDate === "function"
+  ) {
+    return value.toDate().toLocaleDateString();
+  }
+
+  if (value instanceof Date) {
+    return value.toLocaleDateString();
+  }
+
+  if (typeof value === "string") {
+    const date = new Date(value);
+
+    if (!Number.isNaN(date.getTime())) {
+      return date.toLocaleDateString();
+    }
+  }
+
+  return "Recently";
+}
+
+export default function HistoryScreen({
+  navigation,
+}: Props) {
   const user = useAuthStore((state) => state.user);
 
-  if (!result) {
+  const [scans, setScans] = useState<ScanRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const loadScans = useCallback(
+    async (refresh = false) => {
+      if (!user) {
+        setScans([]);
+        setIsLoading(false);
+        setIsRefreshing(false);
+        return;
+      }
+
+      try {
+        if (refresh) {
+          setIsRefreshing(true);
+        } else {
+          setIsLoading(true);
+        }
+
+        const records = await getUserScans(user.uid);
+        setScans(records);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not load scan history.";
+
+        Alert.alert("History error", message);
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [user]
+  );
+
+  useState(() => {
+    loadScans();
+  });
+
+  const confirmDelete = (scanId: string) => {
+    Alert.alert(
+      "Delete scan?",
+      "This scan will be removed from your history.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteScan(user?.uid ?? "", scanId);
+
+              setScans((current) =>
+                current.filter((scan) => scan.id !== scanId)
+              );
+            } catch (error: unknown) {
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : "Could not delete this scan.";
+
+              Alert.alert("Delete failed", message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const renderItem = ({
+    item,
+  }: {
+    item: ScanRecord;
+  }) => {
+    const safeCategory = getSafeCategory(item.category);
+    const meta =
+      categoryMeta[safeCategory] ?? fallbackMeta;
+
+    const warning = item.warning?.trim() ?? "";
+
+    return (
+      <Card style={styles.card}>
+        <Card.Content>
+          <View style={styles.cardTop}>
+            <View style={styles.titleArea}>
+              <Text style={styles.itemName}>
+                {item.itemName || "Unknown item"}
+              </Text>
+
+              <Text style={styles.date}>
+                {getDateText(item.createdAt)}
+              </Text>
+            </View>
+
+            <Button
+              mode="text"
+              icon="delete-outline"
+              textColor={colors.muted}
+              compact
+              onPress={() => confirmDelete(item.id)}
+            >
+              ""
+            </Button>
+          </View>
+
+          <View style={styles.metaRow}>
+            <Chip
+              icon={meta.icon}
+              style={[
+                styles.categoryChip,
+                {
+                  backgroundColor: `${meta.color}20`,
+                },
+              ]}
+              textStyle={{ color: meta.color }}
+            >
+              {meta.label}
+            </Chip>
+
+            <Text style={styles.confidence}>
+              {item.confidence || "unknown"} confidence
+            </Text>
+          </View>
+
+          <View style={styles.scoreRow}>
+            <MaterialCommunityIcons
+              name="leaf"
+              size={19}
+              color={colors.primary}
+            />
+
+            <Text style={styles.scoreText}>
+              Eco score {Number(item.ecoScore) || 0}/10
+            </Text>
+          </View>
+
+          <Text style={styles.advice} numberOfLines={3}>
+            {item.disposalAdvice ||
+              "Follow your local disposal guidance."}
+          </Text>
+
+          {warning.length > 0 && (
+            <Text style={styles.warning} numberOfLines={2}>
+              {warning}
+            </Text>
+          )}
+        </Card.Content>
+      </Card>
+    );
+  };
+
+  if (!user) {
     return (
       <View style={styles.emptyContainer}>
         <MaterialCommunityIcons
-          name="file-question-outline"
+          name="account-lock-outline"
           size={58}
           color={colors.muted}
         />
 
-        <Text style={styles.emptyTitle}>No scan result found</Text>
+        <Text style={styles.emptyTitle}>
+          Login required
+        </Text>
 
-        <Button
-          mode="contained"
-          icon="camera-outline"
-          onPress={() => navigation.navigate("Camera")}
-        >
-          Scan an item
-        </Button>
+        <Text style={styles.emptyText}>
+          Sign in to view your saved scan history.
+        </Text>
       </View>
     );
   }
 
-  const meta = categoryMeta[result.category];
+  if (isLoading) {
+    return (
+      <View style={styles.emptyContainer}>
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+        />
 
-  const handleSave = async () => {
-    if (!user) {
-      Alert.alert(
-        "Login required",
-        "Please sign in before saving a scan."
-      );
-      return;
-    }
-
-    try {
-      await saveScan(user.uid, result, imageUri ?? undefined);
-
-      await Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Success
-      );
-
-      Alert.alert(
-        "Scan saved",
-        "Your result was added to your scan history.",
-        [
-          {
-            text: "Done",
-            onPress: () => {
-              resetScan();
-              navigation.popToTop();
-            },
-          },
-        ]
-      );
-    } catch (error: any) {
-      Alert.alert(
-        "Save failed",
-        error?.message ?? "Could not save this scan."
-      );
-    }
-  };
-
-  const handleScanAnother = () => {
-    resetScan();
-    navigation.navigate("Camera");
-  };
+        <Text style={styles.emptyText}>
+          Loading history...
+        </Text>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.successHeader}>
-        <View style={styles.successIcon}>
-          <MaterialCommunityIcons
-            name="check"
-            size={28}
-            color="#FFFFFF"
+    <View style={styles.screen}>
+      <FlatList
+        data={scans}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={
+          scans.length === 0
+            ? styles.emptyList
+            : styles.list
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => loadScans(true)}
+            tintColor={colors.primary}
           />
-        </View>
+        }
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <Text style={styles.title}>Scan history</Text>
 
-        <Text style={styles.successText}>Analysis complete</Text>
-      </View>
-
-      <Text style={styles.itemName}>{result.itemName}</Text>
-
-      <View style={styles.categoryRow}>
-        <Chip
-          icon={meta.icon}
-          style={[
-            styles.categoryChip,
-            { backgroundColor: `${meta.color}20` },
-          ]}
-          textStyle={{ color: meta.color }}
-        >
-          {meta.label}
-        </Chip>
-
-        <View style={styles.confidence}>
-          <View
-            style={[
-              styles.confidenceDot,
-              { backgroundColor: meta.color },
-            ]}
-          />
-
-          <Text style={styles.confidenceText}>
-            {result.confidence} confidence
-          </Text>
-        </View>
-      </View>
-
-      <Card style={styles.scoreCard}>
-        <Card.Content style={styles.scoreContent}>
-          <View style={styles.scoreIcon}>
+            <Text style={styles.subtitle}>
+              Your saved sustainability decisions.
+            </Text>
+          </View>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContent}>
             <MaterialCommunityIcons
-              name="leaf"
-              size={29}
-              color={colors.primary}
+              name="history"
+              size={58}
+              color={colors.muted}
             />
+
+            <Text style={styles.emptyTitle}>
+              No saved scans yet
+            </Text>
+
+            <Text style={styles.emptyText}>
+              Analyze an item and save it to see it here.
+            </Text>
+
+            <Button
+              mode="contained"
+              icon="camera-outline"
+              onPress={() => navigation.navigate("Camera")}
+            >
+              Scan an item
+            </Button>
           </View>
-
-          <View style={styles.scoreCopy}>
-            <Text style={styles.scoreLabel}>Eco score</Text>
-
-            <Text style={styles.scoreDescription}>
-              Your choice can help reduce waste.
-            </Text>
-          </View>
-
-          <Text style={styles.scoreValue}>
-            {result.ecoScore}/10
-          </Text>
-        </Card.Content>
-      </Card>
-
-      <Card style={styles.adviceCard}>
-        <Card.Content>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardHeaderIcon}>
-              <MaterialCommunityIcons
-                name="information-outline"
-                size={22}
-                color={colors.primary}
-              />
-            </View>
-
-            <Text style={styles.cardTitle}>
-              What should you do?
-            </Text>
-          </View>
-
-          <Divider style={styles.divider} />
-
-          <Text style={styles.bodyText}>
-            {result.disposalAdvice}
-          </Text>
-        </Card.Content>
-      </Card>
-
-      {result.reuseIdea.trim().length > 0 && (
-        <Card style={styles.reuseCard}>
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <View style={styles.reuseIcon}>
-                <MaterialCommunityIcons
-                  name="lightbulb-on-outline"
-                  size={22}
-                  color="#C87912"
-                />
-              </View>
-
-              <Text style={styles.cardTitle}>
-                Creative reuse idea
-              </Text>
-            </View>
-
-            <Divider style={styles.divider} />
-
-            <Text style={styles.bodyText}>
-              {result.reuseIdea}
-            </Text>
-          </Card.Content>
-        </Card>
-      )}
-
-      {result.warning.trim().length > 0 && (
-        <Card style={styles.warningCard}>
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <View style={styles.warningIcon}>
-                <MaterialCommunityIcons
-                  name="alert-outline"
-                  size={22}
-                  color={colors.warningText}
-                />
-              </View>
-
-              <Text style={styles.warningTitle}>Important</Text>
-            </View>
-
-            <Text style={styles.warningText}>
-              {result.warning}
-            </Text>
-          </Card.Content>
-        </Card>
-      )}
-
-      <Button
-        mode="contained"
-        icon="content-save-outline"
-        contentStyle={styles.saveButton}
-        onPress={handleSave}
-      >
-        Save to history
-      </Button>
-
-      <Button
-        mode="outlined"
-        icon="camera-outline"
-        contentStyle={styles.scanAnotherButton}
-        onPress={handleScanAnother}
-      >
-        Scan another item
-      </Button>
-
-      <Text style={styles.disclaimer}>
-        SnapSort provides general guidance only. Local disposal
-        rules may vary.
-      </Text>
-    </ScrollView>
+        }
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    paddingBottom: 36,
+  screen: {
+    flex: 1,
     backgroundColor: colors.background,
   },
-  successHeader: {
+  list: {
+    padding: 20,
+    paddingBottom: 32,
+  },
+  emptyList: {
+    flexGrow: 1,
+    padding: 20,
+  },
+  header: {
+    marginBottom: 18,
+  },
+  title: {
+    fontFamily: "Poppins_700Bold",
+    color: colors.text,
+    fontSize: 28,
+  },
+  subtitle: {
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
+    fontSize: 13,
+    marginTop: 4,
+  },
+  card: {
+    marginBottom: 14,
+    backgroundColor: colors.surface,
+  },
+  cardTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  titleArea: {
+    flex: 1,
+  },
+  itemName: {
+    fontFamily: "Poppins_600SemiBold",
+    color: colors.text,
+    fontSize: 17,
+  },
+  date: {
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
+    fontSize: 11,
+    marginTop: 3,
+  },
+  metaRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginBottom: 16,
-  },
-  successIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.primary,
-  },
-  successText: {
-    fontFamily: "Poppins_600SemiBold",
-    color: colors.primary,
-    fontSize: 14,
-  },
-  itemName: {
-    fontFamily: "Poppins_700Bold",
-    color: colors.text,
-    fontSize: 30,
-    lineHeight: 38,
-  },
-  categoryRow: {
-    flexDirection: "row",
-    alignItems: "center",
     marginTop: 12,
-    gap: 12,
   },
   categoryChip: {
     alignSelf: "flex-start",
   },
   confidence: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  confidenceDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  confidenceText: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 12,
   },
-  scoreCard: {
-    marginTop: 22,
-    backgroundColor: colors.primaryLight,
-    borderWidth: 1,
-    borderColor: "#C6EAD0",
-  },
-  scoreContent: {
+  scoreRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 7,
+    marginTop: 14,
   },
-  scoreIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-  },
-  scoreCopy: {
-    flex: 1,
-  },
-  scoreLabel: {
+  scoreText: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
-    fontSize: 15,
-  },
-  scoreDescription: {
-    fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 11,
-    marginTop: 2,
-  },
-  scoreValue: {
-    fontFamily: "Poppins_700Bold",
     color: colors.primary,
-    fontSize: 22,
-  },
-  adviceCard: {
-    marginTop: 14,
-    backgroundColor: colors.surface,
-  },
-  reuseCard: {
-    marginTop: 14,
-    backgroundColor: "#FFF9EF",
-  },
-  warningCard: {
-    marginTop: 14,
-    backgroundColor: colors.warningBackground,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  cardHeaderIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.primaryLight,
-  },
-  reuseIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFE6B8",
-  },
-  warningIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFE4BF",
-  },
-  cardTitle: {
-    fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
-    fontSize: 15,
-  },
-  warningTitle: {
-    fontFamily: "Poppins_600SemiBold",
-    color: colors.warningText,
-    fontSize: 15,
-  },
-  divider: {
-    marginVertical: 14,
-  },
-  bodyText: {
-    fontFamily: "Poppins_400Regular",
-    color: colors.text,
-    lineHeight: 23,
-    fontSize: 14,
-  },
-  warningText: {
-    fontFamily: "Poppins_400Regular",
-    color: colors.warningText,
-    lineHeight: 21,
     fontSize: 13,
-    marginTop: 12,
   },
-  saveButton: {
-    height: 54,
-  },
-  scanAnotherButton: {
-    height: 52,
-  },
-  disclaimer: {
+  advice: {
     fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 11,
-    textAlign: "center",
-    lineHeight: 17,
-    marginTop: 18,
+    color: colors.text,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 10,
+  },
+  warning: {
+    fontFamily: "Poppins_400Regular",
+    color: colors.warningText,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 8,
   },
   emptyContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 14,
+    gap: 12,
     padding: 24,
     backgroundColor: colors.background,
+  },
+  emptyContent: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
   },
   emptyTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.text,
     fontSize: 18,
+    textAlign: "center",
+  },
+  emptyText: {
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 20,
   },
 });

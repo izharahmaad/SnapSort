@@ -1,27 +1,32 @@
+export const disposalCategories = [
+  "recycle",
+  "compost",
+  "trash",
+  "reuse",
+  "hazardous",
+] as const;
+
 export type DisposalCategory =
-  | "recycle"
-  | "reuse"
-  | "donate"
-  | "sell"
-  | "trash"
-  | "hazardous"
-  | "unknown";
+  (typeof disposalCategories)[number];
 
-export type ConfidenceLevel = "low" | "medium" | "high";
+export type ConfidenceLevel =
+  | "low"
+  | "medium"
+  | "high";
 
-export interface AnalysisResult {
+export type AnalysisResult = {
   itemName: string;
   category: DisposalCategory;
   confidence: ConfidenceLevel;
   ecoScore: number;
   disposalAdvice: string;
-  reuseIdea: string;
-  warning: string;
-}
+  reuseIdea?: string;
+  warning?: string;
+};
 
-export interface SavedScan extends AnalysisResult {
+export type ScanRecord = AnalysisResult & {
   id: string;
   userId: string;
-  imageUri?: string;
-  createdAt: string;
-}
+  imageUri?: string | null;
+  createdAt?: unknown;
+};

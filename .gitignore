@@ -8,8 +8,8 @@ web-build/
 expo-env.d.ts
 
 # Native generated folders
-/ios
-/android
+/ios/
+/android/
 .kotlin/
 
 # Expo / React Native generated files
@@ -36,14 +36,18 @@ yarn-error.*
 .env
 .env.*
 !.env.example
+
+# Backend secrets
 backend/.env
 backend/.env.*
 backend/serviceAccountKey.json
 
-# Python
+# Python virtual environment and caches
 backend/.venv/
 __pycache__/
-*.pyc
+*.py[cod]
 
-# TypeScript
+# TypeScript build files
 *.tsbuildinfo
+# Editor settings
+.vscode/

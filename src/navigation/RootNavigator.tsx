@@ -1,4 +1,8 @@
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  View,
+} from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import {
   createNativeStackNavigator,
@@ -16,9 +20,10 @@ import ProfileScreen from "../screens/profile/ProfileScreen";
 
 import { colors } from "../constants/theme";
 import { useAuthStore } from "../stores/auth.store";
-import { RootStackParamList } from "./types";
+import type { RootStackParamList } from "./types";
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack =
+  createNativeStackNavigator<RootStackParamList>();
 
 const defaultScreenOptions: NativeStackNavigationOptions = {
   headerShadowVisible: false,
@@ -44,7 +49,10 @@ export default function RootNavigator() {
   if (!ready) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+        />
       </View>
     );
   }
@@ -52,7 +60,6 @@ export default function RootNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={user ? "Home" : "Login"}
         screenOptions={defaultScreenOptions}
       >
         {!user ? (

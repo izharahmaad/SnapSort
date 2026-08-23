@@ -1,37 +1,76 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Image, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  StyleSheet,
+  View,
+} from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Button, Card, Text } from "react-native-paper";
 
 import { colors } from "../../constants/theme";
 import { RootStackParamList } from "../../navigation/types";
 import { useScanStore } from "../../stores/scan.store";
+import { analyzeScanImage } from "../../services/api/scan-api.service";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Preview">;
+type Props = NativeStackScreenProps<
+  RootStackParamList,
+  "Preview"
+>;
 
 export default function PreviewScreen({ navigation }: Props) {
   const imageUri = useScanStore((state) => state.imageUri);
+  const imageBase64 = useScanStore((state) => state.imageBase64);
   const setResult = useScanStore((state) => state.setResult);
+  const isAnalyzing = useScanStore(
+    (state) => state.isAnalyzing
+  );
+  const setIsAnalyzing = useScanStore(
+    (state) => state.setIsAnalyzing
+  );
 
   const retakePhoto = () => {
+    if (isAnalyzing) return;
+
     navigation.goBack();
   };
 
-  const analyzeItem = () => {
-    setResult({
-      itemName: "Plastic water bottle",
-      category: "recycle",
-      confidence: "high",
-      ecoScore: 8,
-      disposalAdvice:
-        "Empty and rinse the bottle. Place it in a plastic recycling stream if your local service accepts it.",
-      reuseIdea:
-        "Use it as a small seedling planter or desk organizer before recycling it.",
-      warning:
-        "Local recycling rules vary. Check your local collection guidance.",
-    });
+  const analyzeItem = async () => {
+    if (!imageUri) {
+      Alert.alert(
+        "No image selected",
+        "Please capture or choose an image first."
+      );
+      return;
+    }
 
-    navigation.navigate("Result");
+    if (!imageBase64) {
+      Alert.alert(
+        "Image data missing",
+        "The photo does not contain image data. Please retake the photo."
+      );
+      return;
+    }
+
+    try {
+      setIsAnalyzing(true);
+
+      // The API service reads imageBase64 from the Zustand store.
+      const result = await analyzeScanImage();
+
+      setResult(result);
+      navigation.navigate("Result");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "We could not analyze this item. Please try again.";
+
+      Alert.alert("Analysis failed", message);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   if (!imageUri) {
@@ -43,7 +82,9 @@ export default function PreviewScreen({ navigation }: Props) {
           color={colors.muted}
         />
 
-        <Text style={styles.emptyTitle}>No image selected</Text>
+        <Text style={styles.emptyTitle}>
+          No image selected
+        </Text>
 
         <Button
           mode="contained"
@@ -75,7 +116,9 @@ export default function PreviewScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.tipCopy}>
-            <Text style={styles.tipTitle}>Clear photo = better result</Text>
+            <Text style={styles.tipTitle}>
+              Clear photo = better result
+            </Text>
 
             <Text style={styles.tipText}>
               Make sure one main item is visible and well lit.
@@ -91,21 +134,40 @@ export default function PreviewScreen({ navigation }: Props) {
           textColor={colors.primary}
           style={styles.retakeButton}
           contentStyle={styles.actionButton}
+          disabled={isAnalyzing}
           onPress={retakePhoto}
         >
           Retake
         </Button>
 
-        <Button
-          mode="contained"
-          icon="sparkles"
-          style={styles.analyzeButtonWrapper}
-          contentStyle={styles.actionButton}
-          onPress={analyzeItem}
-        >
-          Analyze item
-        </Button>
+        {isAnalyzing ? (
+          <View style={styles.analyzingContainer}>
+            <ActivityIndicator
+              size="small"
+              color={colors.primary}
+            />
+
+            <Text style={styles.analyzingText}>
+              Understanding item...
+            </Text>
+          </View>
+        ) : (
+          <Button
+            mode="contained"
+            icon="sparkles"
+            style={styles.analyzeButtonWrapper}
+            contentStyle={styles.actionButton}
+            onPress={analyzeItem}
+          >
+            Analyze item
+          </Button>
+        )}
       </View>
+
+      <Text style={styles.disclaimer}>
+        SnapSort uses AI for general guidance. Local disposal
+        rules may vary.
+      </Text>
     </View>
   );
 }
@@ -171,6 +233,29 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     height: 52,
+  },
+  analyzingContainer: {
+    flex: 1.35,
+    minHeight: 52,
+    borderRadius: 5,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 9,
+    backgroundColor: colors.primaryLight,
+  },
+  analyzingText: {
+    fontFamily: "Poppins_600SemiBold",
+    color: colors.primary,
+    fontSize: 12,
+  },
+  disclaimer: {
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
+    fontSize: 11,
+    textAlign: "center",
+    lineHeight: 17,
+    marginTop: 16,
   },
   emptyContainer: {
     flex: 1,

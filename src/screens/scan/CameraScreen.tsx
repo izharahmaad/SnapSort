@@ -27,29 +27,53 @@ export default function CameraScreen({ navigation }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>("back");
   const [isTakingPhoto, setIsTakingPhoto] = useState(false);
+  const [isCameraReady, setIsCameraReady] = useState(false);
 
-  const setImageUri = useScanStore((state) => state.setImageUri);
+  const setImage = useScanStore((state) => state.setImage);
 
-  const openPreview = (uri: string) => {
-    setImageUri(uri);
+  const openPreview = (
+    uri: string,
+    base64: string,
+    mimeType = "image/jpeg"
+  ) => {
+    if (!base64) {
+      Alert.alert(
+        "Image error",
+        "Image data was not available. Please choose another image."
+      );
+      return;
+    }
+
+    setImage(uri, base64, mimeType);
     navigation.navigate("Preview");
   };
 
   const takePhoto = async () => {
+    if (!cameraRef.current || !isCameraReady || isTakingPhoto) {
+      return;
+    }
+
     try {
       setIsTakingPhoto(true);
 
-      const photo = await cameraRef.current?.takePictureAsync({
+      const photo = await cameraRef.current.takePictureAsync({
         quality: 0.65,
+        base64: true,
+        skipProcessing: false,
       });
 
-      if (photo?.uri) {
-        openPreview(photo.uri);
+      if (!photo?.uri || !photo?.base64) {
+        throw new Error(
+          "The camera did not return Base64 image data."
+        );
       }
-    } catch {
+
+      openPreview(photo.uri, photo.base64, "image/jpeg");
+    } catch (error: any) {
       Alert.alert(
         "Camera error",
-        "We could not take this photo. Please try again."
+        error?.message ??
+          "We could not take this photo. Please try again."
       );
     } finally {
       setIsTakingPhoto(false);
@@ -57,20 +81,46 @@ export default function CameraScreen({ navigation }: Props) {
   };
 
   const chooseFromGallery = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.65,
-    });
+    try {
+      const result =
+        await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images"],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.65,
+          base64: true,
+        });
 
-    if (!result.canceled && result.assets[0]?.uri) {
-      openPreview(result.assets[0].uri);
+      if (result.canceled) return;
+
+      const asset = result.assets[0];
+
+      if (!asset?.uri || !asset.base64) {
+        Alert.alert(
+          "Image error",
+          "The selected image did not include image data."
+        );
+        return;
+      }
+
+      openPreview(
+        asset.uri,
+        asset.base64,
+        asset.mimeType ?? "image/jpeg"
+      );
+    } catch (error: any) {
+      Alert.alert(
+        "Gallery error",
+        error?.message ??
+          "We could not select this image. Please try again."
+      );
     }
   };
 
   const switchCamera = () => {
-    setFacing((current) => (current === "back" ? "front" : "back"));
+    setFacing((current) =>
+      current === "back" ? "front" : "back"
+    );
   };
 
   if (!permission) {
@@ -88,11 +138,13 @@ export default function CameraScreen({ navigation }: Props) {
           />
         </View>
 
-        <Text style={styles.permissionTitle}>Camera access needed</Text>
+        <Text style={styles.permissionTitle}>
+          Camera access needed
+        </Text>
 
         <Text style={styles.permissionText}>
-          SnapSort needs camera access so you can photograph an item and get
-          sorting guidance.
+          SnapSort needs camera access so you can photograph an
+          item and get sorting guidance.
         </Text>
 
         <Button
@@ -121,6 +173,7 @@ export default function CameraScreen({ navigation }: Props) {
         ref={cameraRef}
         style={styles.camera}
         facing={facing}
+        onCameraReady={() => setIsCameraReady(true)}
       />
 
       <View style={styles.overlay}>
@@ -161,6 +214,7 @@ export default function CameraScreen({ navigation }: Props) {
           <TouchableOpacity
             style={styles.galleryButton}
             activeOpacity={0.8}
+            disabled={isTakingPhoto}
             onPress={chooseFromGallery}
           >
             <MaterialCommunityIcons
@@ -173,9 +227,13 @@ export default function CameraScreen({ navigation }: Props) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.captureOuter}
+            style={[
+              styles.captureOuter,
+              (!isCameraReady || isTakingPhoto) &&
+                styles.captureDisabled,
+            ]}
             activeOpacity={0.85}
-            disabled={isTakingPhoto}
+            disabled={!isCameraReady || isTakingPhoto}
             onPress={takePhoto}
           >
             <View style={styles.captureInner}>
@@ -302,6 +360,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.5)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  captureDisabled: {
+    opacity: 0.45,
   },
   captureInner: {
     width: 64,

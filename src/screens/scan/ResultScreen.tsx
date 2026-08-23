@@ -1,7 +1,13 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Alert, ScrollView, StyleSheet, View } from "react-native";
+import { useState } from "react";
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import * as Haptics from "expo-haptics";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Button, Card, Chip, Divider, Text } from "react-native-paper";
 
 import { categoryMeta } from "../../constants/categories";
@@ -10,14 +16,44 @@ import { RootStackParamList } from "../../navigation/types";
 import { useScanStore } from "../../stores/scan.store";
 import { useAuthStore } from "../../stores/auth.store";
 import { saveScan } from "../../services/firebase/scans.service";
+import type {
+  DisposalCategory,
+} from "../../types/scan";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Result">;
+type Props = NativeStackScreenProps<
+  RootStackParamList,
+  "Result"
+>;
+
+const fallbackMeta = {
+  label: "Other",
+  icon: "help-circle-outline",
+  color: colors.muted,
+};
+
+function getSafeCategory(
+  value: unknown
+): DisposalCategory {
+  if (
+    value === "recycle" ||
+    value === "compost" ||
+    value === "trash" ||
+    value === "reuse" ||
+    value === "hazardous"
+  ) {
+    return value;
+  }
+
+  return "trash";
+}
 
 export default function ResultScreen({ navigation }: Props) {
   const result = useScanStore((state) => state.result);
   const imageUri = useScanStore((state) => state.imageUri);
   const resetScan = useScanStore((state) => state.resetScan);
   const user = useAuthStore((state) => state.user);
+
+  const [isSaving, setIsSaving] = useState(false);
 
   if (!result) {
     return (
@@ -28,7 +64,9 @@ export default function ResultScreen({ navigation }: Props) {
           color={colors.muted}
         />
 
-        <Text style={styles.emptyTitle}>No scan result found</Text>
+        <Text style={styles.emptyTitle}>
+          No scan result found
+        </Text>
 
         <Button
           mode="contained"
@@ -41,9 +79,28 @@ export default function ResultScreen({ navigation }: Props) {
     );
   }
 
-  const meta = categoryMeta[result.category];
+  const safeCategory = getSafeCategory(result.category);
+  const meta =
+    categoryMeta[safeCategory] ?? fallbackMeta;
+
+  const itemName =
+    result.itemName?.trim() || "Unknown item";
+
+  const disposalAdvice =
+    result.disposalAdvice?.trim() ||
+    "Follow your local disposal guidance.";
+
+  const reuseIdea = result.reuseIdea?.trim() || "";
+  const warning = result.warning?.trim() || "";
+
+  const ecoScore = Math.max(
+    0,
+    Math.min(10, Number(result.ecoScore) || 0)
+  );
 
   const handleSave = async () => {
+    if (isSaving) return;
+
     if (!user) {
       Alert.alert(
         "Login required",
@@ -53,7 +110,16 @@ export default function ResultScreen({ navigation }: Props) {
     }
 
     try {
-      await saveScan(user.uid, result, imageUri ?? undefined);
+      setIsSaving(true);
+
+      await saveScan(
+        user.uid,
+        {
+          ...result,
+          category: safeCategory,
+        },
+        imageUri ?? undefined
+      );
 
       await Haptics.notificationAsync(
         Haptics.NotificationFeedbackType.Success
@@ -72,15 +138,21 @@ export default function ResultScreen({ navigation }: Props) {
           },
         ]
       );
-    } catch (error: any) {
-      Alert.alert(
-        "Save failed",
-        error?.message ?? "Could not save this scan."
-      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not save this scan.";
+
+      Alert.alert("Save failed", message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleScanAnother = () => {
+    if (isSaving) return;
+
     resetScan();
     navigation.navigate("Camera");
   };
@@ -99,10 +171,12 @@ export default function ResultScreen({ navigation }: Props) {
           />
         </View>
 
-        <Text style={styles.successText}>Analysis complete</Text>
+        <Text style={styles.successText}>
+          Analysis complete
+        </Text>
       </View>
 
-      <Text style={styles.itemName}>{result.itemName}</Text>
+      <Text style={styles.itemName}>{itemName}</Text>
 
       <View style={styles.categoryRow}>
         <Chip
@@ -125,7 +199,7 @@ export default function ResultScreen({ navigation }: Props) {
           />
 
           <Text style={styles.confidenceText}>
-            {result.confidence} confidence
+            {result.confidence || "unknown"} confidence
           </Text>
         </View>
       </View>
@@ -141,7 +215,9 @@ export default function ResultScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.scoreCopy}>
-            <Text style={styles.scoreLabel}>Eco score</Text>
+            <Text style={styles.scoreLabel}>
+              Eco score
+            </Text>
 
             <Text style={styles.scoreDescription}>
               Your choice can help reduce waste.
@@ -149,7 +225,7 @@ export default function ResultScreen({ navigation }: Props) {
           </View>
 
           <Text style={styles.scoreValue}>
-            {result.ecoScore}/10
+            {ecoScore}/10
           </Text>
         </Card.Content>
       </Card>
@@ -173,12 +249,12 @@ export default function ResultScreen({ navigation }: Props) {
           <Divider style={styles.divider} />
 
           <Text style={styles.bodyText}>
-            {result.disposalAdvice}
+            {disposalAdvice}
           </Text>
         </Card.Content>
       </Card>
 
-      {result.reuseIdea.trim().length > 0 && (
+      {reuseIdea.length > 0 && (
         <Card style={styles.reuseCard}>
           <Card.Content>
             <View style={styles.cardHeader}>
@@ -198,13 +274,13 @@ export default function ResultScreen({ navigation }: Props) {
             <Divider style={styles.divider} />
 
             <Text style={styles.bodyText}>
-              {result.reuseIdea}
+              {reuseIdea}
             </Text>
           </Card.Content>
         </Card>
       )}
 
-      {result.warning.trim().length > 0 && (
+      {warning.length > 0 && (
         <Card style={styles.warningCard}>
           <Card.Content>
             <View style={styles.cardHeader}>
@@ -216,11 +292,13 @@ export default function ResultScreen({ navigation }: Props) {
                 />
               </View>
 
-              <Text style={styles.warningTitle}>Important</Text>
+              <Text style={styles.warningTitle}>
+                Important
+              </Text>
             </View>
 
             <Text style={styles.warningText}>
-              {result.warning}
+              {warning}
             </Text>
           </Card.Content>
         </Card>
@@ -228,25 +306,31 @@ export default function ResultScreen({ navigation }: Props) {
 
       <Button
         mode="contained"
-        icon="content-save-outline"
+        icon={
+          isSaving
+            ? undefined
+            : "content-save-outline"
+        }
         contentStyle={styles.saveButton}
+        disabled={isSaving}
         onPress={handleSave}
       >
-        Save to history
+        {isSaving ? "Saving..." : "Save to history"}
       </Button>
 
       <Button
         mode="outlined"
         icon="camera-outline"
         contentStyle={styles.scanAnotherButton}
+        disabled={isSaving}
         onPress={handleScanAnother}
       >
         Scan another item
       </Button>
 
       <Text style={styles.disclaimer}>
-        SnapSort provides general guidance only. Local disposal
-        rules may vary.
+        SnapSort provides general guidance only. Local
+        disposal rules may vary.
       </Text>
     </ScrollView>
   );

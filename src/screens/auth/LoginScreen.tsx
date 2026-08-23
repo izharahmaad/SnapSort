@@ -20,9 +20,12 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 
 import { colors } from "../../constants/theme";
 import { auth } from "../../services/firebase/firebase";
-import { RootStackParamList } from "../../navigation/types";
+import type { RootStackParamList } from "../../navigation/types";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Login">;
+type Props = NativeStackScreenProps<
+  RootStackParamList,
+  "Login"
+>;
 
 export default function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
@@ -34,16 +37,18 @@ export default function LoginScreen({ navigation }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     let isValid = true;
 
     setEmailError("");
     setPasswordError("");
 
-    if (!email.trim()) {
+    const cleanEmail = email.trim();
+
+    if (!cleanEmail) {
       setEmailError("Email is required.");
       isValid = false;
-    } else if (!email.includes("@")) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       setEmailError("Enter a valid email address.");
       isValid = false;
     }
@@ -51,13 +56,18 @@ export default function LoginScreen({ navigation }: Props) {
     if (!password) {
       setPasswordError("Password is required.");
       isValid = false;
+    } else if (password.length < 6) {
+      setPasswordError(
+        "Password must be at least 6 characters."
+      );
+      isValid = false;
     }
 
     return isValid;
   };
 
   const handleLogin = async () => {
-    if (!validateForm()) return;
+    if (isLoading || !validateForm()) return;
 
     try {
       setIsLoading(true);
@@ -67,8 +77,22 @@ export default function LoginScreen({ navigation }: Props) {
         email.trim().toLowerCase(),
         password
       );
-    } catch (error: any) {
-      Alert.alert("Login failed", getAuthErrorMessage(error?.code));
+
+      // RootNavigator changes to the authenticated stack
+      // when the Firebase auth state updates.
+    } catch (error: unknown) {
+      const code =
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        typeof error.code === "string"
+          ? error.code
+          : undefined;
+
+      Alert.alert(
+        "Login failed",
+        getAuthErrorMessage(code)
+      );
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +101,9 @@ export default function LoginScreen({ navigation }: Props) {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={
+        Platform.OS === "ios" ? "padding" : undefined
+      }
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -119,18 +145,26 @@ export default function LoginScreen({ navigation }: Props) {
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="email-address"
+            editable={!isLoading}
             left={
               <TextInput.Icon
                 icon="email-outline"
                 color={colors.muted}
               />
             }
-            outlineColor={emailError ? colors.hazardous : colors.border}
+            outlineColor={
+              emailError
+                ? colors.hazardous
+                : colors.border
+            }
             activeOutlineColor={colors.primary}
             style={styles.input}
           />
 
-          <HelperText type="error" visible={Boolean(emailError)}>
+          <HelperText
+            type="error"
+            visible={Boolean(emailError)}
+          >
             {emailError}
           </HelperText>
 
@@ -144,6 +178,9 @@ export default function LoginScreen({ navigation }: Props) {
               setPasswordError("");
             }}
             secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!isLoading}
             left={
               <TextInput.Icon
                 icon="lock-outline"
@@ -152,17 +189,30 @@ export default function LoginScreen({ navigation }: Props) {
             }
             right={
               <TextInput.Icon
-                icon={showPassword ? "eye-off-outline" : "eye-outline"}
+                icon={
+                  showPassword
+                    ? "eye-off-outline"
+                    : "eye-outline"
+                }
                 color={colors.muted}
-                onPress={() => setShowPassword((value) => !value)}
+                onPress={() =>
+                  setShowPassword((value) => !value)
+                }
               />
             }
-            outlineColor={passwordError ? colors.hazardous : colors.border}
+            outlineColor={
+              passwordError
+                ? colors.hazardous
+                : colors.border
+            }
             activeOutlineColor={colors.primary}
             style={styles.input}
           />
 
-          <HelperText type="error" visible={Boolean(passwordError)}>
+          <HelperText
+            type="error"
+            visible={Boolean(passwordError)}
+          >
             {passwordError}
           </HelperText>
 
@@ -170,17 +220,19 @@ export default function LoginScreen({ navigation }: Props) {
             mode="contained"
             loading={isLoading}
             disabled={isLoading}
-            icon="arrow-right"
+            icon={isLoading ? undefined : "arrow-right"}
             onPress={handleLogin}
             contentStyle={styles.primaryButton}
             labelStyle={styles.primaryButtonLabel}
           >
-            Sign in
+            {isLoading ? "Signing in..." : "Sign in"}
           </Button>
 
           <View style={styles.dividerRow}>
             <Divider style={styles.divider} />
+
             <Text style={styles.orText}>OR</Text>
+
             <Divider style={styles.divider} />
           </View>
 
@@ -188,6 +240,7 @@ export default function LoginScreen({ navigation }: Props) {
             mode="outlined"
             icon="account-plus-outline"
             textColor={colors.primary}
+            disabled={isLoading}
             onPress={() => navigation.navigate("Register")}
             contentStyle={styles.secondaryButton}
           >
@@ -203,7 +256,9 @@ export default function LoginScreen({ navigation }: Props) {
   );
 }
 
-function getAuthErrorMessage(code?: string) {
+function getAuthErrorMessage(
+  code?: string
+): string {
   switch (code) {
     case "auth/invalid-email":
       return "Please enter a valid email address.";
@@ -221,6 +276,9 @@ function getAuthErrorMessage(code?: string) {
 
     case "auth/network-request-failed":
       return "Check your internet connection and try again.";
+
+    case "auth/operation-not-allowed":
+      return "Email/password sign-in is not enabled in Firebase.";
 
     default:
       return "Something went wrong. Please try again.";
