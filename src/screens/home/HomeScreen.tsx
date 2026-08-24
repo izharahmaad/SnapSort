@@ -1,8 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
+  ImageBackground,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -10,66 +10,86 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { Button, Card, Text } from "react-native-paper";
+import {
+  Button,
+  Text,
+} from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors } from "../../constants/theme";
 import { RootStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/auth.store";
-import {
-  getUserScans,
-} from "../../services/firebase/scans.service";
-import type {
-  DisposalCategory,
-  ScanRecord,
-} from "../../types/scan";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
   "Home"
 >;
 
-type CategoryCard = {
-  category: DisposalCategory;
-  icon: string;
-  label: string;
-  description: string;
-  color: string;
-  background: string;
+type IconName = React.ComponentProps<
+  typeof MaterialCommunityIcons
+>["name"];
+
+type Pathway = {
+  title: string;
+  subtitle: string;
+  icon: IconName;
+  image: number;
 };
 
-const categoryCards: CategoryCard[] = [
+type RecentScan = {
+  id: string;
+  title: string;
+  category: string;
+  score: string;
+  icon: IconName;
+  time: string;
+};
+
+const heroImage = require("../../../assets/images/hero-leaf.png");
+
+const pathways: Pathway[] = [
   {
-    category: "recycle",
+    title: "Recycle",
+    subtitle: "Transform waste into new beginnings.",
     icon: "recycle",
-    label: "Recycle",
-    description: "Give materials another life",
-    color: "#287A4A",
-    background: "#E4F6E9",
+    image: heroImage,
   },
   {
-    category: "reuse",
+    title: "Reuse",
+    subtitle: "Give useful things another life.",
     icon: "refresh",
-    label: "Reuse",
-    description: "Find a second purpose",
-    color: "#B36D12",
-    background: "#FFF0D5",
+    image: heroImage,
   },
   {
-    category: "compost",
+    title: "Compost",
+    subtitle: "Return natural materials to the earth.",
     icon: "leaf",
-    label: "Compost",
-    description: "Return nutrients to soil",
-    color: "#7A633A",
-    background: "#F1E9D5",
+    image: heroImage,
   },
   {
-    category: "trash",
+    title: "Dispose",
+    subtitle: "Choose the safest final destination.",
     icon: "delete-outline",
-    label: "Dispose",
-    description: "Choose the safer option",
-    color: "#59636B",
-    background: "#EAEFF1",
+    image: heroImage,
+  },
+];
+
+const recentScans: RecentScan[] = [
+  {
+    id: "coffee-cup",
+    title: "Coffee Cup",
+    category: "COMPOSTABLE",
+    score: "9.2",
+    icon: "coffee-outline",
+    time: "TODAY, 08:30 AM",
+  },
+  {
+    id: "pet-bottle",
+    title: "PET Bottle",
+    category: "RECYCLABLE",
+    score: "7.5",
+    icon: "bottle-soda-outline",
+    time: "YESTERDAY, 02:15 PM",
   },
 ];
 
@@ -78,41 +98,11 @@ function getFirstName(
 ): string {
   const cleanName = displayName?.trim();
 
-  if (!cleanName) return "there";
+  if (!cleanName) {
+    return "there";
+  }
 
   return cleanName.split(/\s+/)[0];
-}
-
-function getScore(scan: ScanRecord): number {
-  return Math.max(
-    0,
-    Math.min(10, Number(scan.ecoScore) || 0)
-  );
-}
-
-function getDateLabel(value: unknown): string {
-  if (
-    value &&
-    typeof value === "object" &&
-    "toDate" in value &&
-    typeof value.toDate === "function"
-  ) {
-    return value.toDate().toLocaleDateString();
-  }
-
-  if (value instanceof Date) {
-    return value.toLocaleDateString();
-  }
-
-  if (typeof value === "string") {
-    const date = new Date(value);
-
-    if (!Number.isNaN(date.getTime())) {
-      return date.toLocaleDateString();
-    }
-  }
-
-  return "Recently";
 }
 
 export default function HomeScreen({
@@ -121,78 +111,51 @@ export default function HomeScreen({
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
 
-  const [scans, setScans] = useState<ScanRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activePathway, setActivePathway] =
+    useState("Recycle");
 
   const firstName = getFirstName(user?.displayName);
 
-  const loadScans = useCallback(
-    async (refresh = false) => {
-      if (!user) {
-        setScans([]);
-        setIsLoading(false);
-        setIsRefreshing(false);
-        return;
-      }
-
-      try {
-        if (refresh) {
-          setIsRefreshing(true);
-        } else {
-          setIsLoading(true);
-        }
-
-        const records = await getUserScans(user.uid);
-        setScans(records);
-      } catch (error: unknown) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Could not load your scan data.";
-
-        Alert.alert("Could not load dashboard", message);
-      } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
-      }
-    },
-    [user]
-  );
-
-  useEffect(() => {
-    loadScans();
-  }, [loadScans]);
-
   const averageScore = useMemo(() => {
-    if (scans.length === 0) return "0.0";
+    if (recentScans.length === 0) {
+      return "0.0";
+    }
 
-    const total = scans.reduce(
-      (sum, scan) => sum + getScore(scan),
+    const total = recentScans.reduce(
+      (sum, scan) => sum + Number(scan.score),
       0
     );
 
-    return (total / scans.length).toFixed(1);
-  }, [scans]);
+    return (total / recentScans.length).toFixed(1);
+  }, []);
 
-  const recentScans = scans.slice(0, 2);
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 700);
+  };
 
   if (!user) {
     return (
       <View style={styles.emptyContainer}>
-        <MaterialCommunityIcons
-          name="account-lock-outline"
-          size={56}
-          color={colors.primary}
-        />
+        <View style={styles.emptyIcon}>
+          <MaterialCommunityIcons
+            name="account-lock-outline"
+            size={44}
+            color={colors.primary}
+          />
+        </View>
 
         <Text style={styles.emptyTitle}>
           Sign in to continue
         </Text>
 
-        <Text style={styles.emptyText}>
-          Your personalized sustainability dashboard is
-          waiting for you.
+        <Text style={styles.emptyDescription}>
+          Your personal sustainability dashboard is waiting
+          for you.
         </Text>
 
         <Button
@@ -206,877 +169,802 @@ export default function HomeScreen({
     );
   }
 
-  if (isLoading) {
-    return (
-      <View style={styles.emptyContainer}>
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-        />
-
-        <Text style={styles.emptyText}>
-          Preparing your dashboard...
-        </Text>
-      </View>
-    );
-  }
-
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={[
-        styles.container,
-        {
-          paddingTop: Math.max(insets.top, 20),
-          paddingBottom: Math.max(insets.bottom + 18, 30),
-        },
-      ]}
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefreshing}
-          onRefresh={() => loadScans(true)}
-          tintColor={colors.primary}
-          colors={[colors.primary]}
-        />
-      }
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.header}>
-        <View style={styles.headerCopy}>
-          <Text style={styles.greeting}>
-            Good day, {firstName} 🌿
-          </Text>
-
-          <Text style={styles.headerSubtitle}>
-            Ready to make a smarter choice?
-          </Text>
-        </View>
-
-        <Button
-          mode="text"
-          icon="account-circle-outline"
-          compact
-          textColor={colors.primary}
-          onPress={() => navigation.navigate("Profile")}
-          contentStyle={styles.profileButtonContent}
-          labelStyle={styles.profileButtonLabel}
-        >
-          Profile
-        </Button>
-      </View>
-
-      <LinearGradient
-        colors={[colors.primary, "#4AA66D", "#75B987"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroCard}
-      >
-        <View style={styles.heroCircleOne} />
-        <View style={styles.heroCircleTwo} />
-        <View style={styles.heroLeaf}>
-          <MaterialCommunityIcons
-            name="leaf"
-            size={22}
-            color="rgba(255,255,255,0.6)"
+    <View style={styles.root}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom: insets.bottom + 112,
+          },
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
-        </View>
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        <ImageBackground
+          source={heroImage}
+          style={[
+            styles.hero,
+            {
+              paddingTop: Math.max(insets.top, 22),
+            },
+          ]}
+          imageStyle={styles.heroImage}
+        >
+          <LinearGradient
+            colors={[
+              "rgba(3,35,25,0.74)",
+              "rgba(3,35,25,0.20)",
+              "rgba(3,35,25,0.86)",
+            ]}
+            locations={[0, 0.43, 1]}
+            style={styles.heroOverlay}
+          >
+            <View style={styles.topBar}>
+              <Pressable
+                style={styles.topIconButton}
+                onPress={() => navigation.navigate("Profile")}
+              >
+                <MaterialCommunityIcons
+                  name="menu"
+                  size={25}
+                  color="#FFFFFF"
+                />
+              </Pressable>
 
-        <View style={styles.heroTopRow}>
-          <View style={styles.heroBadge}>
-            <MaterialCommunityIcons
-              name="sparkles"
-              size={13}
-              color="#D9FFE4"
+              <Text style={styles.brand}>
+                SnapSort
+              </Text>
+
+              <Pressable
+                style={styles.topIconButton}
+                onPress={() => navigation.navigate("Profile")}
+              >
+                <MaterialCommunityIcons
+                  name="bell-outline"
+                  size={23}
+                  color="#FFFFFF"
+                />
+
+                <View style={styles.notificationDot} />
+              </Pressable>
+            </View>
+
+            <View style={styles.heroCopy}>
+              <Text style={styles.heroKicker}>
+                WELCOME BACK, {firstName.toUpperCase()}
+              </Text>
+
+              <Text style={styles.heroTitle}>
+                Your footprint,{"\n"}evolved.
+              </Text>
+
+              <Text style={styles.heroDescription}>
+                Every scan is a step towards a more regenerative
+                future. Discover the hidden lifecycle of your
+                everyday items.
+              </Text>
+
+              <Button
+                mode="contained"
+                icon="camera-outline"
+                buttonColor="#0B4E3E"
+                textColor="#FFFFFF"
+                onPress={() => navigation.navigate("Camera")}
+                style={styles.heroButton}
+                contentStyle={styles.heroButtonContent}
+                labelStyle={styles.heroButtonLabel}
+              >
+                Scan an item
+              </Button>
+            </View>
+          </LinearGradient>
+        </ImageBackground>
+
+        <View style={styles.body}>
+          <View style={styles.metricsRow}>
+            <Metric
+              value={String(recentScans.length)}
+              label="ITEMS SCANNED"
             />
 
-            <Text style={styles.heroBadgeText}>
-              AI-POWERED SCANNING
+            <Metric
+              value={averageScore}
+              label="ECO SCORE AVG"
+            />
+          </View>
+
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              Pathways
             </Text>
+
+            <Pressable
+              onPress={() => navigation.navigate("History")}
+            >
+              <Text style={styles.sectionAction}>
+                VIEW ALL
+              </Text>
+            </Pressable>
           </View>
 
-          <View style={styles.heroCameraIcon}>
-            <MaterialCommunityIcons
-              name="camera-outline"
-              size={24}
-              color="#FFFFFF"
-            />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.pathwayList}
+          >
+            {pathways.map((pathway) => (
+              <PathwayCard
+                key={pathway.title}
+                pathway={pathway}
+                active={activePathway === pathway.title}
+                onPress={() => {
+                  setActivePathway(pathway.title);
+                  navigation.navigate("Camera");
+                }}
+              />
+            ))}
+          </ScrollView>
+
+          <View style={styles.pathwayIndicator}>
+            {pathways.map((pathway) => (
+              <View
+                key={pathway.title}
+                style={[
+                  styles.indicator,
+                  activePathway === pathway.title &&
+                    styles.activeIndicator,
+                ]}
+              />
+            ))}
           </View>
-        </View>
 
-        <Text style={styles.heroTitle}>
-          What are you holding?
-        </Text>
+          <View style={styles.recentHeader}>
+            <Text style={styles.sectionTitle}>
+              Recent scans
+            </Text>
 
-        <Text style={styles.heroDescription}>
-          Snap an everyday item and get clear guidance on how
-          to recycle, reuse, compost, or dispose of it.
-        </Text>
+            <Pressable
+              onPress={() => navigation.navigate("History")}
+            >
+              <Text style={styles.sectionAction}>
+                VIEW HISTORY
+              </Text>
+            </Pressable>
+          </View>
 
-        <Button
-          mode="contained"
-          icon="camera-outline"
-          buttonColor="#FFFFFF"
-          textColor={colors.primary}
-          onPress={() => navigation.navigate("Camera")}
-          contentStyle={styles.scanButton}
-          labelStyle={styles.scanButtonLabel}
-          style={styles.scanButtonWrapper}
-        >
-          Scan an item
-        </Button>
-      </LinearGradient>
+          <View style={styles.recentList}>
+            {recentScans.map((scan) => (
+              <RecentScanRow
+                key={scan.id}
+                scan={scan}
+              />
+            ))}
+          </View>
 
-      <View style={styles.statsRow}>
-        <StatCard
-          icon="barcode-scan"
-          value={String(scans.length)}
-          label="Total scans"
-        />
-
-        <StatCard
-          icon="leaf"
-          value={averageScore}
-          label="Average score"
-        />
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <View>
-          <Text style={styles.sectionTitle}>
-            Your impact
-          </Text>
-
-          <Text style={styles.sectionSubtitle}>
-            Every small decision adds up.
-          </Text>
-        </View>
-
-        <Button
-          mode="text"
-          compact
-          textColor={colors.primary}
-          onPress={() => navigation.navigate("History")}
-          labelStyle={styles.viewButtonLabel}
-        >
-          History
-        </Button>
-      </View>
-
-      <Card style={styles.missionCard}>
-        <Card.Content>
-          <View style={styles.missionRow}>
-            <View style={styles.missionIcon}>
+          <View style={styles.insightCard}>
+            <View style={styles.insightIcon}>
               <MaterialCommunityIcons
-                name="target"
-                size={26}
-                color="#C87912"
+                name="lightbulb-on-outline"
+                size={23}
+                color="#A96E14"
               />
             </View>
 
-            <View style={styles.missionCopy}>
-              <Text style={styles.missionEyebrow}>
-                TODAY&apos;S MISSION
+            <View style={styles.insightContent}>
+              <Text style={styles.insightLabel}>
+                TODAY&apos;S INSIGHT
               </Text>
 
-              <Text style={styles.missionTitle}>
-                Give one item a second chance
-              </Text>
-
-              <Text style={styles.missionText}>
-                Before throwing something away, ask whether
-                it can be reused, repaired, or donated.
+              <Text style={styles.insightText}>
+                The best waste is the waste you never create.
               </Text>
             </View>
+
+            <MaterialCommunityIcons
+              name="arrow-top-right"
+              size={20}
+              color="#A96E14"
+            />
           </View>
-
-          <View style={styles.missionFooter}>
-            <View style={styles.missionProgressTrack}>
-              <View style={styles.missionProgressValue} />
-            </View>
-
-            <Text style={styles.missionProgressText}>
-              0%
-            </Text>
-          </View>
-        </Card.Content>
-      </Card>
-
-      <View style={styles.sectionHeader}>
-        <View>
-          <Text style={styles.sectionTitle}>
-            Choose a path
-          </Text>
-
-          <Text style={styles.sectionSubtitle}>
-            Explore better ways to handle everyday items.
-          </Text>
         </View>
-      </View>
+      </ScrollView>
 
-      <View style={styles.categoryGrid}>
-        {categoryCards.map((item) => (
-          <CategoryCard
-            key={item.category}
-            item={item}
+      <View
+        style={[
+          styles.bottomNavWrapper,
+          {
+            bottom: Math.max(insets.bottom, 12),
+          },
+        ]}
+      >
+        <View style={styles.bottomNav}>
+          <BottomNavItem
+            icon="home-variant"
+            label="Home"
+            active
+            onPress={() => undefined}
+          />
+
+          <BottomNavItem
+            icon="camera-outline"
+            label="Scan"
             onPress={() => navigation.navigate("Camera")}
           />
-        ))}
-      </View>
 
-      <Card style={styles.tipCard}>
-        <Card.Content style={styles.tipContent}>
-          <View style={styles.tipIcon}>
-            <MaterialCommunityIcons
-              name="lightbulb-on-outline"
-              size={23}
-              color="#C87912"
-            />
-          </View>
-
-          <View style={styles.tipCopy}>
-            <Text style={styles.tipTitle}>
-              Quick eco tip
-            </Text>
-
-            <Text style={styles.tipText}>
-              Keep batteries, medicines, chemicals, and
-              electronics out of regular household trash.
-            </Text>
-          </View>
-        </Card.Content>
-      </Card>
-
-      <View style={styles.sectionHeader}>
-        <View>
-          <Text style={styles.sectionTitle}>
-            Recent activity
-          </Text>
-
-          <Text style={styles.sectionSubtitle}>
-            Your latest sustainability decisions.
-          </Text>
-        </View>
-
-        {recentScans.length > 0 && (
-          <Button
-            mode="text"
-            compact
-            textColor={colors.primary}
+          <BottomNavItem
+            icon="clipboard-text-outline"
+            label="Missions"
             onPress={() => navigation.navigate("History")}
-            labelStyle={styles.viewButtonLabel}
-          >
-            See all
-          </Button>
-        )}
-      </View>
+          />
 
-      {recentScans.length > 0 ? (
-        <View style={styles.recentList}>
-          {recentScans.map((scan) => (
-            <RecentScanCard
-              key={scan.id}
-              scan={scan}
-            />
-          ))}
+          <BottomNavItem
+            icon="chart-line"
+            label="Impact"
+            onPress={() => navigation.navigate("History")}
+          />
         </View>
-      ) : (
-        <Card style={styles.emptyRecentCard}>
-          <Card.Content style={styles.emptyRecentContent}>
-            <View style={styles.emptyRecentIcon}>
-              <MaterialCommunityIcons
-                name="history"
-                size={24}
-                color={colors.primary}
-              />
-            </View>
-
-            <View style={styles.emptyRecentCopy}>
-              <Text style={styles.emptyRecentTitle}>
-                No scans yet
-              </Text>
-
-              <Text style={styles.emptyRecentText}>
-                Your recent results will appear here.
-              </Text>
-            </View>
-
-            <Button
-              mode="text"
-              compact
-              textColor={colors.primary}
-              onPress={() => navigation.navigate("Camera")}
-            >
-              Start
-            </Button>
-          </Card.Content>
-        </Card>
-      )}
-    </ScrollView>
-  );
-}
-
-function StatCard({
-  icon,
-  value,
-  label,
-}: {
-  icon: string;
-  value: string;
-  label: string;
-}) {
-  return (
-    <View style={styles.statCard}>
-      <View style={styles.statIcon}>
-        <MaterialCommunityIcons
-          name={icon as any}
-          size={20}
-          color={colors.primary}
-        />
-      </View>
-
-      <View>
-        <Text style={styles.statValue}>{value}</Text>
-        <Text style={styles.statLabel}>{label}</Text>
       </View>
     </View>
   );
 }
 
-function CategoryCard({
-  item,
-  onPress,
+function Metric({
+  value,
+  label,
 }: {
-  item: CategoryCard;
-  onPress: () => void;
+  value: string;
+  label: string;
 }) {
   return (
-    <Card
-      style={[
-        styles.categoryCard,
-        {
-          backgroundColor: item.background,
-        },
-      ]}
-      onPress={onPress}
-    >
-      <Card.Content style={styles.categoryContent}>
-        <View
-          style={[
-            styles.categoryIcon,
-            {
-              backgroundColor: "rgba(255,255,255,0.75)",
-            },
-          ]}
-        >
-          <MaterialCommunityIcons
-            name={item.icon as any}
-            size={23}
-            color={item.color}
-          />
-        </View>
+    <View style={styles.metric}>
+      <Text style={styles.metricValue}>
+        {value}
+      </Text>
 
-        <Text
-          style={[
-            styles.categoryLabel,
-            {
-              color: item.color,
-            },
-          ]}
-        >
-          {item.label}
-        </Text>
+      <Text style={styles.metricLabel}>
+        {label}
+      </Text>
 
-        <Text style={styles.categoryDescription}>
-          {item.description}
-        </Text>
-
-        <MaterialCommunityIcons
-          name="arrow-top-right"
-          size={18}
-          color={item.color}
-          style={styles.categoryArrow}
-        />
-      </Card.Content>
-    </Card>
+      <View style={styles.metricLine} />
+    </View>
   );
 }
 
-function RecentScanCard({
+function PathwayCard({
+  pathway,
+  active,
+  onPress,
+}: {
+  pathway: Pathway;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.pathwayCard,
+        active && styles.activePathwayCard,
+      ]}
+    >
+      <ImageBackground
+        source={pathway.image}
+        style={styles.pathwayImage}
+        imageStyle={styles.pathwayImageStyle}
+      >
+        <LinearGradient
+          colors={[
+            "rgba(0,0,0,0.02)",
+            "rgba(0,0,0,0.18)",
+            "rgba(0,0,0,0.84)",
+          ]}
+          style={styles.pathwayOverlay}
+        >
+          <View style={styles.pathwayTop}>
+            <View style={styles.pathwayIcon}>
+              <MaterialCommunityIcons
+                name={pathway.icon}
+                size={21}
+                color="#0B4E3E"
+              />
+            </View>
+
+            <MaterialCommunityIcons
+              name="arrow-top-right"
+              size={21}
+              color="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.pathwayCopy}>
+            <Text style={styles.pathwayTitle}>
+              {pathway.title}
+            </Text>
+
+            <Text style={styles.pathwaySubtitle}>
+              {pathway.subtitle}
+            </Text>
+          </View>
+        </LinearGradient>
+      </ImageBackground>
+    </Pressable>
+  );
+}
+
+function RecentScanRow({
   scan,
 }: {
-  scan: ScanRecord;
+  scan: RecentScan;
 }) {
-  const score = getScore(scan);
-
   return (
-    <Card style={styles.recentCard}>
-      <Card.Content style={styles.recentContent}>
-        <View style={styles.recentIcon}>
-          <MaterialCommunityIcons
-            name="check-circle-outline"
-            size={24}
-            color={colors.primary}
-          />
-        </View>
+    <View style={styles.recentRow}>
+      <View style={styles.recentItemIcon}>
+        <MaterialCommunityIcons
+          name={scan.icon}
+          size={21}
+          color="#0B4E3E"
+        />
+      </View>
 
-        <View style={styles.recentCopy}>
-          <Text style={styles.recentName}>
-            {scan.itemName || "Unknown item"}
-          </Text>
+      <View style={styles.recentItemContent}>
+        <Text style={styles.recentItemTitle}>
+          {scan.title}
+        </Text>
 
-          <Text style={styles.recentDate}>
-            {getDateLabel(scan.createdAt)}
-          </Text>
-        </View>
+        <Text style={styles.recentItemTime}>
+          {scan.time}
+        </Text>
+      </View>
 
-        <View style={styles.recentScore}>
-          <Text style={styles.recentScoreValue}>
-            {score}/10
-          </Text>
+      <View style={styles.recentItemScore}>
+        <Text style={styles.scoreValue}>
+          {scan.score}
+        </Text>
 
-          <Text style={styles.recentScoreLabel}>
-            eco score
-          </Text>
-        </View>
-      </Card.Content>
-    </Card>
+        <Text style={styles.scoreCategory}>
+          {scan.category}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function BottomNavItem({
+  icon,
+  label,
+  active = false,
+  onPress,
+}: {
+  icon: IconName;
+  label: string;
+  active?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={styles.bottomNavItem}
+    >
+      <View
+        style={[
+          styles.bottomNavIcon,
+          active && styles.activeBottomNavIcon,
+        ]}
+      >
+        <MaterialCommunityIcons
+          name={icon}
+          size={20}
+          color={active ? "#FFFFFF" : "#7D8784"}
+        />
+      </View>
+
+      <Text
+        style={[
+          styles.bottomNavLabel,
+          active && styles.activeBottomNavLabel,
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#F8F7F3",
+  },
   screen: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: "#F8F7F3",
   },
-  container: {
-    paddingHorizontal: 20,
+  scrollContent: {
+    backgroundColor: "#F8F7F3",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 21,
-  },
-  headerCopy: {
-    flex: 1,
-  },
-  greeting: {
-    fontFamily: "Poppins_700Bold",
-    color: colors.text,
-    fontSize: 22,
-  },
-  headerSubtitle: {
-    fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  profileButtonContent: {
-    paddingHorizontal: 0,
-  },
-  profileButtonLabel: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 11,
-  },
-  heroCard: {
-    minHeight: 315,
-    borderRadius: 28,
-    padding: 21,
-    justifyContent: "space-between",
+  hero: {
+    height: 555,
     overflow: "hidden",
-    elevation: 6,
-    shadowColor: "#155C34",
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
   },
-  heroCircleOne: {
-    position: "absolute",
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    right: -70,
-    top: -75,
-    backgroundColor: "rgba(255,255,255,0.1)",
+  heroImage: {
+    resizeMode: "cover",
   },
-  heroCircleTwo: {
-    position: "absolute",
-    width: 135,
-    height: 135,
-    borderRadius: 68,
-    left: -65,
-    bottom: -60,
-    backgroundColor: "rgba(255,255,255,0.08)",
+  heroOverlay: {
+    flex: 1,
+    justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingBottom: 28,
   },
-  heroLeaf: {
-    position: "absolute",
-    right: 30,
-    top: 88,
-    width: 42,
-    height: 42,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.1)",
-  },
-  heroTopRow: {
+  topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  heroBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.15)",
-  },
-  heroBadgeText: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 9,
-    letterSpacing: 1,
-    color: "#D8FFE4",
-  },
-  heroCameraIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 15,
+  topIconButton: {
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.13)",
+  },
+  notificationDot: {
+    position: "absolute",
+    top: 7,
+    right: 7,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#F6D455",
+  },
+  brand: {
+    fontFamily: "Poppins_700Bold",
+    color: "#FFFFFF",
+    fontSize: 27,
+    letterSpacing: -0.8,
+  },
+  heroCopy: {
+    maxWidth: 350,
+  },
+  heroKicker: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#D5F0E1",
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 13,
   },
   heroTitle: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 27,
-    lineHeight: 35,
     color: "#FFFFFF",
-    marginTop: 14,
+    fontSize: 39,
+    lineHeight: 45,
+    letterSpacing: -1,
   },
   heroDescription: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
-    lineHeight: 21,
-    color: "#ECFFF1",
-    maxWidth: 315,
-    marginTop: 3,
+    color: "#F4FFF8",
+    fontSize: 15,
+    lineHeight: 23,
+    marginTop: 14,
+    maxWidth: 335,
   },
-  scanButtonWrapper: {
-    marginTop: 12,
-    borderRadius: 13,
-    overflow: "hidden",
+  heroButton: {
+    alignSelf: "flex-start",
+    marginTop: 20,
+    borderRadius: 14,
   },
-  scanButton: {
-    height: 53,
+  heroButtonContent: {
+    height: 52,
+    paddingHorizontal: 6,
   },
-  scanButtonLabel: {
+  heroButtonLabel: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
+    fontSize: 13,
   },
-  statsRow: {
+  body: {
+    paddingHorizontal: 24,
+    paddingTop: 25,
+  },
+  metricsRow: {
     flexDirection: "row",
-    gap: 11,
-    marginTop: 15,
+    gap: 39,
+    marginBottom: 43,
   },
-  statCard: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    padding: 12,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+  metric: {
+    minWidth: 100,
   },
-  statIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.primaryLight,
-  },
-  statValue: {
+  metricValue: {
     fontFamily: "Poppins_700Bold",
-    color: colors.text,
-    fontSize: 18,
+    color: "#064B3D",
+    fontSize: 39,
+    lineHeight: 43,
+    letterSpacing: -1,
   },
-  statLabel: {
-    fontFamily: "Poppins_400Regular",
-    color: colors.muted,
+  metricLabel: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#7B817C",
     fontSize: 9,
-    marginTop: -2,
+    letterSpacing: 2.2,
+    marginTop: 7,
+  },
+  metricLine: {
+    width: 48,
+    height: 4,
+    backgroundColor: "#F2D34D",
+    marginTop: 17,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 23,
-    marginBottom: 10,
+    marginBottom: 15,
   },
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
-    fontSize: 17,
+    color: "#1D2421",
+    fontSize: 26,
+    letterSpacing: -0.5,
   },
-  sectionSubtitle: {
-    fontFamily: "Poppins_400Regular",
-    color: colors.muted,
+  sectionAction: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#0B4E3E",
     fontSize: 10,
-    marginTop: 2,
+    letterSpacing: 1.5,
   },
-  viewButtonLabel: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 11,
+  pathwayList: {
+    gap: 12,
+    paddingRight: 24,
   },
-  missionCard: {
-    borderRadius: 21,
-    backgroundColor: "#FFF8EA",
-    borderWidth: 1,
-    borderColor: "#F3DEB1",
-  },
-  missionRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 11,
-  },
-  missionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFE7B4",
-  },
-  missionCopy: {
-    flex: 1,
-  },
-  missionEyebrow: {
-    fontFamily: "Poppins_600SemiBold",
-    color: "#B36D12",
-    fontSize: 9,
-    letterSpacing: 1,
-  },
-  missionTitle: {
-    fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
-    fontSize: 14,
-    marginTop: 2,
-  },
-  missionText: {
-    fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 11,
-    lineHeight: 17,
-    marginTop: 4,
-  },
-  missionFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    marginTop: 16,
-  },
-  missionProgressTrack: {
-    flex: 1,
-    height: 7,
-    borderRadius: 5,
+  pathwayCard: {
+    width: 280,
+    height: 400,
     overflow: "hidden",
-    backgroundColor: "#F2E2BF",
+    borderRadius: 16,
+    backgroundColor: "#DDE3E0",
   },
-  missionProgressValue: {
-    width: "6%",
-    height: "100%",
-    borderRadius: 5,
-    backgroundColor: "#D8912F",
+  activePathwayCard: {
+    shadowColor: "#0B4E3E",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: {
+      width: 0,
+      height: 7,
+    },
+    elevation: 5,
   },
-  missionProgressText: {
-    fontFamily: "Poppins_600SemiBold",
-    color: "#B36D12",
-    fontSize: 11,
-  },
-  categoryGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 11,
-  },
-  categoryCard: {
-    width: "48.2%",
-    minHeight: 139,
-    borderRadius: 20,
-    elevation: 0,
-  },
-  categoryContent: {
-    minHeight: 139,
-    padding: 13,
-  },
-  categoryIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  categoryLabel: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
-    marginTop: 10,
-  },
-  categoryDescription: {
-    fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 10,
-    lineHeight: 15,
-    marginTop: 2,
-    maxWidth: 120,
-  },
-  categoryArrow: {
-    position: "absolute",
-    right: 13,
-    bottom: 13,
-  },
-  tipCard: {
-    marginTop: 18,
-    borderRadius: 20,
-    backgroundColor: colors.warningBackground,
-    borderWidth: 1,
-    borderColor: colors.warningBorder,
-  },
-  tipContent: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-  },
-  tipIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFE8B7",
-  },
-  tipCopy: {
+  pathwayImage: {
     flex: 1,
   },
-  tipTitle: {
-    fontFamily: "Poppins_600SemiBold",
-    color: colors.warningText,
-    fontSize: 14,
+  pathwayImageStyle: {
+    resizeMode: "cover",
   },
-  tipText: {
+  pathwayOverlay: {
+    flex: 1,
+    justifyContent: "space-between",
+    padding: 17,
+  },
+  pathwayTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  pathwayIcon: {
+    width: 45,
+    height: 45,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(222,244,230,0.92)",
+  },
+  pathwayCopy: {
+    marginBottom: 3,
+  },
+  pathwayTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#FFFFFF",
+    fontSize: 28,
+    letterSpacing: -0.6,
+  },
+  pathwaySubtitle: {
     fontFamily: "Poppins_400Regular",
-    color: colors.warningText,
-    fontSize: 11,
-    lineHeight: 17,
+    color: "#F5FFF7",
+    fontSize: 13,
+    lineHeight: 20,
     marginTop: 3,
+    maxWidth: 235,
+  },
+  pathwayIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 14,
+  },
+  indicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#C5CCC8",
+  },
+  activeIndicator: {
+    width: 25,
+    backgroundColor: "#0B4E3E",
+  },
+  recentHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 43,
+    marginBottom: 14,
   },
   recentList: {
-    gap: 10,
+    gap: 1,
   },
-  recentCard: {
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  recentContent: {
+  recentRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    minHeight: 78,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E4E5E1",
   },
-  recentIcon: {
+  recentItemIcon: {
+    width: 47,
+    height: 47,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EEF0ED",
+  },
+  recentItemContent: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  recentItemTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#1E2824",
+    fontSize: 15,
+  },
+  recentItemTime: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#858B86",
+    fontSize: 9,
+    letterSpacing: 1.1,
+    marginTop: 4,
+  },
+  recentItemScore: {
+    alignItems: "flex-end",
+  },
+  scoreValue: {
+    fontFamily: "Poppins_700Bold",
+    color: "#07513F",
+    fontSize: 21,
+  },
+  scoreCategory: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#8C7732",
+    fontSize: 8,
+    letterSpacing: 1.2,
+    marginTop: 1,
+  },
+  insightCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 24,
+    padding: 15,
+    borderRadius: 17,
+    backgroundColor: "#FFF8E4",
+    borderWidth: 1,
+    borderColor: "#F2E2AD",
+  },
+  insightIcon: {
     width: 42,
     height: 42,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primaryLight,
+    backgroundColor: "#FFEABD",
   },
-  recentCopy: {
+  insightContent: {
     flex: 1,
   },
-  recentName: {
+  insightLabel: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
-    fontSize: 13,
-  },
-  recentDate: {
-    fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 10,
-    marginTop: 2,
-  },
-  recentScore: {
-    alignItems: "flex-end",
-  },
-  recentScoreValue: {
-    fontFamily: "Poppins_700Bold",
-    color: colors.primary,
-    fontSize: 15,
-  },
-  recentScoreLabel: {
-    fontFamily: "Poppins_400Regular",
-    color: colors.muted,
+    color: "#A96E14",
     fontSize: 9,
+    letterSpacing: 1.2,
   },
-  emptyRecentCard: {
-    borderRadius: 19,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+  insightText: {
+    fontFamily: "Poppins_500Medium",
+    color: "#65501F",
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 3,
   },
-  emptyRecentContent: {
+  bottomNavWrapper: {
+    position: "absolute",
+    left: 24,
+    right: 24,
+  },
+  bottomNav: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    justifyContent: "space-around",
+    height: 75,
+    paddingHorizontal: 8,
+    borderRadius: 39,
+    backgroundColor: "rgba(255,255,255,0.97)",
+    shadowColor: "#19372D",
+    shadowOpacity: 0.14,
+    shadowRadius: 18,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    elevation: 8,
   },
-  emptyRecentIcon: {
-    width: 41,
-    height: 41,
-    borderRadius: 14,
+  bottomNavItem: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primaryLight,
+    minWidth: 58,
   },
-  emptyRecentCopy: {
-    flex: 1,
+  bottomNavIcon: {
+    width: 37,
+    height: 37,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  emptyRecentTitle: {
+  activeBottomNavIcon: {
+    backgroundColor: "#0B4E3E",
+  },
+  bottomNavLabel: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
-    fontSize: 13,
+    color: "#89908B",
+    fontSize: 9,
+    letterSpacing: 0.8,
+    marginTop: 3,
   },
-  emptyRecentText: {
-    fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 10,
-    marginTop: 2,
+  activeBottomNavLabel: {
+    color: "#0B4E3E",
   },
   emptyContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
-    padding: 24,
-    backgroundColor: colors.background,
+    paddingHorizontal: 25,
+    backgroundColor: "#F8F7F3",
+  },
+  emptyIcon: {
+    width: 88,
+    height: 88,
+    borderRadius: 29,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primaryLight,
+    marginBottom: 14,
   },
   emptyTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.text,
-    fontSize: 19,
-    textAlign: "center",
+    fontSize: 20,
   },
-  emptyText: {
+  emptyDescription: {
     maxWidth: 290,
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 13,
-    textAlign: "center",
     lineHeight: 20,
+    textAlign: "center",
+    marginTop: 7,
+    marginBottom: 17,
   },
 });
