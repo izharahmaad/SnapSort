@@ -31,9 +31,10 @@ type ScanItem = {
   id: string;
   title: string;
   category: string;
-  score: string;
+  score: number;
   icon: IconName;
-  time: string;
+  date: Date | null;
+  timeLabel: string;
 };
 
 type PathwayItem = {
@@ -83,13 +84,7 @@ const pathways: PathwayItem[] = [
 function getFirstName(
   displayName: string | null | undefined
 ): string {
-  const name = displayName?.trim();
-
-  if (!name) {
-    return "there";
-  }
-
-  return name.split(/\s+/)[0];
+  return displayName?.trim().split(/\s+/)[0] || "there";
 }
 
 function getScanTitle(scan: any): string {
@@ -111,37 +106,61 @@ function getScanCategory(scan: any): string {
   ).toUpperCase();
 }
 
-function getScanScore(scan: any): string {
-  const value = Number(
+function getScanScore(scan: any): number {
+  const score = Number(
     scan.ecoScore ??
       scan.score ??
       scan.sustainabilityScore ??
       0
   );
 
-  return Number.isFinite(value)
-    ? value.toFixed(1)
-    : "0.0";
+  return Number.isFinite(score) ? score : 0;
 }
 
-function getScanDate(value: any): string {
+function getScanDate(value: any): Date | null {
   if (
     value &&
     typeof value === "object" &&
     typeof value.toDate === "function"
   ) {
-    return value.toDate().toLocaleDateString();
+    return value.toDate();
   }
 
   if (!value) {
-    return "Recently";
+    return null;
   }
 
   const date = new Date(value);
 
-  return Number.isNaN(date.getTime())
-    ? "Recently"
-    : date.toLocaleDateString();
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getTimeLabel(date: Date | null): string {
+  if (!date) {
+    return "RECENTLY";
+  }
+
+  const today = new Date();
+
+  const isToday =
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear();
+
+  if (isToday) {
+    return `TODAY, ${date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`;
+  }
+
+  return date
+    .toLocaleDateString([], {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })
+    .toUpperCase();
 }
 
 function getScanIcon(category: string): IconName {
@@ -166,6 +185,36 @@ function getScanIcon(category: string): IconName {
   return "package-variant-closed";
 }
 
+function getWeekStart(): Date {
+  const today = new Date();
+  const day = today.getDay();
+  const offset = day === 0 ? -6 : 1 - day;
+
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() + offset);
+  weekStart.setHours(0, 0, 0, 0);
+
+  return weekStart;
+}
+
+function getSuggestion(category: string): string {
+  const value = category.toLowerCase();
+
+  if (value.includes("recycl")) {
+    return "Empty and rinse the item before placing it in your recycling stream.";
+  }
+
+  if (value.includes("compost")) {
+    return "Remove plastic labels or packaging before adding it to compost.";
+  }
+
+  if (value.includes("reuse")) {
+    return "Before discarding it, think about donating, repairing, or reusing it.";
+  }
+
+  return "Check your local rules before disposal because collection rules can vary.";
+}
+
 export default function HomeScreen({
   navigation,
 }: Props) {
@@ -174,17 +223,16 @@ export default function HomeScreen({
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [activePathway, setActivePathway] =
     useState("Recycle");
-  const [recentScans, setRecentScans] = useState<ScanItem[]>(
-    []
-  );
+  const [allScans, setAllScans] = useState<ScanItem[]>([]);
 
   const firstName = getFirstName(user?.displayName);
 
-  const loadRecentScans = useCallback(async () => {
+  const loadScans = useCallback(async () => {
     if (!user) {
-      setRecentScans([]);
+      setAllScans([]);
       return;
     }
 
@@ -197,10 +245,14 @@ export default function HomeScreen({
         user.uid
       );
 
-      const formattedScans: ScanItem[] = scans
-        .slice(0, 4)
-        .map((scan: any) => {
+      const formattedScans: ScanItem[] = scans.map(
+        (scan: any) => {
           const category = getScanCategory(scan);
+          const date = getScanDate(
+            scan.createdAt ||
+              scan.timestamp ||
+              scan.scannedAt
+          );
 
           return {
             id: scan.id,
@@ -208,40 +260,67 @@ export default function HomeScreen({
             category,
             score: getScanScore(scan),
             icon: getScanIcon(category),
-            time: getScanDate(
-              scan.createdAt ||
-                scan.timestamp ||
-                scan.scannedAt
-            ),
+            date,
+            timeLabel: getTimeLabel(date),
           };
-        });
+        }
+      );
 
-      setRecentScans(formattedScans);
+      formattedScans.sort((first, second) => {
+        const firstTime = first.date?.getTime() || 0;
+        const secondTime = second.date?.getTime() || 0;
+
+        return secondTime - firstTime;
+      });
+
+      setAllScans(formattedScans);
     } catch {
-      setRecentScans([]);
+      setAllScans([]);
     }
   }, [user]);
 
   useEffect(() => {
-    loadRecentScans();
-  }, [loadRecentScans]);
+    loadScans();
+  }, [loadScans]);
+
+  const recentScans = allScans.slice(0, 3);
 
   const averageScore = useMemo(() => {
-    if (recentScans.length === 0) {
+    if (allScans.length === 0) {
       return "0.0";
     }
 
-    const total = recentScans.reduce(
-      (sum, scan) => sum + Number(scan.score),
+    const total = allScans.reduce(
+      (sum, scan) => sum + scan.score,
       0
     );
 
-    return (total / recentScans.length).toFixed(1);
-  }, [recentScans]);
+    return (total / allScans.length).toFixed(1);
+  }, [allScans]);
+
+  const weeklyScans = useMemo(() => {
+    const weekStart = getWeekStart();
+
+    return allScans.filter((scan) => {
+      if (!scan.date) {
+        return false;
+      }
+
+      return scan.date >= weekStart;
+    }).length;
+  }, [allScans]);
+
+  const weeklyGoal = 5;
+  const weeklyProgress = Math.min(
+    (weeklyScans / weeklyGoal) * 100,
+    100
+  );
+
+  const latestScan = recentScans[0];
 
   const refreshDashboard = async () => {
     setIsRefreshing(true);
-    await loadRecentScans();
+    await loadScans();
     setIsRefreshing(false);
   };
 
@@ -309,9 +388,9 @@ export default function HomeScreen({
         >
           <LinearGradient
             colors={[
-              "rgba(3,32,24,0.26)",
-              "rgba(3,32,24,0.03)",
-              "rgba(3,32,24,0.86)",
+              "rgba(3,32,24,0.25)",
+              "rgba(3,32,24,0.02)",
+              "rgba(3,32,24,0.87)",
             ]}
             locations={[0, 0.42, 1]}
             style={styles.heroOverlay}
@@ -341,9 +420,7 @@ export default function HomeScreen({
 
               <Pressable
                 style={styles.headerButton}
-                onPress={() =>
-                  navigation.navigate("Profile")
-                }
+                onPress={() => navigation.navigate("Profile")}
               >
                 <MaterialCommunityIcons
                   name="account-circle-outline"
@@ -389,7 +466,7 @@ export default function HomeScreen({
         <View style={styles.body}>
           <View style={styles.metricsRow}>
             <Metric
-              value={String(recentScans.length)}
+              value={String(allScans.length)}
               label="ITEMS SCANNED"
             />
 
@@ -399,11 +476,56 @@ export default function HomeScreen({
             />
           </View>
 
-          <SectionHeader
-            title="Pathways"
-            action="VIEW ALL"
-            onPress={() => navigation.navigate("History")}
-          />
+          <View style={styles.goalCard}>
+            <View style={styles.goalTop}>
+              <View style={styles.goalIcon}>
+                <MaterialCommunityIcons
+                  name="target"
+                  size={20}
+                  color="#0B4E3E"
+                />
+              </View>
+
+              <View style={styles.goalCopy}>
+                <Text style={styles.goalTitle}>
+                  Weekly scan goal
+                </Text>
+
+                <Text style={styles.goalText}>
+                  {weeklyScans} of {weeklyGoal} scans completed
+                </Text>
+              </View>
+
+              <Text style={styles.goalPercent}>
+                {Math.round(weeklyProgress)}%
+              </Text>
+            </View>
+
+            <View style={styles.goalTrack}>
+              <View
+                style={[
+                  styles.goalValue,
+                  {
+                    width: `${weeklyProgress}%`,
+                  },
+                ]}
+              />
+            </View>
+          </View>
+
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              Pathways
+            </Text>
+
+            <Pressable
+              onPress={() => navigation.navigate("History")}
+            >
+              <Text style={styles.sectionAction}>
+                VIEW ALL
+              </Text>
+            </Pressable>
+          </View>
 
           <ScrollView
             horizontal
@@ -436,11 +558,74 @@ export default function HomeScreen({
             ))}
           </View>
 
-          <SectionHeader
-            title="Recent scans"
-            action="VIEW HISTORY"
-            onPress={() => navigation.navigate("History")}
-          />
+          <Pressable
+            style={styles.guideCard}
+            onPress={() => setIsGuideOpen(!isGuideOpen)}
+          >
+            <View style={styles.guideIcon}>
+              <MaterialCommunityIcons
+                name="book-open-variant"
+                size={20}
+                color="#0B4E3E"
+              />
+            </View>
+
+            <View style={styles.guideCopy}>
+              <Text style={styles.guideTitle}>
+                Quick disposal guide
+              </Text>
+
+              <Text style={styles.guideText}>
+                Learn the right pathway before you throw it away.
+              </Text>
+            </View>
+
+            <MaterialCommunityIcons
+              name={
+                isGuideOpen
+                  ? "chevron-up"
+                  : "chevron-down"
+              }
+              size={22}
+              color="#0B4E3E"
+            />
+          </Pressable>
+
+          {isGuideOpen && (
+            <View style={styles.guideDetails}>
+              <GuideRow
+                icon="recycle"
+                title="Recycle"
+                text="Clean bottles, cans, paper, and accepted packaging."
+              />
+
+              <GuideRow
+                icon="refresh"
+                title="Reuse"
+                text="Repair, donate, refill, or repurpose usable items."
+              />
+
+              <GuideRow
+                icon="leaf"
+                title="Compost"
+                text="Use food scraps and approved natural materials."
+              />
+            </View>
+          )}
+
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              Recent scans
+            </Text>
+
+            <Pressable
+              onPress={() => navigation.navigate("History")}
+            >
+              <Text style={styles.sectionAction}>
+                VIEW HISTORY
+              </Text>
+            </Pressable>
+          </View>
 
           {recentScans.length > 0 ? (
             <View>
@@ -455,7 +640,7 @@ export default function HomeScreen({
             <View style={styles.emptyRecent}>
               <View style={styles.recentIcon}>
                 <MaterialCommunityIcons
-                  name="scan-helper"
+                  name="camera-outline"
                   size={20}
                   color="#0B4E3E"
                 />
@@ -463,7 +648,7 @@ export default function HomeScreen({
 
               <View style={styles.emptyRecentCopy}>
                 <Text style={styles.emptyRecentTitle}>
-                  No recent scans
+                  No scans yet
                 </Text>
 
                 <Text style={styles.emptyRecentText}>
@@ -484,8 +669,8 @@ export default function HomeScreen({
             </View>
           )}
 
-          <View style={styles.insightCard}>
-            <View style={styles.insightIcon}>
+          <View style={styles.suggestionCard}>
+            <View style={styles.suggestionIcon}>
               <MaterialCommunityIcons
                 name="lightbulb-on-outline"
                 size={20}
@@ -493,21 +678,17 @@ export default function HomeScreen({
               />
             </View>
 
-            <View style={styles.insightCopy}>
-              <Text style={styles.insightLabel}>
-                TODAY&apos;S INSIGHT
+            <View style={styles.suggestionCopy}>
+              <Text style={styles.suggestionLabel}>
+                SMART NEXT STEP
               </Text>
 
-              <Text style={styles.insightText}>
-                The best waste is the waste you never create.
+              <Text style={styles.suggestionText}>
+                {latestScan
+                  ? getSuggestion(latestScan.category)
+                  : "Take your first scan to receive a personalized disposal suggestion."}
               </Text>
             </View>
-
-            <MaterialCommunityIcons
-              name="arrow-top-right"
-              size={17}
-              color="#A96E14"
-            />
           </View>
         </View>
       </ScrollView>
@@ -547,7 +728,7 @@ export default function HomeScreen({
           <BottomItem
             icon="chart-line"
             label="Impact"
-            onPress={() => setIsMenuOpen(true)}
+            onPress={() => setIsGuideOpen(true)}
           />
 
           <BottomItem
@@ -597,7 +778,10 @@ export default function HomeScreen({
               </Pressable>
             </View>
 
-            <View style={styles.menuProfile}>
+            <Pressable
+              style={styles.menuProfile}
+              onPress={() => openScreen("Profile")}
+            >
               <View style={styles.menuAvatar}>
                 <Text style={styles.menuAvatarText}>
                   {firstName.charAt(0).toUpperCase()}
@@ -613,62 +797,61 @@ export default function HomeScreen({
                   {user.email || "Personal account"}
                 </Text>
               </View>
-            </View>
+
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color="#B9D8C6"
+              />
+            </Pressable>
 
             <Text style={styles.menuLabel}>
-              EXPLORE
+              MAIN MENU
             </Text>
-
-            <MenuItem
-              icon="home-variant-outline"
-              title="Home dashboard"
-              subtitle="Your sustainability overview"
-              onPress={() => setIsMenuOpen(false)}
-            />
 
             <MenuItem
               icon="camera-outline"
               title="Scan an item"
-              subtitle="Identify an everyday item"
+              subtitle="Get disposal guidance"
               onPress={() => openScreen("Camera")}
             />
 
             <MenuItem
               icon="history"
               title="Scan history"
-              subtitle="Review previous results"
+              subtitle="Review your results"
               onPress={() => openScreen("History")}
             />
 
             <MenuItem
               icon="account-outline"
               title="Profile"
-              subtitle="Manage your account"
+              subtitle="Account and settings"
               onPress={() => openScreen("Profile")}
             />
 
-            <View style={styles.menuInfo}>
+            <Pressable
+              style={styles.syncButton}
+              onPress={async () => {
+                setIsMenuOpen(false);
+                await refreshDashboard();
+              }}
+            >
               <MaterialCommunityIcons
-                name="sprout"
-                size={23}
-                color="#BEEAD0"
+                name="refresh"
+                size={18}
+                color="#FFFFFF"
               />
 
-              <Text style={styles.menuInfoText}>
-                Every thoughtful choice helps keep useful
-                materials in circulation.
+              <Text style={styles.syncButtonText}>
+                Refresh dashboard
               </Text>
-            </View>
+            </Pressable>
 
-            <View style={styles.menuFooter}>
-              <Text style={styles.menuFooterTitle}>
-                SnapSort AI
-              </Text>
-
-              <Text style={styles.menuFooterText}>
-                Smart sustainability assistant
-              </Text>
-            </View>
+            <Text style={styles.menuFooterText}>
+              SnapSort AI helps you make smarter choices for
+              everyday items.
+            </Text>
           </View>
         </View>
       )}
@@ -685,39 +868,9 @@ function Metric({
 }) {
   return (
     <View style={styles.metric}>
-      <Text style={styles.metricValue}>
-        {value}
-      </Text>
-
-      <Text style={styles.metricLabel}>
-        {label}
-      </Text>
-
+      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricLabel}>{label}</Text>
       <View style={styles.metricLine} />
-    </View>
-  );
-}
-
-function SectionHeader({
-  title,
-  action,
-  onPress,
-}: {
-  title: string;
-  action: string;
-  onPress: () => void;
-}) {
-  return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>
-        {title}
-      </Text>
-
-      <Pressable onPress={onPress}>
-        <Text style={styles.sectionAction}>
-          {action}
-        </Text>
-      </Pressable>
     </View>
   );
 }
@@ -733,11 +886,11 @@ function PathwayCard({
 }) {
   return (
     <Pressable
-      onPress={onPress}
       style={[
         styles.pathwayCard,
         active && styles.activePathwayCard,
       ]}
+      onPress={onPress}
     >
       <ImageBackground
         source={pathway.image}
@@ -747,8 +900,8 @@ function PathwayCard({
         <LinearGradient
           colors={[
             "rgba(0,0,0,0.03)",
-            "rgba(0,0,0,0.16)",
-            "rgba(0,0,0,0.86)",
+            "rgba(0,0,0,0.15)",
+            "rgba(0,0,0,0.85)",
           ]}
           style={styles.pathwayOverlay}
         >
@@ -761,13 +914,11 @@ function PathwayCard({
               />
             </View>
 
-            <View style={styles.pathwayArrow}>
-              <MaterialCommunityIcons
-                name="arrow-top-right"
-                size={16}
-                color="#FFFFFF"
-              />
-            </View>
+            <MaterialCommunityIcons
+              name="arrow-top-right"
+              size={17}
+              color="#FFFFFF"
+            />
           </View>
 
           <View>
@@ -782,6 +933,38 @@ function PathwayCard({
         </LinearGradient>
       </ImageBackground>
     </Pressable>
+  );
+}
+
+function GuideRow({
+  icon,
+  title,
+  text,
+}: {
+  icon: IconName;
+  title: string;
+  text: string;
+}) {
+  return (
+    <View style={styles.guideRow}>
+      <View style={styles.guideRowIcon}>
+        <MaterialCommunityIcons
+          name={icon}
+          size={18}
+          color="#0B4E3E"
+        />
+      </View>
+
+      <View style={styles.guideRowCopy}>
+        <Text style={styles.guideRowTitle}>
+          {title}
+        </Text>
+
+        <Text style={styles.guideRowText}>
+          {text}
+        </Text>
+      </View>
+    </View>
   );
 }
 
@@ -806,13 +989,13 @@ function RecentScanRow({
         </Text>
 
         <Text style={styles.recentTime}>
-          {scan.time}
+          {scan.timeLabel}
         </Text>
       </View>
 
       <View style={styles.recentScore}>
         <Text style={styles.scoreValue}>
-          {scan.score}
+          {scan.score.toFixed(1)}
         </Text>
 
         <Text style={styles.scoreCategory}>
@@ -878,7 +1061,7 @@ function MenuItem({
       <View style={styles.menuItemIcon}>
         <MaterialCommunityIcons
           name={icon}
-          size={18}
+          size={19}
           color="#BEEAD0"
         />
       </View>
@@ -896,7 +1079,7 @@ function MenuItem({
       <MaterialCommunityIcons
         name="chevron-right"
         size={18}
-        color="rgba(255,255,255,0.5)"
+        color="rgba(255,255,255,0.48)"
       />
     </Pressable>
   );
@@ -999,7 +1182,7 @@ const styles = StyleSheet.create({
   metricsRow: {
     flexDirection: "row",
     gap: 37,
-    marginBottom: 40,
+    marginBottom: 18,
   },
   metric: {
     minWidth: 102,
@@ -1023,6 +1206,58 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: "#F2D34D",
     marginTop: 15,
+  },
+  goalCard: {
+    borderRadius: 16,
+    padding: 13,
+    backgroundColor: "#EAF6EE",
+    borderWidth: 1,
+    borderColor: "#D4E9DA",
+    marginBottom: 31,
+  },
+  goalTop: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  goalIcon: {
+    width: 37,
+    height: 37,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  goalCopy: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  goalTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#1E2824",
+    fontSize: 13,
+  },
+  goalText: {
+    fontFamily: "Poppins_400Regular",
+    color: "#6D7D74",
+    fontSize: 10,
+    marginTop: 2,
+  },
+  goalPercent: {
+    fontFamily: "Poppins_700Bold",
+    color: "#0B4E3E",
+    fontSize: 14,
+  },
+  goalTrack: {
+    height: 6,
+    borderRadius: 4,
+    overflow: "hidden",
+    backgroundColor: "#CEE4D5",
+    marginTop: 12,
+  },
+  goalValue: {
+    height: "100%",
+    borderRadius: 4,
+    backgroundColor: "#0B4E3E",
   },
   sectionHeader: {
     flexDirection: "row",
@@ -1087,14 +1322,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(224,245,231,0.97)",
   },
-  pathwayArrow: {
-    width: 27,
-    height: 27,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.24)",
-  },
   pathwayTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: "#FFFFFF",
@@ -1125,12 +1352,79 @@ const styles = StyleSheet.create({
     width: 20,
     backgroundColor: "#0B4E3E",
   },
-  recentHeader: {
+  guideCard: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 36,
-    marginBottom: 10,
+    padding: 12,
+    marginTop: 26,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E4E7E3",
+  },
+  guideIcon: {
+    width: 39,
+    height: 39,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E7F4EA",
+  },
+  guideCopy: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  guideTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#1E2824",
+    fontSize: 13,
+  },
+  guideText: {
+    fontFamily: "Poppins_400Regular",
+    color: "#77817B",
+    fontSize: 10,
+    marginTop: 2,
+  },
+  guideDetails: {
+    paddingHorizontal: 12,
+    paddingBottom: 2,
+    backgroundColor: "#FFFFFF",
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: "#E4E7E3",
+  },
+  guideRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEF0ED",
+  },
+  guideRowIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E7F4EA",
+  },
+  guideRowCopy: {
+    flex: 1,
+    marginLeft: 9,
+  },
+  guideRowTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#1E2824",
+    fontSize: 11,
+  },
+  guideRowText: {
+    fontFamily: "Poppins_400Regular",
+    color: "#77817B",
+    fontSize: 9,
+    lineHeight: 14,
+    marginTop: 1,
   },
   recentRow: {
     flexDirection: "row",
@@ -1211,18 +1505,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#0B4E3E",
   },
-  insightCard: {
+  suggestionCard: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 10,
-    marginTop: 21,
+    marginTop: 22,
     padding: 12,
     borderRadius: 16,
     backgroundColor: "#FFF8E4",
     borderWidth: 1,
     borderColor: "#F2E2AD",
   },
-  insightIcon: {
+  suggestionIcon: {
     width: 38,
     height: 38,
     borderRadius: 13,
@@ -1230,16 +1524,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#FFEABD",
   },
-  insightCopy: {
+  suggestionCopy: {
     flex: 1,
   },
-  insightLabel: {
+  suggestionLabel: {
     fontFamily: "Poppins_600SemiBold",
     color: "#A96E14",
     fontSize: 8,
     letterSpacing: 1.1,
   },
-  insightText: {
+  suggestionText: {
     fontFamily: "Poppins_500Medium",
     color: "#65501F",
     fontSize: 11,
@@ -1308,14 +1602,14 @@ const styles = StyleSheet.create({
   },
   sideMenu: {
     position: "absolute",
-    left: 0,
     top: 0,
     bottom: 0,
-    width: "86%",
-    paddingHorizontal: 21,
+    left: 0,
+    width: "82%",
+    paddingHorizontal: 20,
     backgroundColor: "#083D31",
     shadowColor: "#000000",
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.28,
     shadowRadius: 18,
     shadowOffset: {
       width: 8,
@@ -1331,7 +1625,7 @@ const styles = StyleSheet.create({
   menuBrand: {
     fontFamily: "Poppins_700Bold",
     color: "#FFFFFF",
-    fontSize: 24,
+    fontSize: 22,
   },
   menuSubtitle: {
     fontFamily: "Poppins_400Regular",
@@ -1340,8 +1634,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   closeButton: {
-    width: 36,
-    height: 36,
+    width: 35,
+    height: 35,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
@@ -1350,15 +1644,15 @@ const styles = StyleSheet.create({
   menuProfile: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
-    marginTop: 27,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    padding: 11,
+    marginTop: 24,
+    borderRadius: 15,
+    backgroundColor: "rgba(255,255,255,0.10)",
   },
   menuAvatar: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#CBECD6",
@@ -1366,7 +1660,7 @@ const styles = StyleSheet.create({
   menuAvatarText: {
     fontFamily: "Poppins_700Bold",
     color: "#0B4E3E",
-    fontSize: 18,
+    fontSize: 17,
   },
   menuProfileCopy: {
     flex: 1,
@@ -1387,25 +1681,25 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_600SemiBold",
     color: "#8CBDA0",
     fontSize: 8,
-    letterSpacing: 1.6,
-    marginTop: 30,
-    marginBottom: 7,
+    letterSpacing: 1.5,
+    marginTop: 26,
+    marginBottom: 5,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 62,
+    minHeight: 60,
     paddingVertical: 7,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.08)",
   },
   menuItemIcon: {
-    width: 37,
-    height: 37,
+    width: 36,
+    height: 36,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(255,255,255,0.10)",
   },
   menuItemCopy: {
     flex: 1,
@@ -1422,35 +1716,28 @@ const styles = StyleSheet.create({
     fontSize: 9,
     marginTop: 2,
   },
-  menuInfo: {
+  syncButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginTop: 26,
-    padding: 13,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    gap: 8,
+    height: 44,
+    borderRadius: 13,
+    marginTop: 24,
+    backgroundColor: "#0F624D",
   },
-  menuInfoText: {
-    flex: 1,
-    fontFamily: "Poppins_400Regular",
-    color: "#D4EFDC",
-    fontSize: 10,
-    lineHeight: 16,
-  },
-  menuFooter: {
-    marginTop: "auto",
-  },
-  menuFooterTitle: {
+  syncButtonText: {
     fontFamily: "Poppins_600SemiBold",
     color: "#FFFFFF",
     fontSize: 11,
   },
   menuFooterText: {
+    marginTop: "auto",
     fontFamily: "Poppins_400Regular",
-    color: "#8CBDA0",
+    color: "#9BC7AD",
     fontSize: 9,
-    marginTop: 2,
+    lineHeight: 14,
+    maxWidth: 220,
   },
   emptyContainer: {
     flex: 1,
