@@ -18,10 +18,7 @@ import { colors } from "../../constants/theme";
 import { RootStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/auth.store";
 
-type Props = NativeStackScreenProps<
-  RootStackParamList,
-  "Home"
->;
+type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 type IconName = React.ComponentProps<
   typeof MaterialCommunityIcons
@@ -140,12 +137,12 @@ function getTimeLabel(date: Date | null): string {
     return "RECENTLY";
   }
 
-  const now = new Date();
+  const today = new Date();
 
   const isToday =
-    now.getDate() === date.getDate() &&
-    now.getMonth() === date.getMonth() &&
-    now.getFullYear() === date.getFullYear();
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear();
 
   if (isToday) {
     return `TODAY, ${date.toLocaleTimeString([], {
@@ -248,11 +245,11 @@ export default function HomeScreen({
         }
       );
 
-      formattedScans.sort((first, second) => {
-        const firstDate = first.date?.getTime() || 0;
-        const secondDate = second.date?.getTime() || 0;
-
-        return secondDate - firstDate;
+      formattedScans.sort((a, b) => {
+        return (
+          (b.date?.getTime() || 0) -
+          (a.date?.getTime() || 0)
+        );
       });
 
       setAllScans(formattedScans);
@@ -266,6 +263,7 @@ export default function HomeScreen({
   }, [loadScans]);
 
   const recentScans = allScans.slice(0, 3);
+
   const weeklyScans = useMemo(() => {
     const weekStart = getWeekStart();
 
@@ -288,6 +286,7 @@ export default function HomeScreen({
   }, [allScans]);
 
   const weeklyGoal = 5;
+
   const weeklyProgress = Math.min(
     (weeklyScans / weeklyGoal) * 100,
     100
@@ -542,7 +541,7 @@ export default function HomeScreen({
             <View style={styles.streakIcon}>
               <MaterialCommunityIcons
                 name="fire"
-                size={21}
+                size={20}
                 color="#C66D17"
               />
             </View>
@@ -553,15 +552,14 @@ export default function HomeScreen({
               </Text>
 
               <Text style={styles.streakText}>
-                Scan one item today and keep your sustainable
-                habit growing.
+                Scan one item today and keep your habit growing.
               </Text>
             </View>
 
             <View style={styles.streakArrow}>
               <MaterialCommunityIcons
                 name="arrow-right"
-                size={17}
+                size={16}
                 color="#FFFFFF"
               />
             </View>
@@ -696,8 +694,8 @@ export default function HomeScreen({
         ]}
       >
         <BlurView
-          intensity={20}
-          tint="dark"
+          intensity={90}
+          tint="light"
           style={styles.footer}
         >
           <BottomItem
@@ -813,7 +811,7 @@ export default function HomeScreen({
             <MenuItem
               icon="history"
               title="Scan history"
-              subtitle="Review previous results"
+              subtitle="Review your previous results"
               onPress={() => openScreen("History")}
             />
 
@@ -1036,6 +1034,8 @@ function BottomItem({
     <Pressable
       style={styles.bottomItem}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
     >
       <View
         style={[
@@ -1045,8 +1045,8 @@ function BottomItem({
       >
         <MaterialCommunityIcons
           name={icon}
-          size={center ? 20 : 17}
-          color="#DDF8E7"
+          size={center ? 21 : 17}
+          color="#FFFFFF"
         />
       </View>
 
@@ -1309,14 +1309,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#DDE3E0",
   },
   activePathwayCard: {
-    shadowColor: "#0B4E3E",
-    shadowOpacity: 0.17,
-    shadowRadius: 8,
+    shadowColor: "transparent",
+    shadowOpacity: 0,
+    shadowRadius: 0,
     shadowOffset: {
       width: 0,
-      height: 5,
-    },
-    elevation: 4,
+      height: 0,
+      },
+    elevation: 0,
   },
   pathwayImage: {
     flex: 1,
@@ -1595,16 +1595,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderRadius: 31,
     borderWidth: 1,
-    borderColor: "rgba(182,237,200,0.32)",
-    backgroundColor: "rgba(6,61,47,0.88)",
-    shadowColor: "#002A1F",
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    shadowOffset: {
-      width: 0,
-      height: 7,
-    },
-    elevation: 9,
+    borderColor: "rgba(255,255,255,0.82)",
+    backgroundColor: "rgba(255,255,255,0.22)",
   },
   bottomItem: {
     alignItems: "center",
@@ -1617,23 +1609,24 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(191,238,205,0.18)",
+    backgroundColor: "#0B4E3E",
     borderWidth: 1,
-    borderColor: "rgba(221,248,231,0.2)",
+    borderColor: "rgba(222,248,231,0.65)",
   },
   centerBottomIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "#167854",
-    borderColor: "rgba(221,248,231,0.42)",
+    width: 39,
+    height: 39,
+    borderRadius: 20,
+    backgroundColor: "#0B4E3E",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.85)",
   },
   bottomLabel: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#DDF8E7",
+    color: "#0B4E3E",
     fontSize: 7,
     letterSpacing: 0.25,
-    marginTop: 1,
+    marginTop: 2,
   },
   menuLayer: {
     ...StyleSheet.absoluteFillObject,
@@ -1652,14 +1645,6 @@ const styles = StyleSheet.create({
     width: "82%",
     paddingHorizontal: 20,
     backgroundColor: "#083D31",
-    shadowColor: "#000000",
-    shadowOpacity: 0.28,
-    shadowRadius: 18,
-    shadowOffset: {
-      width: 8,
-      height: 0,
-    },
-    elevation: 18,
   },
   menuHeader: {
     flexDirection: "row",
