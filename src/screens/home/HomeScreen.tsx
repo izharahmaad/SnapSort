@@ -140,12 +140,12 @@ function getTimeLabel(date: Date | null): string {
     return "RECENTLY";
   }
 
-  const today = new Date();
+  const now = new Date();
 
   const isToday =
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear();
+    now.getDate() === date.getDate() &&
+    now.getMonth() === date.getMonth() &&
+    now.getFullYear() === date.getFullYear();
 
   if (isToday) {
     return `TODAY, ${date.toLocaleTimeString([], {
@@ -190,29 +190,11 @@ function getWeekStart(): Date {
   const day = today.getDay();
   const offset = day === 0 ? -6 : 1 - day;
 
-  const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() + offset);
-  weekStart.setHours(0, 0, 0, 0);
+  const start = new Date(today);
+  start.setDate(today.getDate() + offset);
+  start.setHours(0, 0, 0, 0);
 
-  return weekStart;
-}
-
-function getSuggestion(category: string): string {
-  const value = category.toLowerCase();
-
-  if (value.includes("recycl")) {
-    return "Empty and rinse the item before placing it in your recycling stream.";
-  }
-
-  if (value.includes("compost")) {
-    return "Remove plastic labels or packaging before adding it to compost.";
-  }
-
-  if (value.includes("reuse")) {
-    return "Before discarding it, think about donating, repairing, or reusing it.";
-  }
-
-  return "Check your local rules before disposal because collection rules can vary.";
+  return start;
 }
 
 export default function HomeScreen({
@@ -267,10 +249,10 @@ export default function HomeScreen({
       );
 
       formattedScans.sort((first, second) => {
-        const firstTime = first.date?.getTime() || 0;
-        const secondTime = second.date?.getTime() || 0;
+        const firstDate = first.date?.getTime() || 0;
+        const secondDate = second.date?.getTime() || 0;
 
-        return secondTime - firstTime;
+        return secondDate - firstDate;
       });
 
       setAllScans(formattedScans);
@@ -284,6 +266,13 @@ export default function HomeScreen({
   }, [loadScans]);
 
   const recentScans = allScans.slice(0, 3);
+  const weeklyScans = useMemo(() => {
+    const weekStart = getWeekStart();
+
+    return allScans.filter((scan) => {
+      return scan.date !== null && scan.date >= weekStart;
+    }).length;
+  }, [allScans]);
 
   const averageScore = useMemo(() => {
     if (allScans.length === 0) {
@@ -298,25 +287,11 @@ export default function HomeScreen({
     return (total / allScans.length).toFixed(1);
   }, [allScans]);
 
-  const weeklyScans = useMemo(() => {
-    const weekStart = getWeekStart();
-
-    return allScans.filter((scan) => {
-      if (!scan.date) {
-        return false;
-      }
-
-      return scan.date >= weekStart;
-    }).length;
-  }, [allScans]);
-
   const weeklyGoal = 5;
   const weeklyProgress = Math.min(
     (weeklyScans / weeklyGoal) * 100,
     100
   );
-
-  const latestScan = recentScans[0];
 
   const refreshDashboard = async () => {
     setIsRefreshing(true);
@@ -368,7 +343,7 @@ export default function HomeScreen({
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingBottom: insets.bottom + 100,
+            paddingBottom: insets.bottom + 105,
           },
         ]}
         refreshControl={
@@ -390,7 +365,7 @@ export default function HomeScreen({
             colors={[
               "rgba(3,32,24,0.25)",
               "rgba(3,32,24,0.02)",
-              "rgba(3,32,24,0.87)",
+              "rgba(3,32,24,0.88)",
             ]}
             locations={[0, 0.42, 1]}
             style={styles.heroOverlay}
@@ -476,35 +451,37 @@ export default function HomeScreen({
             />
           </View>
 
-          <View style={styles.goalCard}>
-            <View style={styles.goalTop}>
-              <View style={styles.goalIcon}>
-                <MaterialCommunityIcons
-                  name="target"
-                  size={20}
-                  color="#0B4E3E"
-                />
+          <View style={styles.weeklyCard}>
+            <View style={styles.weeklyTop}>
+              <View style={styles.weeklyLeft}>
+                <View style={styles.weeklyIcon}>
+                  <MaterialCommunityIcons
+                    name="calendar-check-outline"
+                    size={18}
+                    color="#0B4E3E"
+                  />
+                </View>
+
+                <View>
+                  <Text style={styles.weeklyTitle}>
+                    This week
+                  </Text>
+
+                  <Text style={styles.weeklySubtitle}>
+                    {weeklyScans} of {weeklyGoal} scans
+                  </Text>
+                </View>
               </View>
 
-              <View style={styles.goalCopy}>
-                <Text style={styles.goalTitle}>
-                  Weekly scan goal
-                </Text>
-
-                <Text style={styles.goalText}>
-                  {weeklyScans} of {weeklyGoal} scans completed
-                </Text>
-              </View>
-
-              <Text style={styles.goalPercent}>
+              <Text style={styles.weeklyPercent}>
                 {Math.round(weeklyProgress)}%
               </Text>
             </View>
 
-            <View style={styles.goalTrack}>
+            <View style={styles.weeklyTrack}>
               <View
                 style={[
-                  styles.goalValue,
+                  styles.weeklyValue,
                   {
                     width: `${weeklyProgress}%`,
                   },
@@ -559,61 +536,100 @@ export default function HomeScreen({
           </View>
 
           <Pressable
+            style={styles.streakCard}
+            onPress={() => navigation.navigate("Camera")}
+          >
+            <View style={styles.streakIcon}>
+              <MaterialCommunityIcons
+                name="fire"
+                size={21}
+                color="#C66D17"
+              />
+            </View>
+
+            <View style={styles.streakCopy}>
+              <Text style={styles.streakTitle}>
+                Build your eco streak
+              </Text>
+
+              <Text style={styles.streakText}>
+                Scan one item today and keep your sustainable
+                habit growing.
+              </Text>
+            </View>
+
+            <View style={styles.streakArrow}>
+              <MaterialCommunityIcons
+                name="arrow-right"
+                size={17}
+                color="#FFFFFF"
+              />
+            </View>
+          </Pressable>
+
+          <Pressable
             style={styles.guideCard}
             onPress={() => setIsGuideOpen(!isGuideOpen)}
           >
-            <View style={styles.guideIcon}>
-              <MaterialCommunityIcons
-                name="book-open-variant"
-                size={20}
-                color="#0B4E3E"
-              />
+            <View style={styles.guideHeader}>
+              <View style={styles.guideIcon}>
+                <MaterialCommunityIcons
+                  name="book-open-variant"
+                  size={19}
+                  color="#0B4E3E"
+                />
+              </View>
+
+              <View style={styles.guideCopy}>
+                <Text style={styles.guideTitle}>
+                  Quick disposal guide
+                </Text>
+
+                <Text style={styles.guideSubtitle}>
+                  Choose the right path before disposal.
+                </Text>
+              </View>
+
+              <View style={styles.guideChevron}>
+                <MaterialCommunityIcons
+                  name={
+                    isGuideOpen
+                      ? "chevron-up"
+                      : "chevron-down"
+                  }
+                  size={20}
+                  color="#0B4E3E"
+                />
+              </View>
             </View>
 
-            <View style={styles.guideCopy}>
-              <Text style={styles.guideTitle}>
-                Quick disposal guide
-              </Text>
+            {isGuideOpen && (
+              <View style={styles.guideDetails}>
+                <GuideRow
+                  icon="recycle"
+                  title="Recycle"
+                  text="Clean and sort accepted materials."
+                  color="#E2F4E8"
+                />
 
-              <Text style={styles.guideText}>
-                Learn the right pathway before you throw it away.
-              </Text>
-            </View>
+                <GuideRow
+                  icon="refresh"
+                  title="Reuse"
+                  text="Repair, donate, refill, or repurpose."
+                  color="#FFF0D5"
+                />
 
-            <MaterialCommunityIcons
-              name={
-                isGuideOpen
-                  ? "chevron-up"
-                  : "chevron-down"
-              }
-              size={22}
-              color="#0B4E3E"
-            />
+                <GuideRow
+                  icon="leaf"
+                  title="Compost"
+                  text="Return approved natural materials to soil."
+                  color="#EEF0D9"
+                />
+              </View>
+            )}
           </Pressable>
 
-          {isGuideOpen && (
-            <View style={styles.guideDetails}>
-              <GuideRow
-                icon="recycle"
-                title="Recycle"
-                text="Clean bottles, cans, paper, and accepted packaging."
-              />
-
-              <GuideRow
-                icon="refresh"
-                title="Reuse"
-                text="Repair, donate, refill, or repurpose usable items."
-              />
-
-              <GuideRow
-                icon="leaf"
-                title="Compost"
-                text="Use food scraps and approved natural materials."
-              />
-            </View>
-          )}
-
-          <View style={styles.sectionHeader}>
+          <View style={styles.recentHeader}>
             <Text style={styles.sectionTitle}>
               Recent scans
             </Text>
@@ -668,28 +684,6 @@ export default function HomeScreen({
               </Pressable>
             </View>
           )}
-
-          <View style={styles.suggestionCard}>
-            <View style={styles.suggestionIcon}>
-              <MaterialCommunityIcons
-                name="lightbulb-on-outline"
-                size={20}
-                color="#A96E14"
-              />
-            </View>
-
-            <View style={styles.suggestionCopy}>
-              <Text style={styles.suggestionLabel}>
-                SMART NEXT STEP
-              </Text>
-
-              <Text style={styles.suggestionText}>
-                {latestScan
-                  ? getSuggestion(latestScan.category)
-                  : "Take your first scan to receive a personalized disposal suggestion."}
-              </Text>
-            </View>
-          </View>
         </View>
       </ScrollView>
 
@@ -702,8 +696,8 @@ export default function HomeScreen({
         ]}
       >
         <BlurView
-          intensity={80}
-          tint="light"
+          intensity={20}
+          tint="dark"
           style={styles.footer}
         >
           <BottomItem
@@ -819,7 +813,7 @@ export default function HomeScreen({
             <MenuItem
               icon="history"
               title="Scan history"
-              subtitle="Review your results"
+              subtitle="Review previous results"
               onPress={() => openScreen("History")}
             />
 
@@ -868,8 +862,14 @@ function Metric({
 }) {
   return (
     <View style={styles.metric}>
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={styles.metricValue}>
+        {value}
+      </Text>
+
+      <Text style={styles.metricLabel}>
+        {label}
+      </Text>
+
       <View style={styles.metricLine} />
     </View>
   );
@@ -940,17 +940,26 @@ function GuideRow({
   icon,
   title,
   text,
+  color,
 }: {
   icon: IconName;
   title: string;
   text: string;
+  color: string;
 }) {
   return (
     <View style={styles.guideRow}>
-      <View style={styles.guideRowIcon}>
+      <View
+        style={[
+          styles.guideRowIcon,
+          {
+            backgroundColor: color,
+          },
+        ]}
+      >
         <MaterialCommunityIcons
           name={icon}
-          size={18}
+          size={17}
           color="#0B4E3E"
         />
       </View>
@@ -964,6 +973,12 @@ function GuideRow({
           {text}
         </Text>
       </View>
+
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={18}
+        color="#98A09B"
+      />
     </View>
   );
 }
@@ -1030,8 +1045,8 @@ function BottomItem({
       >
         <MaterialCommunityIcons
           name={icon}
-          size={center ? 21 : 17}
-          color="#FFFFFF"
+          size={center ? 20 : 17}
+          color="#DDF8E7"
         />
       </View>
 
@@ -1207,54 +1222,59 @@ const styles = StyleSheet.create({
     backgroundColor: "#F2D34D",
     marginTop: 15,
   },
-  goalCard: {
-    borderRadius: 16,
-    padding: 13,
-    backgroundColor: "#EAF6EE",
+  weeklyCard: {
+    width: "100%",
+    padding: 12,
+    marginBottom: 29,
+    borderRadius: 15,
+    backgroundColor: "#EEF7F0",
     borderWidth: 1,
-    borderColor: "#D4E9DA",
-    marginBottom: 31,
+    borderColor: "#D8EBDC",
   },
-  goalTop: {
+  weeklyTop: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
   },
-  goalIcon: {
-    width: 37,
-    height: 37,
-    borderRadius: 19,
+  weeklyLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  weeklyIcon: {
+    width: 35,
+    height: 35,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#FFFFFF",
   },
-  goalCopy: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  goalTitle: {
+  weeklyTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: "#1E2824",
-    fontSize: 13,
+    fontSize: 12,
+    marginLeft: 9,
   },
-  goalText: {
+  weeklySubtitle: {
     fontFamily: "Poppins_400Regular",
-    color: "#6D7D74",
-    fontSize: 10,
-    marginTop: 2,
+    color: "#748078",
+    fontSize: 9,
+    marginTop: 1,
+    marginLeft: 9,
   },
-  goalPercent: {
+  weeklyPercent: {
     fontFamily: "Poppins_700Bold",
     color: "#0B4E3E",
-    fontSize: 14,
+    fontSize: 13,
   },
-  goalTrack: {
-    height: 6,
+  weeklyTrack: {
+    height: 5,
     borderRadius: 4,
     overflow: "hidden",
-    backgroundColor: "#CEE4D5",
-    marginTop: 12,
+    marginTop: 10,
+    backgroundColor: "#CEE3D3",
   },
-  goalValue: {
+  weeklyValue: {
     height: "100%",
     borderRadius: 4,
     backgroundColor: "#0B4E3E",
@@ -1352,23 +1372,69 @@ const styles = StyleSheet.create({
     width: 20,
     backgroundColor: "#0B4E3E",
   },
-  guideCard: {
+  streakCard: {
     flexDirection: "row",
     alignItems: "center",
+    width: "100%",
     padding: 12,
-    marginTop: 26,
-    borderRadius: 16,
-    backgroundColor: "#FFFFFF",
+    marginTop: 24,
+    borderRadius: 17,
+    backgroundColor: "#F5EFE3",
     borderWidth: 1,
-    borderColor: "#E4E7E3",
+    borderColor: "#E8DCC5",
   },
-  guideIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 13,
+  streakIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#E7F4EA",
+    backgroundColor: "#FFE1B0",
+  },
+  streakCopy: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  streakTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#3F3524",
+    fontSize: 13,
+  },
+  streakText: {
+    fontFamily: "Poppins_400Regular",
+    color: "#7B6B50",
+    fontSize: 10,
+    lineHeight: 15,
+    marginTop: 2,
+  },
+  streakArrow: {
+    width: 31,
+    height: 31,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#B86B17",
+  },
+  guideCard: {
+    width: "100%",
+    marginTop: 13,
+    padding: 12,
+    borderRadius: 17,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E7E2",
+  },
+  guideHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  guideIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E5F4E8",
   },
   guideCopy: {
     flex: 1,
@@ -1379,36 +1445,39 @@ const styles = StyleSheet.create({
     color: "#1E2824",
     fontSize: 13,
   },
-  guideText: {
+  guideSubtitle: {
     fontFamily: "Poppins_400Regular",
-    color: "#77817B",
+    color: "#7A847E",
     fontSize: 10,
     marginTop: 2,
   },
+  guideChevron: {
+    width: 31,
+    height: 31,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F1F5F1",
+  },
   guideDetails: {
-    paddingHorizontal: 12,
-    paddingBottom: 2,
-    backgroundColor: "#FFFFFF",
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    borderWidth: 1,
-    borderTopWidth: 0,
-    borderColor: "#E4E7E3",
+    marginTop: 12,
+    paddingTop: 2,
+    borderTopWidth: 1,
+    borderTopColor: "#EDF0ED",
   },
   guideRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 11,
+    paddingVertical: 9,
     borderBottomWidth: 1,
-    borderBottomColor: "#EEF0ED",
+    borderBottomColor: "#EEF0EE",
   },
   guideRowIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 35,
+    height: 35,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#E7F4EA",
   },
   guideRowCopy: {
     flex: 1,
@@ -1416,15 +1485,22 @@ const styles = StyleSheet.create({
   },
   guideRowTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#1E2824",
+    color: "#24302A",
     fontSize: 11,
   },
   guideRowText: {
     fontFamily: "Poppins_400Regular",
-    color: "#77817B",
+    color: "#78827C",
     fontSize: 9,
     lineHeight: 14,
-    marginTop: 1,
+    marginTop: 2,
+  },
+  recentHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 34,
+    marginBottom: 10,
   },
   recentRow: {
     flexDirection: "row",
@@ -1505,41 +1581,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#0B4E3E",
   },
-  suggestionCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    marginTop: 22,
-    padding: 12,
-    borderRadius: 16,
-    backgroundColor: "#FFF8E4",
-    borderWidth: 1,
-    borderColor: "#F2E2AD",
-  },
-  suggestionIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFEABD",
-  },
-  suggestionCopy: {
-    flex: 1,
-  },
-  suggestionLabel: {
-    fontFamily: "Poppins_600SemiBold",
-    color: "#A96E14",
-    fontSize: 8,
-    letterSpacing: 1.1,
-  },
-  suggestionText: {
-    fontFamily: "Poppins_500Medium",
-    color: "#65501F",
-    fontSize: 11,
-    lineHeight: 17,
-    marginTop: 2,
-  },
   footerWrapper: {
     position: "absolute",
     left: 27,
@@ -1549,21 +1590,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
-    height: 57,
+    height: 58,
     paddingHorizontal: 2,
     overflow: "hidden",
     borderRadius: 31,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.96)",
-    backgroundColor: "rgba(255,255,255,0.78)",
-    shadowColor: "#19372D",
-    shadowOpacity: 0.15,
-    shadowRadius: 14,
+    borderColor: "rgba(182,237,200,0.32)",
+    backgroundColor: "rgba(6,61,47,0.88)",
+    shadowColor: "#002A1F",
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
     shadowOffset: {
       width: 0,
-      height: 6,
+      height: 7,
     },
-    elevation: 8,
+    elevation: 9,
   },
   bottomItem: {
     alignItems: "center",
@@ -1571,22 +1612,25 @@ const styles = StyleSheet.create({
     minWidth: 42,
   },
   bottomIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 29,
+    height: 29,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0B4E3E",
+    backgroundColor: "rgba(191,238,205,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(221,248,231,0.2)",
   },
   centerBottomIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#0B4E3E",
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#167854",
+    borderColor: "rgba(221,248,231,0.42)",
   },
   bottomLabel: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#0B4E3E",
+    color: "#DDF8E7",
     fontSize: 7,
     letterSpacing: 0.25,
     marginTop: 1,
@@ -1647,7 +1691,7 @@ const styles = StyleSheet.create({
     padding: 11,
     marginTop: 24,
     borderRadius: 15,
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: "rgba(255,255,255,0.1)",
   },
   menuAvatar: {
     width: 40,
@@ -1699,7 +1743,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: "rgba(255,255,255,0.1)",
   },
   menuItemCopy: {
     flex: 1,
