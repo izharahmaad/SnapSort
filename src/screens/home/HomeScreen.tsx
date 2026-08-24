@@ -1,8 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
-  Dimensions,
   ImageBackground,
   Pressable,
   RefreshControl,
@@ -20,10 +18,7 @@ import { colors } from "../../constants/theme";
 import { RootStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/auth.store";
 
-type Props = NativeStackScreenProps<
-  RootStackParamList,
-  "Home"
->;
+type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 type IconName = React.ComponentProps<
   typeof MaterialCommunityIcons
@@ -44,8 +39,6 @@ type PathwayItem = {
   icon: IconName;
   image: number;
 };
-
-const screenWidth = Dimensions.get("window").width;
 
 const heroImage = require("../../../assets/images/hero-leaf.png");
 
@@ -87,62 +80,13 @@ const pathwayItems: PathwayItem[] = [
 function getFirstName(
   displayName: string | null | undefined
 ): string {
-  const name = displayName?.trim();
+  const cleanName = displayName?.trim();
 
-  if (!name) {
+  if (!cleanName) {
     return "there";
   }
 
-  return name.split(/\s+/)[0];
-}
-
-function getDateLabel(value: unknown): string {
-  if (
-    value &&
-    typeof value === "object" &&
-    "toDate" in value &&
-    typeof value.toDate === "function"
-  ) {
-    return value.toDate().toLocaleDateString();
-  }
-
-  if (value instanceof Date) {
-    return value.toLocaleDateString();
-  }
-
-  if (typeof value === "string") {
-    const date = new Date(value);
-
-    if (!Number.isNaN(date.getTime())) {
-      return date.toLocaleDateString();
-    }
-  }
-
-  return "Recently";
-}
-
-function getScanCategory(scan: any): string {
-  return (
-    scan.disposalMethod ||
-    scan.category ||
-    scan.recommendation ||
-    "REVIEW"
-  )
-    .toString()
-    .toUpperCase();
-}
-
-function getScanScore(scan: any): string {
-  const score = Number(
-    scan.ecoScore ??
-      scan.score ??
-      scan.sustainabilityScore ??
-      0
-  );
-
-  return Number.isFinite(score)
-    ? score.toFixed(1)
-    : "0.0";
+  return cleanName.split(/\s+/)[0];
 }
 
 function getScanTitle(scan: any): string {
@@ -153,6 +97,48 @@ function getScanTitle(scan: any): string {
     scan.detectedItem ||
     "Scanned item"
   );
+}
+
+function getScanCategory(scan: any): string {
+  return String(
+    scan.disposalMethod ||
+      scan.category ||
+      scan.recommendation ||
+      "REVIEW"
+  ).toUpperCase();
+}
+
+function getScanScore(scan: any): string {
+  const value = Number(
+    scan.ecoScore ??
+      scan.score ??
+      scan.sustainabilityScore ??
+      0
+  );
+
+  return Number.isFinite(value)
+    ? value.toFixed(1)
+    : "0.0";
+}
+
+function getScanDate(value: any): string {
+  if (
+    value &&
+    typeof value === "object" &&
+    typeof value.toDate === "function"
+  ) {
+    return value.toDate().toLocaleDateString();
+  }
+
+  if (!value) {
+    return "Recently";
+  }
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? "Recently"
+    : date.toLocaleDateString();
 }
 
 function getScanIcon(category: string): IconName {
@@ -200,13 +186,13 @@ export default function HomeScreen({
     }
 
     try {
-      const service = await import(
+      const scansService = await import(
         "../../services/firebase/scans.service"
       );
 
-      const result = await service.getUserScans(user.uid);
+      const scans = await scansService.getUserScans(user.uid);
 
-      const mappedScans: ScanItem[] = result
+      const formattedScans: ScanItem[] = scans
         .slice(0, 4)
         .map((scan: any) => {
           const category = getScanCategory(scan);
@@ -217,15 +203,15 @@ export default function HomeScreen({
             category,
             score: getScanScore(scan),
             icon: getScanIcon(category),
-            time: getDateLabel(
-              scan.createdAt ??
-                scan.timestamp ??
+            time: getScanDate(
+              scan.createdAt ||
+                scan.timestamp ||
                 scan.scannedAt
             ),
           };
         });
 
-      setRecentScans(mappedScans);
+      setRecentScans(formattedScans);
     } catch {
       setRecentScans([]);
     }
@@ -248,17 +234,15 @@ export default function HomeScreen({
     return (total / recentScans.length).toFixed(1);
   }, [recentScans]);
 
-  const handleRefresh = async () => {
+  const refreshDashboard = async () => {
     setIsRefreshing(true);
     await loadRecentScans();
     setIsRefreshing(false);
   };
 
-  const navigateFromMenu = (
-    route: keyof RootStackParamList
-  ) => {
+  const openScreen = (screen: keyof RootStackParamList) => {
     setIsMenuOpen(false);
-    navigation.navigate(route as never);
+    navigation.navigate(screen as never);
   };
 
   if (!user) {
@@ -267,7 +251,7 @@ export default function HomeScreen({
         <View style={styles.emptyIcon}>
           <MaterialCommunityIcons
             name="account-lock-outline"
-            size={43}
+            size={42}
             color={colors.primary}
           />
         </View>
@@ -277,8 +261,7 @@ export default function HomeScreen({
         </Text>
 
         <Text style={styles.emptyText}>
-          Your personal sustainability dashboard is waiting
-          for you.
+          Your sustainability dashboard is waiting for you.
         </Text>
 
         <Button
@@ -299,13 +282,13 @@ export default function HomeScreen({
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingBottom: insets.bottom + 110,
+            paddingBottom: insets.bottom + 95,
           },
         ]}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
-            onRefresh={handleRefresh}
+            onRefresh={refreshDashboard}
             tintColor="#FFFFFF"
             colors={["#FFFFFF"]}
           />
@@ -317,7 +300,7 @@ export default function HomeScreen({
           style={[
             styles.hero,
             {
-              paddingTop: Math.max(insets.top, 18),
+              paddingTop: Math.max(insets.top, 16),
             },
           ]}
           imageStyle={styles.heroImage}
@@ -328,17 +311,17 @@ export default function HomeScreen({
               "rgba(3,32,24,0.12)",
               "rgba(3,32,24,0.88)",
             ]}
-            locations={[0, 0.43, 1]}
+            locations={[0, 0.45, 1]}
             style={styles.heroOverlay}
           >
             <View style={styles.topBar}>
               <Pressable
-                style={styles.headerIconButton}
+                style={styles.headerButton}
                 onPress={() => setIsMenuOpen(true)}
               >
                 <MaterialCommunityIcons
                   name="menu"
-                  size={25}
+                  size={23}
                   color="#FFFFFF"
                 />
               </Pressable>
@@ -348,14 +331,12 @@ export default function HomeScreen({
               </Text>
 
               <Pressable
-                style={styles.headerIconButton}
-                onPress={() =>
-                  navigation.navigate("Profile")
-                }
+                style={styles.headerButton}
+                onPress={() => navigation.navigate("Profile")}
               >
                 <MaterialCommunityIcons
                   name="account-circle-outline"
-                  size={25}
+                  size={23}
                   color="#FFFFFF"
                 />
               </Pressable>
@@ -371,24 +352,22 @@ export default function HomeScreen({
               </Text>
 
               <Text style={styles.heroDescription}>
-                Every scan is a step towards a regenerative future.
-                Discover the hidden lifecycle of your everyday
-                items.
+                Every scan is a step towards a regenerative
+                future. Discover the hidden lifecycle of your
+                everyday items.
               </Text>
 
               <Pressable
-                style={styles.circularScanButton}
-                onPress={() =>
-                  navigation.navigate("Camera")
-                }
+                style={styles.scanButton}
+                onPress={() => navigation.navigate("Camera")}
               >
                 <MaterialCommunityIcons
                   name="camera-outline"
-                  size={29}
+                  size={23}
                   color="#FFFFFF"
                 />
 
-                <Text style={styles.circularScanText}>
+                <Text style={styles.scanButtonText}>
                   SCAN ITEM
                 </Text>
               </Pressable>
@@ -409,23 +388,14 @@ export default function HomeScreen({
             />
           </View>
 
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              Pathways
-            </Text>
-
-            <Pressable
-              onPress={() => navigation.navigate("History")}
-            >
-              <Text style={styles.sectionAction}>
-                VIEW ALL
-              </Text>
-            </Pressable>
-          </View>
+          <SectionHeader
+            title="Pathways"
+            action="VIEW ALL"
+            onPress={() => navigation.navigate("History")}
+          />
 
           <ScrollView
             horizontal
-            pagingEnabled={false}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.pathwayList}
           >
@@ -442,7 +412,7 @@ export default function HomeScreen({
             ))}
           </ScrollView>
 
-          <View style={styles.pathwayIndicator}>
+          <View style={styles.indicators}>
             {pathwayItems.map((pathway) => (
               <View
                 key={pathway.title}
@@ -455,22 +425,14 @@ export default function HomeScreen({
             ))}
           </View>
 
-          <View style={styles.recentHeader}>
-            <Text style={styles.sectionTitle}>
-              Recent scans
-            </Text>
-
-            <Pressable
-              onPress={() => navigation.navigate("History")}
-            >
-              <Text style={styles.sectionAction}>
-                VIEW HISTORY
-              </Text>
-            </Pressable>
-          </View>
+          <SectionHeader
+            title="Recent scans"
+            action="VIEW HISTORY"
+            onPress={() => navigation.navigate("History")}
+          />
 
           {recentScans.length > 0 ? (
-            <View style={styles.recentList}>
+            <View>
               {recentScans.map((scan) => (
                 <RecentScanRow
                   key={scan.id}
@@ -479,23 +441,48 @@ export default function HomeScreen({
               ))}
             </View>
           ) : (
-            <EmptyRecentScans
-              onPress={() =>
-                navigation.navigate("Camera")
-              }
-            />
+            <View style={styles.emptyRecent}>
+              <View style={styles.recentIcon}>
+                <MaterialCommunityIcons
+                  name="scan-helper"
+                  size={21}
+                  color="#0B4E3E"
+                />
+              </View>
+
+              <View style={styles.emptyRecentCopy}>
+                <Text style={styles.emptyRecentTitle}>
+                  No recent scans
+                </Text>
+
+                <Text style={styles.emptyRecentText}>
+                  Scan your first item to begin.
+                </Text>
+              </View>
+
+              <Pressable
+                style={styles.arrowButton}
+                onPress={() => navigation.navigate("Camera")}
+              >
+                <MaterialCommunityIcons
+                  name="arrow-right"
+                  size={18}
+                  color="#FFFFFF"
+                />
+              </Pressable>
+            </View>
           )}
 
           <View style={styles.insightCard}>
             <View style={styles.insightIcon}>
               <MaterialCommunityIcons
                 name="lightbulb-on-outline"
-                size={22}
+                size={21}
                 color="#A96E14"
               />
             </View>
 
-            <View style={styles.insightContent}>
+            <View style={styles.insightCopy}>
               <Text style={styles.insightLabel}>
                 TODAY&apos;S INSIGHT
               </Text>
@@ -507,7 +494,7 @@ export default function HomeScreen({
 
             <MaterialCommunityIcons
               name="arrow-top-right"
-              size={19}
+              size={18}
               color="#A96E14"
             />
           </View>
@@ -516,38 +503,38 @@ export default function HomeScreen({
 
       <View
         style={[
-          styles.bottomNavWrapper,
+          styles.footerWrapper,
           {
-            bottom: Math.max(insets.bottom + 8, 17),
+            bottom: Math.max(insets.bottom + 7, 14),
           },
         ]}
       >
         <BlurView
           intensity={78}
           tint="light"
-          style={styles.bottomNav}
+          style={styles.footer}
         >
-          <BottomNavItem
+          <BottomItem
             icon="home-variant"
             label="Home"
             active
             onPress={() => undefined}
           />
 
-          <BottomNavItem
+          <BottomItem
             icon="camera-outline"
             label="Scan"
-            isCenter
+            center
             onPress={() => navigation.navigate("Camera")}
           />
 
-          <BottomNavItem
-            icon="clipboard-text-outline"
+          <BottomItem
+            icon="history"
             label="History"
             onPress={() => navigation.navigate("History")}
           />
 
-          <BottomNavItem
+          <BottomItem
             icon="account-outline"
             label="Profile"
             onPress={() => navigation.navigate("Profile")}
@@ -566,8 +553,8 @@ export default function HomeScreen({
             style={[
               styles.sideMenu,
               {
-                paddingTop: Math.max(insets.top, 22),
-                paddingBottom: Math.max(insets.bottom, 22),
+                paddingTop: Math.max(insets.top, 20),
+                paddingBottom: Math.max(insets.bottom, 20),
               },
             ]}
           >
@@ -588,31 +575,31 @@ export default function HomeScreen({
               >
                 <MaterialCommunityIcons
                   name="close"
-                  size={22}
+                  size={20}
                   color="#FFFFFF"
                 />
               </Pressable>
             </View>
 
-            <View style={styles.menuProfileCard}>
+            <View style={styles.menuProfile}>
               <View style={styles.menuAvatar}>
                 <Text style={styles.menuAvatarText}>
                   {firstName.charAt(0).toUpperCase()}
                 </Text>
               </View>
 
-              <View style={styles.menuProfileCopy}>
-                <Text style={styles.menuProfileName}>
+              <View style={styles.menuProfileText}>
+                <Text style={styles.menuName}>
                   {user.displayName || "SnapSort user"}
                 </Text>
 
-                <Text style={styles.menuProfileEmail}>
+                <Text style={styles.menuEmail}>
                   {user.email || "Personal account"}
                 </Text>
               </View>
             </View>
 
-            <Text style={styles.menuSectionLabel}>
+            <Text style={styles.menuLabel}>
               EXPLORE
             </Text>
 
@@ -626,28 +613,28 @@ export default function HomeScreen({
             <MenuItem
               icon="camera-outline"
               title="Scan an item"
-              subtitle="Identify and sort everyday items"
-              onPress={() => navigateFromMenu("Camera")}
+              subtitle="Identify an everyday item"
+              onPress={() => openScreen("Camera")}
             />
 
             <MenuItem
               icon="history"
               title="Scan history"
-              subtitle="Review your previous decisions"
-              onPress={() => navigateFromMenu("History")}
+              subtitle="Review previous results"
+              onPress={() => openScreen("History")}
             />
 
             <MenuItem
               icon="account-outline"
               title="Profile"
               subtitle="Manage your account"
-              onPress={() => navigateFromMenu("Profile")}
+              onPress={() => openScreen("Profile")}
             />
 
-            <View style={styles.menuInfoCard}>
+            <View style={styles.menuInfo}>
               <MaterialCommunityIcons
                 name="sprout"
-                size={25}
+                size={23}
                 color="#BEEAD0"
               />
 
@@ -658,11 +645,11 @@ export default function HomeScreen({
             </View>
 
             <View style={styles.menuFooter}>
-              <Text style={styles.menuFooterText}>
+              <Text style={styles.menuFooterTitle}>
                 SnapSort AI
               </Text>
 
-              <Text style={styles.menuFooterVersion}>
+              <Text style={styles.menuFooterText}>
                 Smart sustainability assistant
               </Text>
             </View>
@@ -695,6 +682,30 @@ function Metric({
   );
 }
 
+function SectionHeader({
+  title,
+  action,
+  onPress,
+}: {
+  title: string;
+  action: string;
+  onPress: () => void;
+}) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>
+        {title}
+      </Text>
+
+      <Pressable onPress={onPress}>
+        <Text style={styles.sectionAction}>
+          {action}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function PathwayCard({
   pathway,
   active,
@@ -720,8 +731,8 @@ function PathwayCard({
         <LinearGradient
           colors={[
             "rgba(0,0,0,0.04)",
-            "rgba(0,0,0,0.16)",
-            "rgba(0,0,0,0.86)",
+            "rgba(0,0,0,0.18)",
+            "rgba(0,0,0,0.85)",
           ]}
           style={styles.pathwayOverlay}
         >
@@ -729,7 +740,7 @@ function PathwayCard({
             <View style={styles.pathwayIcon}>
               <MaterialCommunityIcons
                 name={pathway.icon}
-                size={22}
+                size={20}
                 color="#0B4E3E"
               />
             </View>
@@ -737,7 +748,7 @@ function PathwayCard({
             <View style={styles.pathwayArrow}>
               <MaterialCommunityIcons
                 name="arrow-top-right"
-                size={19}
+                size={17}
                 color="#FFFFFF"
               />
             </View>
@@ -768,7 +779,7 @@ function RecentScanRow({
       <View style={styles.recentIcon}>
         <MaterialCommunityIcons
           name={scan.icon}
-          size={21}
+          size={20}
           color="#0B4E3E"
         />
       </View>
@@ -796,84 +807,44 @@ function RecentScanRow({
   );
 }
 
-function EmptyRecentScans({
-  onPress,
-}: {
-  onPress: () => void;
-}) {
-  return (
-    <View style={styles.emptyRecent}>
-      <View style={styles.emptyRecentIcon}>
-        <MaterialCommunityIcons
-          name="scan-helper"
-          size={24}
-          color="#0B4E3E"
-        />
-      </View>
-
-      <View style={styles.emptyRecentCopy}>
-        <Text style={styles.emptyRecentTitle}>
-          Your scan story starts here
-        </Text>
-
-        <Text style={styles.emptyRecentText}>
-          Scan your first item to see your activity.
-        </Text>
-      </View>
-
-      <Pressable
-        onPress={onPress}
-        style={styles.emptyRecentButton}
-      >
-        <MaterialCommunityIcons
-          name="arrow-right"
-          size={18}
-          color="#FFFFFF"
-        />
-      </Pressable>
-    </View>
-  );
-}
-
-function BottomNavItem({
+function BottomItem({
   icon,
   label,
   active = false,
-  isCenter = false,
+  center = false,
   onPress,
 }: {
   icon: IconName;
   label: string;
   active?: boolean;
-  isCenter?: boolean;
+  center?: boolean;
   onPress: () => void;
 }) {
   return (
     <Pressable
+      style={styles.bottomItem}
       onPress={onPress}
-      style={styles.bottomNavItem}
     >
       <View
         style={[
-          styles.bottomNavIcon,
-          active && styles.activeBottomNavIcon,
-          isCenter && styles.centerBottomNavIcon,
+          styles.bottomIcon,
+          active && styles.activeBottomIcon,
+          center && styles.centerBottomIcon,
         ]}
       >
         <MaterialCommunityIcons
           name={icon}
-          size={isCenter ? 23 : 20}
+          size={center ? 21 : 18}
           color={
-            active || isCenter ? "#FFFFFF" : "#77827D"
+            active || center ? "#FFFFFF" : "#7C8781"
           }
         />
       </View>
 
       <Text
         style={[
-          styles.bottomNavLabel,
-          active && styles.activeBottomNavLabel,
-          isCenter && styles.centerBottomNavLabel,
+          styles.bottomLabel,
+          active && styles.activeBottomLabel,
         ]}
       >
         {label}
@@ -895,13 +866,13 @@ function MenuItem({
 }) {
   return (
     <Pressable
-      onPress={onPress}
       style={styles.menuItem}
+      onPress={onPress}
     >
       <View style={styles.menuItemIcon}>
         <MaterialCommunityIcons
           name={icon}
-          size={21}
+          size={19}
           color="#BEEAD0"
         />
       </View>
@@ -918,7 +889,7 @@ function MenuItem({
 
       <MaterialCommunityIcons
         name="chevron-right"
-        size={21}
+        size={19}
         color="rgba(255,255,255,0.5)"
       />
     </Pressable>
@@ -938,7 +909,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F7F3",
   },
   hero: {
-    height: 585,
+    height: 555,
     overflow: "hidden",
   },
   heroImage: {
@@ -948,33 +919,24 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingBottom: 30,
+    paddingBottom: 28,
   },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  headerIconButton: {
-    width: 42,
-    height: 42,
+  headerButton: {
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
   },
   brand: {
     fontFamily: "Poppins_700Bold",
     color: "#FFFFFF",
-    fontSize: 26,
+    fontSize: 25,
     letterSpacing: -0.8,
-  },
-  notificationDot: {
-    position: "absolute",
-    top: 7,
-    right: 7,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#F4D252",
   },
   heroCopy: {
     maxWidth: 350,
@@ -982,8 +944,8 @@ const styles = StyleSheet.create({
   heroKicker: {
     fontFamily: "Poppins_600SemiBold",
     color: "#D7F7E2",
-    fontSize: 10,
-    letterSpacing: 1.4,
+    fontSize: 9,
+    letterSpacing: 1.35,
     marginBottom: 12,
   },
   heroTitle: {
@@ -996,40 +958,46 @@ const styles = StyleSheet.create({
   heroDescription: {
     fontFamily: "Poppins_400Regular",
     color: "#F2FFF6",
-    fontSize: 15,
-    lineHeight: 23,
-    maxWidth: 340,
-    marginTop: 14,
+    fontSize: 14,
+    lineHeight: 22,
+    maxWidth: 335,
+    marginTop: 13,
   },
-  circularScanButton: {
+  scanButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 9,
+    gap: 8,
     alignSelf: "flex-start",
-    minWidth: 148,
-    height: 52,
-    paddingHorizontal: 19,
-    borderRadius: 30,
-    backgroundColor: "#0A4F3E",
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.35)",
+    minWidth: 143,
+    height: 50,
+    paddingHorizontal: 18,
+    borderRadius: 28,
+    backgroundColor: "#2F8FEA",
+    marginTop: 19,
+    shadowColor: "#063D6D",
+    shadowOpacity: 0.3,
+    shadowRadius: 9,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    elevation: 5,
   },
-  circularScanText: {
+  scanButtonText: {
     fontFamily: "Poppins_600SemiBold",
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 11,
     letterSpacing: 1,
   },
   body: {
     paddingHorizontal: 24,
-    paddingTop: 26,
+    paddingTop: 25,
   },
   metricsRow: {
     flexDirection: "row",
     gap: 38,
-    marginBottom: 43,
+    marginBottom: 42,
   },
   metric: {
     minWidth: 105,
@@ -1037,61 +1005,61 @@ const styles = StyleSheet.create({
   metricValue: {
     fontFamily: "Poppins_700Bold",
     color: "#064B3D",
-    fontSize: 39,
-    lineHeight: 43,
+    fontSize: 38,
+    lineHeight: 42,
     letterSpacing: -1,
   },
   metricLabel: {
     fontFamily: "Poppins_600SemiBold",
     color: "#7B817C",
-    fontSize: 9,
-    letterSpacing: 2,
+    fontSize: 8,
+    letterSpacing: 1.9,
     marginTop: 7,
   },
   metricLine: {
-    width: 48,
+    width: 46,
     height: 4,
     backgroundColor: "#F2D34D",
-    marginTop: 17,
+    marginTop: 16,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 15,
+    marginBottom: 14,
   },
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: "#1D2421",
-    fontSize: 26,
-    letterSpacing: -0.6,
+    fontSize: 25,
+    letterSpacing: -0.5,
   },
   sectionAction: {
     fontFamily: "Poppins_600SemiBold",
     color: "#0B4E3E",
-    fontSize: 10,
-    letterSpacing: 1.4,
+    fontSize: 9,
+    letterSpacing: 1.3,
   },
   pathwayList: {
-    gap: 12,
+    gap: 10,
     paddingRight: 24,
   },
   pathwayCard: {
-    width: Math.min(screenWidth * 0.76, 290),
-    height: 400,
+    width: 238,
+    height: 278,
     overflow: "hidden",
-    borderRadius: 17,
+    borderRadius: 16,
     backgroundColor: "#DDE3E0",
   },
   activePathwayCard: {
     shadowColor: "#0B4E3E",
-    shadowOpacity: 0.2,
-    shadowRadius: 13,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
     shadowOffset: {
       width: 0,
-      height: 7,
+      height: 6,
     },
-    elevation: 6,
+    elevation: 5,
   },
   pathwayImage: {
     flex: 1,
@@ -1102,7 +1070,7 @@ const styles = StyleSheet.create({
   pathwayOverlay: {
     flex: 1,
     justifyContent: "space-between",
-    padding: 17,
+    padding: 14,
   },
   pathwayTop: {
     flexDirection: "row",
@@ -1110,17 +1078,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   pathwayIcon: {
-    width: 47,
-    height: 47,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(224,245,231,0.94)",
   },
   pathwayArrow: {
-    width: 35,
-    height: 35,
-    borderRadius: 18,
+    width: 31,
+    height: 31,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.25)",
@@ -1128,75 +1096,71 @@ const styles = StyleSheet.create({
   pathwayTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: "#FFFFFF",
-    fontSize: 29,
-    letterSpacing: -0.7,
+    fontSize: 25,
   },
   pathwaySubtitle: {
     fontFamily: "Poppins_400Regular",
     color: "#F5FFF7",
-    fontSize: 13,
-    lineHeight: 20,
-    marginTop: 3,
-    maxWidth: 240,
+    fontSize: 11,
+    lineHeight: 17,
+    marginTop: 2,
+    maxWidth: 205,
   },
-  pathwayIndicator: {
+  indicators: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    marginTop: 14,
+    gap: 5,
+    marginTop: 12,
   },
   indicator: {
-    width: 6,
-    height: 6,
+    width: 5,
+    height: 5,
     borderRadius: 3,
     backgroundColor: "#C5CCC8",
   },
   activeIndicator: {
-    width: 25,
+    width: 21,
     backgroundColor: "#0B4E3E",
   },
   recentHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 43,
-    marginBottom: 14,
-  },
-  recentList: {
-    gap: 1,
+    marginTop: 40,
+    marginBottom: 12,
   },
   recentRow: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 78,
-    paddingVertical: 12,
+    minHeight: 72,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#E4E5E1",
   },
   recentIcon: {
-    width: 47,
-    height: 47,
-    borderRadius: 24,
+    width: 43,
+    height: 43,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#EEF0ED",
   },
   recentCopy: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: 13,
   },
   recentTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: "#1E2824",
-    fontSize: 15,
+    fontSize: 14,
   },
   recentTime: {
     fontFamily: "Poppins_600SemiBold",
     color: "#858B86",
-    fontSize: 9,
-    letterSpacing: 1.1,
-    marginTop: 4,
+    fontSize: 8,
+    letterSpacing: 1,
+    marginTop: 3,
   },
   recentScore: {
     alignItems: "flex-end",
@@ -1204,35 +1168,27 @@ const styles = StyleSheet.create({
   scoreValue: {
     fontFamily: "Poppins_700Bold",
     color: "#07513F",
-    fontSize: 21,
+    fontSize: 20,
   },
   scoreCategory: {
     fontFamily: "Poppins_600SemiBold",
     color: "#8C7732",
-    fontSize: 8,
-    letterSpacing: 1.1,
+    fontSize: 7,
+    letterSpacing: 1,
     marginTop: 1,
   },
   emptyRecent: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 13,
-    borderRadius: 17,
+    padding: 12,
+    borderRadius: 16,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E4E5E1",
   },
-  emptyRecentIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#E7F4EA",
-  },
   emptyRecentCopy: {
     flex: 1,
-    marginLeft: 11,
+    marginLeft: 10,
   },
   emptyRecentTitle: {
     fontFamily: "Poppins_600SemiBold",
@@ -1243,12 +1199,12 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_400Regular",
     color: "#7B817C",
     fontSize: 10,
-    marginTop: 3,
+    marginTop: 2,
   },
-  emptyRecentButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  arrowButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#0B4E3E",
@@ -1256,103 +1212,100 @@ const styles = StyleSheet.create({
   insightCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginTop: 24,
-    padding: 15,
-    borderRadius: 17,
+    gap: 10,
+    marginTop: 22,
+    padding: 13,
+    borderRadius: 16,
     backgroundColor: "#FFF8E4",
     borderWidth: 1,
     borderColor: "#F2E2AD",
   },
   insightIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+    width: 39,
+    height: 39,
+    borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#FFEABD",
   },
-  insightContent: {
+  insightCopy: {
     flex: 1,
   },
   insightLabel: {
     fontFamily: "Poppins_600SemiBold",
     color: "#A96E14",
-    fontSize: 9,
-    letterSpacing: 1.2,
+    fontSize: 8,
+    letterSpacing: 1.1,
   },
   insightText: {
     fontFamily: "Poppins_500Medium",
     color: "#65501F",
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 3,
+    fontSize: 11,
+    lineHeight: 17,
+    marginTop: 2,
   },
-  bottomNavWrapper: {
+  footerWrapper: {
     position: "absolute",
-    left: 28,
-    right: 28,
+    left: 35,
+    right: 35,
   },
-  bottomNav: {
+  footer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
-    height: 67,
-    paddingHorizontal: 5,
+    height: 57,
+    paddingHorizontal: 3,
     overflow: "hidden",
-    borderRadius: 34,
+    borderRadius: 29,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.9)",
-    backgroundColor: "rgba(255,255,255,0.7)",
+    backgroundColor: "rgba(255,255,255,0.72)",
     shadowColor: "#19372D",
-    shadowOpacity: 0.15,
-    shadowRadius: 17,
+    shadowOpacity: 0.13,
+    shadowRadius: 14,
     shadowOffset: {
       width: 0,
-      height: 8,
+      height: 6,
     },
-    elevation: 8,
+    elevation: 7,
   },
-  bottomNavItem: {
+  bottomItem: {
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 58,
+    minWidth: 50,
   },
-  bottomNavIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+  bottomIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  activeBottomNavIcon: {
+  activeBottomIcon: {
     backgroundColor: "#0B4E3E",
   },
-  centerBottomNavIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#0B4E3E",
-    shadowColor: "#0B4E3E",
+  centerBottomIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#2F8FEA",
+    shadowColor: "#2F8FEA",
     shadowOpacity: 0.3,
-    shadowRadius: 7,
+    shadowRadius: 6,
     shadowOffset: {
       width: 0,
       height: 3,
     },
-    elevation: 5,
+    elevation: 4,
   },
-  bottomNavLabel: {
+  bottomLabel: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#89908B",
-    fontSize: 8,
-    letterSpacing: 0.7,
-    marginTop: 2,
+    color: "#7C8781",
+    fontSize: 7,
+    letterSpacing: 0.4,
+    marginTop: 1,
   },
-  activeBottomNavLabel: {
-    color: "#0B4E3E",
-  },
-  centerBottomNavLabel: {
+  activeBottomLabel: {
     color: "#0B4E3E",
   },
   menuLayer: {
@@ -1370,7 +1323,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: "86%",
-    paddingHorizontal: 22,
+    paddingHorizontal: 21,
     backgroundColor: "#083D31",
     shadowColor: "#000000",
     shadowOpacity: 0.3,
@@ -1389,34 +1342,34 @@ const styles = StyleSheet.create({
   menuBrand: {
     fontFamily: "Poppins_700Bold",
     color: "#FFFFFF",
-    fontSize: 25,
+    fontSize: 24,
   },
   menuSubtitle: {
     fontFamily: "Poppins_400Regular",
     color: "#B9D8C6",
-    fontSize: 10,
+    fontSize: 9,
     marginTop: 2,
   },
   closeButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.12)",
   },
-  menuProfileCard: {
+  menuProfile: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 13,
-    marginTop: 29,
-    borderRadius: 17,
+    padding: 12,
+    marginTop: 27,
+    borderRadius: 16,
     backgroundColor: "rgba(255,255,255,0.1)",
   },
   menuAvatar: {
-    width: 45,
-    height: 45,
-    borderRadius: 23,
+    width: 43,
+    height: 43,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#CBECD6",
@@ -1424,91 +1377,91 @@ const styles = StyleSheet.create({
   menuAvatarText: {
     fontFamily: "Poppins_700Bold",
     color: "#0B4E3E",
-    fontSize: 19,
+    fontSize: 18,
   },
-  menuProfileCopy: {
+  menuProfileText: {
     flex: 1,
-    marginLeft: 11,
+    marginLeft: 10,
   },
-  menuProfileName: {
+  menuName: {
     fontFamily: "Poppins_600SemiBold",
     color: "#FFFFFF",
-    fontSize: 13,
+    fontSize: 12,
   },
-  menuProfileEmail: {
+  menuEmail: {
     fontFamily: "Poppins_400Regular",
     color: "#B9D8C6",
-    fontSize: 10,
+    fontSize: 9,
     marginTop: 2,
   },
-  menuSectionLabel: {
+  menuLabel: {
     fontFamily: "Poppins_600SemiBold",
     color: "#8CBDA0",
-    fontSize: 9,
-    letterSpacing: 1.7,
-    marginTop: 32,
-    marginBottom: 9,
+    fontSize: 8,
+    letterSpacing: 1.6,
+    marginTop: 30,
+    marginBottom: 7,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 65,
-    paddingVertical: 8,
+    minHeight: 62,
+    paddingVertical: 7,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.08)",
   },
   menuItemIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 13,
+    width: 37,
+    height: 37,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.1)",
   },
   menuItemCopy: {
     flex: 1,
-    marginLeft: 11,
+    marginLeft: 10,
   },
   menuItemTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: "#FFFFFF",
-    fontSize: 13,
+    fontSize: 12,
   },
   menuItemSubtitle: {
     fontFamily: "Poppins_400Regular",
     color: "#A8C9B5",
-    fontSize: 10,
+    fontSize: 9,
     marginTop: 2,
   },
-  menuInfoCard: {
+  menuInfo: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 11,
-    marginTop: 28,
-    padding: 14,
-    borderRadius: 17,
+    gap: 10,
+    marginTop: 26,
+    padding: 13,
+    borderRadius: 16,
     backgroundColor: "rgba(255,255,255,0.1)",
   },
   menuInfoText: {
     flex: 1,
     fontFamily: "Poppins_400Regular",
     color: "#D4EFDC",
-    fontSize: 11,
-    lineHeight: 17,
+    fontSize: 10,
+    lineHeight: 16,
   },
   menuFooter: {
     marginTop: "auto",
   },
-  menuFooterText: {
+  menuFooterTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 11,
   },
-  menuFooterVersion: {
+  menuFooterText: {
     fontFamily: "Poppins_400Regular",
     color: "#8CBDA0",
-    fontSize: 10,
-    marginTop: 3,
+    fontSize: 9,
+    marginTop: 2,
   },
   emptyContainer: {
     flex: 1,
@@ -1518,9 +1471,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F7F3",
   },
   emptyIcon: {
-    width: 88,
-    height: 88,
-    borderRadius: 29,
+    width: 86,
+    height: 86,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primaryLight,
