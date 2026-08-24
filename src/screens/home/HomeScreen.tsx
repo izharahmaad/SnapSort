@@ -18,7 +18,10 @@ import { colors } from "../../constants/theme";
 import { RootStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/auth.store";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Home">;
+type Props = NativeStackScreenProps<
+  RootStackParamList,
+  "Home"
+>;
 
 type IconName = React.ComponentProps<
   typeof MaterialCommunityIcons
@@ -42,7 +45,7 @@ type PathwayItem = {
 
 const heroImage = require("../../../assets/images/hero-leaf.png");
 
-const pathwayItems: PathwayItem[] = [
+const pathways: PathwayItem[] = [
   {
     title: "Recycle",
     subtitle: "Transform waste into new beginnings.",
@@ -80,13 +83,13 @@ const pathwayItems: PathwayItem[] = [
 function getFirstName(
   displayName: string | null | undefined
 ): string {
-  const cleanName = displayName?.trim();
+  const name = displayName?.trim();
 
-  if (!cleanName) {
+  if (!name) {
     return "there";
   }
 
-  return cleanName.split(/\s+/)[0];
+  return name.split(/\s+/)[0];
 }
 
 function getScanTitle(scan: any): string {
@@ -190,7 +193,9 @@ export default function HomeScreen({
         "../../services/firebase/scans.service"
       );
 
-      const scans = await scansService.getUserScans(user.uid);
+      const scans = await scansService.getUserScans(
+        user.uid
+      );
 
       const formattedScans: ScanItem[] = scans
         .slice(0, 4)
@@ -240,7 +245,9 @@ export default function HomeScreen({
     setIsRefreshing(false);
   };
 
-  const openScreen = (screen: keyof RootStackParamList) => {
+  const openScreen = (
+    screen: keyof RootStackParamList
+  ) => {
     setIsMenuOpen(false);
     navigation.navigate(screen as never);
   };
@@ -282,7 +289,7 @@ export default function HomeScreen({
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingBottom: insets.bottom + 95,
+            paddingBottom: insets.bottom + 100,
           },
         ]}
         refreshControl={
@@ -297,31 +304,33 @@ export default function HomeScreen({
       >
         <ImageBackground
           source={heroImage}
-          style={[
-            styles.hero,
-            {
-              paddingTop: Math.max(insets.top, 16),
-            },
-          ]}
+          style={styles.hero}
           imageStyle={styles.heroImage}
         >
           <LinearGradient
             colors={[
-              "rgba(3,32,24,0.78)",
-              "rgba(3,32,24,0.12)",
-              "rgba(3,32,24,0.88)",
+              "rgba(3,32,24,0.26)",
+              "rgba(3,32,24,0.03)",
+              "rgba(3,32,24,0.86)",
             ]}
-            locations={[0, 0.45, 1]}
+            locations={[0, 0.42, 1]}
             style={styles.heroOverlay}
           >
-            <View style={styles.topBar}>
+            <View
+              style={[
+                styles.topBar,
+                {
+                  paddingTop: Math.max(insets.top, 10),
+                },
+              ]}
+            >
               <Pressable
                 style={styles.headerButton}
                 onPress={() => setIsMenuOpen(true)}
               >
                 <MaterialCommunityIcons
                   name="menu"
-                  size={23}
+                  size={25}
                   color="#FFFFFF"
                 />
               </Pressable>
@@ -332,11 +341,13 @@ export default function HomeScreen({
 
               <Pressable
                 style={styles.headerButton}
-                onPress={() => navigation.navigate("Profile")}
+                onPress={() =>
+                  navigation.navigate("Profile")
+                }
               >
                 <MaterialCommunityIcons
                   name="account-circle-outline"
-                  size={23}
+                  size={25}
                   color="#FFFFFF"
                 />
               </Pressable>
@@ -363,7 +374,7 @@ export default function HomeScreen({
               >
                 <MaterialCommunityIcons
                   name="camera-outline"
-                  size={23}
+                  size={22}
                   color="#FFFFFF"
                 />
 
@@ -399,7 +410,7 @@ export default function HomeScreen({
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.pathwayList}
           >
-            {pathwayItems.map((pathway) => (
+            {pathways.map((pathway) => (
               <PathwayCard
                 key={pathway.title}
                 pathway={pathway}
@@ -413,7 +424,7 @@ export default function HomeScreen({
           </ScrollView>
 
           <View style={styles.indicators}>
-            {pathwayItems.map((pathway) => (
+            {pathways.map((pathway) => (
               <View
                 key={pathway.title}
                 style={[
@@ -445,7 +456,7 @@ export default function HomeScreen({
               <View style={styles.recentIcon}>
                 <MaterialCommunityIcons
                   name="scan-helper"
-                  size={21}
+                  size={20}
                   color="#0B4E3E"
                 />
               </View>
@@ -466,7 +477,7 @@ export default function HomeScreen({
               >
                 <MaterialCommunityIcons
                   name="arrow-right"
-                  size={18}
+                  size={17}
                   color="#FFFFFF"
                 />
               </Pressable>
@@ -477,7 +488,7 @@ export default function HomeScreen({
             <View style={styles.insightIcon}>
               <MaterialCommunityIcons
                 name="lightbulb-on-outline"
-                size={21}
+                size={20}
                 color="#A96E14"
               />
             </View>
@@ -494,7 +505,7 @@ export default function HomeScreen({
 
             <MaterialCommunityIcons
               name="arrow-top-right"
-              size={18}
+              size={17}
               color="#A96E14"
             />
           </View>
@@ -505,20 +516,25 @@ export default function HomeScreen({
         style={[
           styles.footerWrapper,
           {
-            bottom: Math.max(insets.bottom + 7, 14),
+            bottom: Math.max(insets.bottom + 7, 13),
           },
         ]}
       >
         <BlurView
-          intensity={78}
+          intensity={80}
           tint="light"
           style={styles.footer}
         >
           <BottomItem
             icon="home-variant"
             label="Home"
-            active
             onPress={() => undefined}
+          />
+
+          <BottomItem
+            icon="history"
+            label="History"
+            onPress={() => navigation.navigate("History")}
           />
 
           <BottomItem
@@ -529,9 +545,9 @@ export default function HomeScreen({
           />
 
           <BottomItem
-            icon="history"
-            label="History"
-            onPress={() => navigation.navigate("History")}
+            icon="chart-line"
+            label="Impact"
+            onPress={() => setIsMenuOpen(true)}
           />
 
           <BottomItem
@@ -588,7 +604,7 @@ export default function HomeScreen({
                 </Text>
               </View>
 
-              <View style={styles.menuProfileText}>
+              <View style={styles.menuProfileCopy}>
                 <Text style={styles.menuName}>
                   {user.displayName || "SnapSort user"}
                 </Text>
@@ -730,9 +746,9 @@ function PathwayCard({
       >
         <LinearGradient
           colors={[
-            "rgba(0,0,0,0.04)",
-            "rgba(0,0,0,0.18)",
-            "rgba(0,0,0,0.85)",
+            "rgba(0,0,0,0.03)",
+            "rgba(0,0,0,0.16)",
+            "rgba(0,0,0,0.86)",
           ]}
           style={styles.pathwayOverlay}
         >
@@ -740,7 +756,7 @@ function PathwayCard({
             <View style={styles.pathwayIcon}>
               <MaterialCommunityIcons
                 name={pathway.icon}
-                size={20}
+                size={18}
                 color="#0B4E3E"
               />
             </View>
@@ -748,7 +764,7 @@ function PathwayCard({
             <View style={styles.pathwayArrow}>
               <MaterialCommunityIcons
                 name="arrow-top-right"
-                size={17}
+                size={16}
                 color="#FFFFFF"
               />
             </View>
@@ -779,7 +795,7 @@ function RecentScanRow({
       <View style={styles.recentIcon}>
         <MaterialCommunityIcons
           name={scan.icon}
-          size={20}
+          size={19}
           color="#0B4E3E"
         />
       </View>
@@ -810,13 +826,11 @@ function RecentScanRow({
 function BottomItem({
   icon,
   label,
-  active = false,
   center = false,
   onPress,
 }: {
   icon: IconName;
   label: string;
-  active?: boolean;
   center?: boolean;
   onPress: () => void;
 }) {
@@ -828,25 +842,17 @@ function BottomItem({
       <View
         style={[
           styles.bottomIcon,
-          active && styles.activeBottomIcon,
           center && styles.centerBottomIcon,
         ]}
       >
         <MaterialCommunityIcons
           name={icon}
-          size={center ? 21 : 18}
-          color={
-            active || center ? "#FFFFFF" : "#7C8781"
-          }
+          size={center ? 21 : 17}
+          color="#FFFFFF"
         />
       </View>
 
-      <Text
-        style={[
-          styles.bottomLabel,
-          active && styles.activeBottomLabel,
-        ]}
-      >
+      <Text style={styles.bottomLabel}>
         {label}
       </Text>
     </Pressable>
@@ -872,7 +878,7 @@ function MenuItem({
       <View style={styles.menuItemIcon}>
         <MaterialCommunityIcons
           name={icon}
-          size={19}
+          size={18}
           color="#BEEAD0"
         />
       </View>
@@ -889,7 +895,7 @@ function MenuItem({
 
       <MaterialCommunityIcons
         name="chevron-right"
-        size={19}
+        size={18}
         color="rgba(255,255,255,0.5)"
       />
     </Pressable>
@@ -918,13 +924,14 @@ const styles = StyleSheet.create({
   heroOverlay: {
     flex: 1,
     justifyContent: "space-between",
-    paddingHorizontal: 24,
     paddingBottom: 28,
   },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 22,
+    paddingBottom: 8,
   },
   headerButton: {
     width: 40,
@@ -935,25 +942,26 @@ const styles = StyleSheet.create({
   brand: {
     fontFamily: "Poppins_700Bold",
     color: "#FFFFFF",
-    fontSize: 25,
+    fontSize: 24,
     letterSpacing: -0.8,
   },
   heroCopy: {
+    paddingHorizontal: 24,
     maxWidth: 350,
   },
   heroKicker: {
     fontFamily: "Poppins_600SemiBold",
     color: "#D7F7E2",
     fontSize: 9,
-    letterSpacing: 1.35,
-    marginBottom: 12,
+    letterSpacing: 1.3,
+    marginBottom: 11,
   },
   heroTitle: {
     fontFamily: "Poppins_700Bold",
     color: "#FFFFFF",
-    fontSize: 39,
-    lineHeight: 45,
-    letterSpacing: -1.2,
+    fontSize: 38,
+    lineHeight: 44,
+    letterSpacing: -1.1,
   },
   heroDescription: {
     fontFamily: "Poppins_400Regular",
@@ -969,97 +977,91 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     alignSelf: "flex-start",
-    minWidth: 143,
-    height: 50,
-    paddingHorizontal: 18,
-    borderRadius: 28,
-    backgroundColor: "#2F8FEA",
-    marginTop: 19,
-    shadowColor: "#063D6D",
-    shadowOpacity: 0.3,
-    shadowRadius: 9,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    elevation: 5,
+    minWidth: 138,
+    height: 48,
+    paddingHorizontal: 17,
+    borderRadius: 26,
+    backgroundColor: "#0B4E3E",
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.35)",
   },
   scanButtonText: {
     fontFamily: "Poppins_600SemiBold",
     color: "#FFFFFF",
-    fontSize: 11,
+    fontSize: 10,
     letterSpacing: 1,
   },
   body: {
     paddingHorizontal: 24,
-    paddingTop: 25,
+    paddingTop: 24,
   },
   metricsRow: {
     flexDirection: "row",
-    gap: 38,
-    marginBottom: 42,
+    gap: 37,
+    marginBottom: 40,
   },
   metric: {
-    minWidth: 105,
+    minWidth: 102,
   },
   metricValue: {
     fontFamily: "Poppins_700Bold",
     color: "#064B3D",
-    fontSize: 38,
-    lineHeight: 42,
+    fontSize: 37,
+    lineHeight: 41,
     letterSpacing: -1,
   },
   metricLabel: {
     fontFamily: "Poppins_600SemiBold",
     color: "#7B817C",
     fontSize: 8,
-    letterSpacing: 1.9,
+    letterSpacing: 1.8,
     marginTop: 7,
   },
   metricLine: {
-    width: 46,
+    width: 45,
     height: 4,
     backgroundColor: "#F2D34D",
-    marginTop: 16,
+    marginTop: 15,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 14,
+    marginBottom: 13,
   },
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: "#1D2421",
-    fontSize: 25,
+    fontSize: 24,
     letterSpacing: -0.5,
   },
   sectionAction: {
     fontFamily: "Poppins_600SemiBold",
     color: "#0B4E3E",
     fontSize: 9,
-    letterSpacing: 1.3,
+    letterSpacing: 1.25,
   },
   pathwayList: {
     gap: 10,
     paddingRight: 24,
   },
   pathwayCard: {
-    width: 238,
-    height: 278,
+    width: 195,
+    height: 215,
     overflow: "hidden",
-    borderRadius: 16,
+    borderRadius: 15,
     backgroundColor: "#DDE3E0",
   },
   activePathwayCard: {
     shadowColor: "#0B4E3E",
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
+    shadowOpacity: 0.17,
+    shadowRadius: 8,
     shadowOffset: {
       width: 0,
-      height: 6,
+      height: 5,
     },
-    elevation: 5,
+    elevation: 4,
   },
   pathwayImage: {
     flex: 1,
@@ -1070,7 +1072,7 @@ const styles = StyleSheet.create({
   pathwayOverlay: {
     flex: 1,
     justifyContent: "space-between",
-    padding: 14,
+    padding: 12,
   },
   pathwayTop: {
     flexDirection: "row",
@@ -1078,40 +1080,40 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   pathwayIcon: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(224,245,231,0.97)",
+  },
+  pathwayArrow: {
+    width: 27,
+    height: 27,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(224,245,231,0.94)",
-  },
-  pathwayArrow: {
-    width: 31,
-    height: 31,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.25)",
+    backgroundColor: "rgba(0,0,0,0.24)",
   },
   pathwayTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: "#FFFFFF",
-    fontSize: 25,
+    fontSize: 21,
   },
   pathwaySubtitle: {
     fontFamily: "Poppins_400Regular",
     color: "#F5FFF7",
-    fontSize: 11,
-    lineHeight: 17,
+    fontSize: 9,
+    lineHeight: 14,
     marginTop: 2,
-    maxWidth: 205,
+    maxWidth: 175,
   },
   indicators: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    marginTop: 12,
+    marginTop: 10,
   },
   indicator: {
     width: 5,
@@ -1120,35 +1122,35 @@ const styles = StyleSheet.create({
     backgroundColor: "#C5CCC8",
   },
   activeIndicator: {
-    width: 21,
+    width: 20,
     backgroundColor: "#0B4E3E",
   },
   recentHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 40,
-    marginBottom: 12,
+    marginTop: 36,
+    marginBottom: 10,
   },
   recentRow: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 72,
-    paddingVertical: 10,
+    minHeight: 69,
+    paddingVertical: 9,
     borderBottomWidth: 1,
     borderBottomColor: "#E4E5E1",
   },
   recentIcon: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
+    width: 41,
+    height: 41,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#EEF0ED",
   },
   recentCopy: {
     flex: 1,
-    marginLeft: 13,
+    marginLeft: 12,
   },
   recentTitle: {
     fontFamily: "Poppins_600SemiBold",
@@ -1180,7 +1182,7 @@ const styles = StyleSheet.create({
   emptyRecent: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
+    padding: 11,
     borderRadius: 16,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
@@ -1202,8 +1204,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   arrowButton: {
-    width: 34,
-    height: 34,
+    width: 33,
+    height: 33,
     borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
@@ -1213,16 +1215,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginTop: 22,
-    padding: 13,
+    marginTop: 21,
+    padding: 12,
     borderRadius: 16,
     backgroundColor: "#FFF8E4",
     borderWidth: 1,
     borderColor: "#F2E2AD",
   },
   insightIcon: {
-    width: 39,
-    height: 39,
+    width: 38,
+    height: 38,
     borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
@@ -1246,33 +1248,33 @@ const styles = StyleSheet.create({
   },
   footerWrapper: {
     position: "absolute",
-    left: 35,
-    right: 35,
+    left: 27,
+    right: 27,
   },
   footer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
     height: 57,
-    paddingHorizontal: 3,
+    paddingHorizontal: 2,
     overflow: "hidden",
-    borderRadius: 29,
+    borderRadius: 31,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.9)",
-    backgroundColor: "rgba(255,255,255,0.72)",
+    borderColor: "rgba(255,255,255,0.96)",
+    backgroundColor: "rgba(255,255,255,0.78)",
     shadowColor: "#19372D",
-    shadowOpacity: 0.13,
+    shadowOpacity: 0.15,
     shadowRadius: 14,
     shadowOffset: {
       width: 0,
       height: 6,
     },
-    elevation: 7,
+    elevation: 8,
   },
   bottomItem: {
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 50,
+    minWidth: 42,
   },
   bottomIcon: {
     width: 28,
@@ -1280,33 +1282,20 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-  },
-  activeBottomIcon: {
     backgroundColor: "#0B4E3E",
   },
   centerBottomIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#2F8FEA",
-    shadowColor: "#2F8FEA",
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    elevation: 4,
+    backgroundColor: "#0B4E3E",
   },
   bottomLabel: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#7C8781",
-    fontSize: 7,
-    letterSpacing: 0.4,
-    marginTop: 1,
-  },
-  activeBottomLabel: {
     color: "#0B4E3E",
+    fontSize: 7,
+    letterSpacing: 0.25,
+    marginTop: 1,
   },
   menuLayer: {
     ...StyleSheet.absoluteFillObject,
@@ -1379,7 +1368,7 @@ const styles = StyleSheet.create({
     color: "#0B4E3E",
     fontSize: 18,
   },
-  menuProfileText: {
+  menuProfileCopy: {
     flex: 1,
     marginLeft: 10,
   },
