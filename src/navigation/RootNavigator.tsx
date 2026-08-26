@@ -26,17 +26,10 @@ const Stack =
   createNativeStackNavigator<RootStackParamList>();
 
 const defaultScreenOptions: NativeStackNavigationOptions = {
+  headerShown: false,
   headerShadowVisible: false,
   headerBackVisible: false,
   headerBackTitle: "",
-  headerStyle: {
-    backgroundColor: colors.background,
-  },
-  headerTintColor: colors.text,
-  headerTitleStyle: {
-    fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
-  },
   contentStyle: {
     backgroundColor: colors.background,
   },
@@ -109,18 +102,7 @@ export default function RootNavigator() {
               name="Preview"
               component={PreviewScreen}
               options={{
-                title: "Preview item",
-                headerShown: true,
-                headerBackVisible: true,
-                headerTransparent: false,
-                headerStyle: {
-                  backgroundColor: colors.background,
-                },
-                headerTintColor: colors.text,
-                headerTitleStyle: {
-                  fontFamily: "Poppins_600SemiBold",
-                  color: colors.text,
-                },
+                headerShown: false,
               }}
             />
 
@@ -128,18 +110,7 @@ export default function RootNavigator() {
               name="Result"
               component={ResultScreen}
               options={{
-                title: "SnapSort result",
-                headerShown: true,
-                headerBackVisible: true,
-                headerTransparent: false,
-                headerStyle: {
-                  backgroundColor: colors.background,
-                },
-                headerTintColor: colors.text,
-                headerTitleStyle: {
-                  fontFamily: "Poppins_600SemiBold",
-                  color: colors.text,
-                },
+                headerShown: false,
               }}
             />
 
