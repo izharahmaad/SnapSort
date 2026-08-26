@@ -2,101 +2,97 @@ import { useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
+  Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Pressable,
   StyleSheet,
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { Button, Text } from "react-native-paper";
+import { Text } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors } from "../../constants/theme";
 import { useOnboardingStore } from "../../stores/onboarding.store";
 
-const { width } = Dimensions.get("window");
-
-type IconName =
-  | "camera-outline"
-  | "recycle-variant"
-  | "sprout-outline";
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } =
+  Dimensions.get("window");
 
 type Slide = {
   id: string;
-  icon: IconName;
-  iconBackground: string;
-  iconColor: string;
+  image: number;
   badge: string;
   title: string;
   description: string;
-  gradient: readonly [string, string, ...string[]];
 };
 
 const slides: Slide[] = [
   {
     id: "1",
-    icon: "camera-outline",
-    iconBackground: "#DDF8E5",
-    iconColor: "#1E7A46",
+    image: require("../../../assets/onboarding/onboarding1.png"),
     badge: "SMART SCANNING",
     title: "Point. Snap.\nSort smarter.",
     description:
       "Take a photo of everyday items and get clear, practical guidance in seconds.",
-    gradient: ["#F1FFF5", "#DFF8E7"],
   },
   {
     id: "2",
-    icon: "recycle-variant",
-    iconBackground: "#E8F0FF",
-    iconColor: "#3563C9",
+    image: require("../../../assets/onboarding/onboarding2.png"),
     badge: "SIMPLE GUIDANCE",
     title: "Know where\neverything goes.",
     description:
       "Discover whether an item can be recycled, reused, donated, sold, or safely discarded.",
-    gradient: ["#F3F7FF", "#E2ECFF"],
   },
   {
     id: "3",
-    icon: "sprout-outline",
-    iconBackground: "#FFF0D7",
-    iconColor: "#C87912",
+    image: require("../../../assets/onboarding/onboarding3.png"),
     badge: "BUILD BETTER HABITS",
     title: "Small choices.\nReal impact.",
     description:
-      "Save your discoveries, earn eco points, and make mindful disposal a daily habit.",
-    gradient: ["#FFF9EF", "#FFF0D7"],
+      "Save your discoveries and make mindful disposal a daily habit.",
   },
 ];
 
 export default function OnboardingScreen() {
+  const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Slide>>(null);
 
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isCompleting, setIsCompleting] =
+    useState(false);
 
   const completeOnboarding = useOnboardingStore(
     (state) => state.completeOnboarding
   );
 
+  const activeSlide = slides[activeIndex];
   const isLastSlide =
     activeIndex === slides.length - 1;
 
   const handleScrollEnd = (
     event: NativeSyntheticEvent<NativeScrollEvent>
   ) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
     const nextIndex = Math.round(
-      event.nativeEvent.contentOffset.x / width
+      offsetX / SCREEN_WIDTH
     );
 
-    const safeIndex = Math.max(
-      0,
-      Math.min(slides.length - 1, nextIndex)
+    setActiveIndex(
+      Math.max(
+        0,
+        Math.min(slides.length - 1, nextIndex)
+      )
     );
-
-    setActiveIndex(safeIndex);
   };
 
   const goToSlide = (index: number) => {
-    if (index < 0 || index >= slides.length) {
+    if (
+      index < 0 ||
+      index >= slides.length ||
+      isCompleting
+    ) {
       return;
     }
 
@@ -108,413 +104,429 @@ export default function OnboardingScreen() {
     setActiveIndex(index);
   };
 
+  const complete = async () => {
+    if (isCompleting) {
+      return;
+    }
+
+    try {
+      setIsCompleting(true);
+      await completeOnboarding();
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
   const handleContinue = async () => {
     if (isLastSlide) {
-      await completeOnboarding();
+      await complete();
       return;
     }
 
     goToSlide(activeIndex + 1);
   };
 
-  const handleBack = () => {
-    if (activeIndex === 0) return;
-
-    goToSlide(activeIndex - 1);
-  };
-
-  const handleSkip = async () => {
-    await completeOnboarding();
-  };
-
   return (
-    <View style={styles.container}>
+    <View style={styles.screen}>
       <FlatList
         ref={listRef}
         data={slides}
         horizontal
         pagingEnabled
         bounces={false}
+        scrollEventThrottle={16}
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item) => item.id}
         onMomentumScrollEnd={handleScrollEnd}
         getItemLayout={(_, index) => ({
-          length: width,
-          offset: width * index,
+          length: SCREEN_WIDTH,
+          offset: SCREEN_WIDTH * index,
           index,
         })}
         renderItem={({ item }) => (
-          <LinearGradient
-            colors={item.gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.slide}
-          >
-            <View style={styles.topBar}>
-              <View style={styles.brandMark}>
-                <MaterialCommunityIcons
-                  name="leaf"
-                  size={17}
-                  color={colors.primary}
-                />
+          <View style={styles.slide}>
+            <Image
+              source={item.image}
+              resizeMode="cover"
+              style={styles.heroImage}
+            />
+
+            <LinearGradient
+              colors={[
+                "rgba(5,24,13,0.20)",
+                "rgba(5,24,13,0.02)",
+                "rgba(5,24,13,0.64)",
+              ]}
+              locations={[0, 0.45, 1]}
+              style={styles.imageOverlay}
+            />
+
+            <View
+              style={[
+                styles.topBar,
+                {
+                  top: Math.max(
+                    insets.top + 14,
+                    28
+                  ),
+                },
+              ]}
+            >
+              <View style={styles.brandPill}>
+                <View style={styles.brandIcon}>
+                  <MaterialCommunityIcons
+                    name="leaf"
+                    size={15}
+                    color="#FFFFFF"
+                  />
+                </View>
 
                 <Text style={styles.brandText}>
-                  SnapSort
+                  SnapSort AI
                 </Text>
               </View>
 
-              <Text style={styles.progressText}>
-                {activeIndex + 1} / {slides.length}
-              </Text>
+              <View style={styles.counterPill}>
+                <Text style={styles.counterText}>
+                  {activeIndex + 1}/{slides.length}
+                </Text>
+              </View>
             </View>
 
-            <View style={styles.topArea}>
-              <View style={styles.glowRing} />
-
-              <View
-                style={[
-                  styles.iconCircle,
-                  {
-                    backgroundColor:
-                      item.iconBackground,
-                  },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name={item.icon}
-                  size={86}
-                  color={item.iconColor}
-                />
-              </View>
-
-              <View style={styles.decorativeCircleOne} />
-              <View style={styles.decorativeCircleTwo} />
-              <View style={styles.decorativeLeaf}>
+            <View style={styles.imageMessage}>
+              <View style={styles.messagePill}>
                 <MaterialCommunityIcons
                   name="leaf"
-                  size={19}
-                  color="rgba(30,122,70,0.35)"
+                  size={14}
+                  color="#FFFFFF"
                 />
-              </View>
-            </View>
 
-            <View style={styles.content}>
-              <View style={styles.badge}>
-                <View style={styles.badgeDot} />
-
-                <Text style={styles.badgeText}>
-                  {item.badge}
+                <Text style={styles.messageText}>
+                  Make a greener choice
                 </Text>
               </View>
-
-              <Text style={styles.title}>
-                {item.title}
-              </Text>
-
-              <Text style={styles.description}>
-                {item.description}
-              </Text>
             </View>
-          </LinearGradient>
+          </View>
         )}
       />
 
-      <View style={styles.bottomPanel}>
-        <View style={styles.indicatorHeader}>
-          <Text style={styles.indicatorHint}>
-            {isLastSlide
-              ? "Ready to make a difference?"
-              : "Your greener journey starts here"}
+      <View
+        style={[
+          styles.bottomSheet,
+          {
+            paddingBottom: Math.max(
+              insets.bottom + 15,
+              24
+            ),
+          },
+        ]}
+      >
+        <View style={styles.sheetHeader}>
+          <Text style={styles.badge}>
+            {activeSlide.badge}
           </Text>
 
-          <Text style={styles.indicatorCount}>
-            {activeIndex + 1} of {slides.length}
-          </Text>
+          <View style={styles.progressDots}>
+            {slides.map((slide, index) => (
+              <Pressable
+                key={slide.id}
+                onPress={() => goToSlide(index)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={`Go to slide ${index + 1}`}
+              >
+                <View
+                  style={[
+                    styles.dot,
+                    activeIndex === index &&
+                      styles.activeDot,
+                  ]}
+                />
+              </Pressable>
+            ))}
+          </View>
         </View>
 
-        <View style={styles.indicators}>
-          {slides.map((slide, index) => (
-            <View
-              key={slide.id}
-              style={[
-                styles.indicator,
-                activeIndex === index &&
-                  styles.activeIndicator,
-              ]}
-            />
-          ))}
-        </View>
+        <Text style={styles.title}>
+          {activeSlide.title}
+        </Text>
+
+        <Text style={styles.description}>
+          {activeSlide.description}
+        </Text>
 
         <View style={styles.actionRow}>
-          {activeIndex > 0 && (
-            <Button
-              mode="outlined"
-              icon="arrow-left"
-              onPress={handleBack}
-              accessibilityLabel="Go to previous introduction slide"
-              contentStyle={styles.backButton}
-              labelStyle={styles.backButtonText}
-              style={styles.backButtonWrapper}
+          {activeIndex > 0 ? (
+            <Pressable
+              style={styles.backButton}
+              onPress={() =>
+                goToSlide(activeIndex - 1)
+              }
+              accessibilityRole="button"
+              accessibilityLabel="Previous slide"
             >
-              Back
-            </Button>
-          )}
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={18}
+                color={colors.primary}
+              />
 
-          <Button
-            mode="contained"
+              <Text style={styles.backText}>
+                Back
+              </Text>
+            </Pressable>
+          ) : null}
+
+          <Pressable
+            style={[
+              styles.continueButton,
+              activeIndex > 0 &&
+                styles.continueButtonWithBack,
+              isCompleting &&
+                styles.disabledButton,
+            ]}
             onPress={handleContinue}
+            disabled={isCompleting}
+            accessibilityRole="button"
             accessibilityLabel={
               isLastSlide
                 ? "Start exploring SnapSort"
-                : "Continue introduction"
-            }
-            contentStyle={styles.continueButton}
-            labelStyle={styles.continueButtonText}
-            icon={
-              isLastSlide
-                ? "check-circle-outline"
-                : "arrow-right"
-            }
-            style={
-              activeIndex > 0
-                ? styles.continueButtonWithBack
-                : undefined
+                : "Continue onboarding"
             }
           >
-            {isLastSlide
-              ? "Start exploring"
-              : "Continue"}
-          </Button>
+            <Text style={styles.continueText}>
+              {isCompleting
+                ? "Opening..."
+                : isLastSlide
+                  ? "Start exploring"
+                  : "Continue"}
+            </Text>
+
+            {!isCompleting ? (
+              <MaterialCommunityIcons
+                name={
+                  isLastSlide
+                    ? "check"
+                    : "arrow-right"
+                }
+                size={19}
+                color="#FFFFFF"
+              />
+            ) : null}
+          </Pressable>
         </View>
 
-        {!isLastSlide && (
-          <Button
-            mode="text"
-            onPress={handleSkip}
-            textColor={colors.muted}
-            accessibilityLabel="Skip introduction"
-            labelStyle={styles.skipButtonText}
+        {!isLastSlide ? (
+          <Pressable
             style={styles.skipButton}
+            onPress={complete}
+            disabled={isCompleting}
+            accessibilityRole="button"
+            accessibilityLabel="Skip onboarding"
           >
-            Skip for now
-          </Button>
-        )}
+            <Text style={styles.skipText}>
+              Skip for now
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
     backgroundColor: colors.background,
   },
   slide: {
-    width,
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 54,
-    paddingBottom: 205,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+    backgroundColor: "#DDEFE1",
+  },
+  heroImage: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
   topBar: {
+    position: "absolute",
+    left: 22,
+    right: 22,
+    zIndex: 2,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  brandMark: {
+  brandPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 7,
+    paddingLeft: 6,
+    paddingRight: 12,
+    paddingVertical: 6,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.90)",
+  },
+  brandIcon: {
+    width: 29,
+    height: 29,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primary,
   },
   brandText: {
     fontFamily: "Poppins_700Bold",
     color: colors.primary,
-    fontSize: 15,
+    fontSize: 13,
   },
-  progressText: {
+  counterPill: {
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.90)",
+  },
+  counterText: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.muted,
-    fontSize: 11,
+    fontSize: 10,
   },
-  topArea: {
-    height: "47%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  glowRing: {
+  imageMessage: {
     position: "absolute",
-    width: 270,
-    height: 270,
-    borderRadius: 135,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.65)",
+    left: 22,
+    bottom: 214,
   },
-  iconCircle: {
-    width: 218,
-    height: 218,
-    borderRadius: 109,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 5,
-    shadowColor: "#000000",
-    shadowOpacity: 0.09,
-    shadowRadius: 20,
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-  },
-  decorativeCircleOne: {
-    position: "absolute",
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.85)",
-    top: 43,
-    left: 38,
-  },
-  decorativeCircleTwo: {
-    position: "absolute",
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: "rgba(255,255,255,0.75)",
-    bottom: 25,
-    right: 48,
-  },
-  decorativeLeaf: {
-    position: "absolute",
-    right: 43,
-    top: 70,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.7)",
-  },
-  content: {
-    paddingTop: 8,
-  },
-  badge: {
+  messagePill: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
-    gap: 7,
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderRadius: 30,
+    gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 7,
-    marginBottom: 17,
+    paddingVertical: 8,
+    borderRadius: 22,
+    backgroundColor: "rgba(29,117,67,0.92)",
   },
-  badgeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.primary,
-  },
-  badgeText: {
+  messageText: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.primaryDark,
+    color: "#FFFFFF",
     fontSize: 10,
+  },
+  bottomSheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 23,
+    paddingTop: 21,
+    borderTopLeftRadius: 31,
+    borderTopRightRadius: 31,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#173B25",
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+    shadowOffset: {
+      width: 0,
+      height: -6,
+    },
+    elevation: 15,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  badge: {
+    fontFamily: "Poppins_600SemiBold",
+    color: colors.primary,
+    fontSize: 9,
     letterSpacing: 1.1,
+  },
+  progressDots: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#D7E4DA",
+  },
+  activeDot: {
+    width: 28,
+    backgroundColor: colors.primary,
   },
   title: {
     fontFamily: "Poppins_700Bold",
     color: colors.text,
-    fontSize: 34,
-    lineHeight: 43,
-    letterSpacing: -0.5,
+    fontSize: 28,
+    lineHeight: 35,
+    letterSpacing: -0.4,
+    marginTop: 11,
   },
   description: {
-    fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 14,
-    lineHeight: 23,
-    marginTop: 15,
     maxWidth: 330,
-  },
-  bottomPanel: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    paddingHorizontal: 24,
-    paddingTop: 18,
-    paddingBottom: 28,
-    elevation: 12,
-    shadowColor: "#153B22",
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    shadowOffset: {
-      width: 0,
-      height: -5,
-    },
-  },
-  indicatorHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 11,
-  },
-  indicatorHint: {
-    fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
-    fontSize: 12,
-  },
-  indicatorCount: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
-    fontSize: 11,
-  },
-  indicators: {
-    flexDirection: "row",
-    gap: 7,
-    marginBottom: 17,
-  },
-  indicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#D8E4DA",
-  },
-  activeIndicator: {
-    width: 28,
-    backgroundColor: colors.primary,
+    fontSize: 12,
+    lineHeight: 19,
+    marginTop: 8,
   },
   actionRow: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 10,
-  },
-  backButtonWrapper: {
-    width: 102,
+    marginTop: 18,
   },
   backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    width: 101,
     height: 54,
-    paddingHorizontal: 4,
+    borderRadius: 27,
+    backgroundColor: "#F0F7F1",
+    borderWidth: 1,
+    borderColor: "#DCE9DF",
   },
-  backButtonText: {
+  backText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 13,
+    color: colors.primary,
+    fontSize: 12,
+  },
+  continueButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: colors.primary,
   },
   continueButtonWithBack: {
     flex: 1,
   },
-  continueButton: {
-    height: 54,
-  },
-  continueButtonText: {
+  continueText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
+    color: "#FFFFFF",
+    fontSize: 13,
+  },
+  disabledButton: {
+    opacity: 0.55,
   },
   skipButton: {
+    alignSelf: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 9,
     marginTop: 3,
+    borderRadius: 20,
   },
-  skipButtonText: {
+  skipText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 13,
+    color: colors.muted,
+    fontSize: 11,
   },
 });
