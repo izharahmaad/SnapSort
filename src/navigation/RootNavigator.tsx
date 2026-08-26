@@ -79,6 +79,7 @@ export default function RootNavigator() {
               component={RegisterScreen}
               options={{
                 headerShown: false,
+                animation: "slide_from_right",
               }}
             />
           </>
@@ -118,6 +119,16 @@ export default function RootNavigator() {
               options={{
                 title: "Preview item",
                 headerShown: true,
+                headerBackVisible: true,
+                headerTransparent: false,
+                headerStyle: {
+                  backgroundColor: colors.background,
+                },
+                headerTintColor: colors.text,
+                headerTitleStyle: {
+                  fontFamily: "Poppins_600SemiBold",
+                  color: colors.text,
+                },
               }}
             />
 
@@ -127,6 +138,16 @@ export default function RootNavigator() {
               options={{
                 title: "SnapSort result",
                 headerShown: true,
+                headerBackVisible: true,
+                headerTransparent: false,
+                headerStyle: {
+                  backgroundColor: colors.background,
+                },
+                headerTintColor: colors.text,
+                headerTitleStyle: {
+                  fontFamily: "Poppins_600SemiBold",
+                  color: colors.text,
+                },
               }}
             />
 
@@ -142,8 +163,7 @@ export default function RootNavigator() {
               name="Profile"
               component={ProfileScreen}
               options={{
-                title: "Your profile",
-                headerShown: true,
+                headerShown: false,
               }}
             />
           </>
