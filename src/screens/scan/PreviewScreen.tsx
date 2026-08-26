@@ -1,13 +1,17 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useMemo } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
+  Pressable,
+  ScrollView,
   StyleSheet,
   View,
 } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { Button, Card, Text } from "react-native-paper";
+import { Button, Text } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors } from "../../constants/theme";
 import { RootStackParamList } from "../../navigation/types";
@@ -19,19 +23,43 @@ type Props = NativeStackScreenProps<
   "Preview"
 >;
 
-export default function PreviewScreen({ navigation }: Props) {
-  const imageUri = useScanStore((state) => state.imageUri);
-  const imageBase64 = useScanStore((state) => state.imageBase64);
-  const setResult = useScanStore((state) => state.setResult);
+type IconName = React.ComponentProps<
+  typeof MaterialCommunityIcons
+>["name"];
+
+export default function PreviewScreen({
+  navigation,
+}: Props) {
+  const insets = useSafeAreaInsets();
+
+  const imageUri = useScanStore(
+    (state) => state.imageUri
+  );
+
+  const imageBase64 = useScanStore(
+    (state) => state.imageBase64
+  );
+
+  const setResult = useScanStore(
+    (state) => state.setResult
+  );
+
   const isAnalyzing = useScanStore(
     (state) => state.isAnalyzing
   );
+
   const setIsAnalyzing = useScanStore(
     (state) => state.setIsAnalyzing
   );
 
+  const imageReady = useMemo(() => {
+    return Boolean(imageUri && imageBase64);
+  }, [imageBase64, imageUri]);
+
   const retakePhoto = () => {
-    if (isAnalyzing) return;
+    if (isAnalyzing) {
+      return;
+    }
 
     navigation.goBack();
   };
@@ -48,7 +76,7 @@ export default function PreviewScreen({ navigation }: Props) {
     if (!imageBase64) {
       Alert.alert(
         "Image data missing",
-        "The photo does not contain image data. Please retake the photo."
+        "This photo does not contain image data. Please retake it."
       );
       return;
     }
@@ -56,11 +84,10 @@ export default function PreviewScreen({ navigation }: Props) {
     try {
       setIsAnalyzing(true);
 
-      // The API service reads imageBase64 from the Zustand store.
       const result = await analyzeScanImage();
 
       setResult(result);
-      navigation.navigate("Result");
+      navigation.replace("Result");
     } catch (error: unknown) {
       const message =
         error instanceof Error
@@ -75,15 +102,21 @@ export default function PreviewScreen({ navigation }: Props) {
 
   if (!imageUri) {
     return (
-      <View style={styles.emptyContainer}>
-        <MaterialCommunityIcons
-          name="image-off-outline"
-          size={56}
-          color={colors.muted}
-        />
+      <View style={styles.emptyScreen}>
+        <View style={styles.emptyIcon}>
+          <MaterialCommunityIcons
+            name="image-off-outline"
+            size={45}
+            color={colors.primary}
+          />
+        </View>
 
         <Text style={styles.emptyTitle}>
           No image selected
+        </Text>
+
+        <Text style={styles.emptyText}>
+          Capture or choose an image before continuing.
         </Text>
 
         <Button
@@ -98,20 +131,97 @@ export default function PreviewScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
-      <Image
-        source={{ uri: imageUri }}
-        style={styles.image}
-        resizeMode="cover"
-      />
+    <View style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingTop: Math.max(insets.top, 12),
+            paddingBottom: insets.bottom + 24,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.headerRow}>
+          <Pressable
+            style={styles.backButton}
+            onPress={retakePhoto}
+            disabled={isAnalyzing}
+            accessibilityRole="button"
+            accessibilityLabel="Go back and retake photo"
+          >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={21}
+              color="#FFFFFF"
+            />
+          </Pressable>
 
-      <Card style={styles.tipCard}>
-        <Card.Content style={styles.tipContent}>
+          <View style={styles.headerTitleArea}>
+            <Text style={styles.headerTitle}>
+              Review item
+            </Text>
+
+            <Text style={styles.headerSubtitle}>
+              Check your photo before analysis
+            </Text>
+          </View>
+
+          <View style={styles.headerIcon}>
+            <MaterialCommunityIcons
+              name="image-check-outline"
+              size={21}
+              color={colors.primary}
+            />
+          </View>
+        </View>
+
+        <View style={styles.previewCard}>
+          <Image
+            source={{ uri: imageUri }}
+            style={styles.previewImage}
+            resizeMode="cover"
+          />
+
+          <View style={styles.previewBadge}>
+            <MaterialCommunityIcons
+              name="check"
+              size={13}
+              color="#FFFFFF"
+            />
+
+            <Text style={styles.previewBadgeText}>
+              READY TO ANALYZE
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.photoMeta}>
+          <View style={styles.photoMetaIcon}>
+            <MaterialCommunityIcons
+              name="image-outline"
+              size={18}
+              color={colors.primary}
+            />
+          </View>
+
+          <View style={styles.photoMetaCopy}>
+            <Text style={styles.photoMetaTitle}>
+              One item per scan
+            </Text>
+
+            <Text style={styles.photoMetaText}>
+              A clear, well-lit image usually gives better guidance.
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.tipCard}>
           <View style={styles.tipIcon}>
             <MaterialCommunityIcons
               name="lightbulb-on-outline"
-              size={25}
-              color={colors.primary}
+              size={21}
+              color="#B5650B"
             />
           </View>
 
@@ -121,81 +231,115 @@ export default function PreviewScreen({ navigation }: Props) {
             </Text>
 
             <Text style={styles.tipText}>
-              Make sure one main item is visible and well lit.
+              Keep one main item visible and make sure important
+              details are not covered.
             </Text>
           </View>
-        </Card.Content>
-      </Card>
+        </View>
 
-      <View style={styles.actions}>
-        <Button
-          mode="outlined"
-          icon="camera-retake-outline"
-          textColor={colors.primary}
-          style={styles.retakeButton}
-          contentStyle={styles.actionButton}
-          disabled={isAnalyzing}
-          onPress={retakePhoto}
-        >
-          Retake
-        </Button>
+        <View style={styles.actionSection}>
+          <Text style={styles.actionLabel}>
+            READY WHEN YOU ARE
+          </Text>
 
-        {isAnalyzing ? (
-          <View style={styles.analyzingContainer}>
-            <ActivityIndicator
-              size="small"
-              color={colors.primary}
-            />
+          <View style={styles.actions}>
+            <Button
+              mode="outlined"
+              icon="camera-retake-outline"
+              textColor={colors.primary}
+              style={styles.retakeButton}
+              contentStyle={styles.actionButton}
+              disabled={isAnalyzing}
+              onPress={retakePhoto}
+            >
+              Retake
+            </Button>
 
-            <Text style={styles.analyzingText}>
-              Understanding item...
-            </Text>
+            <View style={styles.analyzeArea}>
+              {isAnalyzing ? (
+                <View style={styles.analyzingContainer}>
+                  <ActivityIndicator
+                    size="small"
+                    color="#FFFFFF"
+                  />
+
+                  <Text style={styles.analyzingText}>
+                    Understanding...
+                  </Text>
+                </View>
+              ) : (
+                <Button
+                  mode="contained"
+                  icon="star-four-points"
+                  buttonColor={colors.primary}
+                  textColor="#FFFFFF"
+                  style={styles.analyzeButton}
+                  contentStyle={styles.actionButton}
+                  onPress={analyzeItem}
+                  disabled={!imageReady}
+                >
+                  Analyze item
+                </Button>
+              )}
+            </View>
           </View>
-        ) : (
-          <Button
-            mode="contained"
-            icon="sparkles"
-            style={styles.analyzeButtonWrapper}
-            contentStyle={styles.actionButton}
-            onPress={analyzeItem}
-          >
-            Analyze item
-          </Button>
-        )}
-      </View>
+        </View>
 
-      <Text style={styles.disclaimer}>
-        SnapSort uses AI for general guidance. Local disposal
-        rules may vary.
-      </Text>
+        <View style={styles.disclaimerCard}>
+          <MaterialCommunityIcons
+            name="information-outline"
+            size={17}
+            color={colors.muted}
+          />
+
+          <Text style={styles.disclaimer}>
+            SnapSort provides general guidance only. Local disposal
+            rules may vary.
+          </Text>
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: 20,
   },
-  image: {
-    width: "100%",
-    height: 400,
-    borderRadius: 24,
-    backgroundColor: "#DCE8DF",
+  container: {
+    paddingHorizontal: 20,
   },
-  tipCard: {
-    backgroundColor: colors.surface,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  tipContent: {
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    marginBottom: 17,
   },
-  tipIcon: {
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primary,
+  },
+  headerTitleArea: {
+    flex: 1,
+    alignItems: "center",
+    marginHorizontal: 10,
+  },
+  headerTitle: {
+    fontFamily: "Poppins_700Bold",
+    color: colors.text,
+    fontSize: 22,
+  },
+  headerSubtitle: {
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
+    fontSize: 9,
+    marginTop: 2,
+  },
+  headerIcon: {
     width: 42,
     height: 42,
     borderRadius: 21,
@@ -203,71 +347,191 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.primaryLight,
   },
+  previewCard: {
+    position: "relative",
+    width: "100%",
+    height: 390,
+    overflow: "hidden",
+    borderRadius: 25,
+    backgroundColor: "#DCE8DF",
+  },
+  previewImage: {
+    width: "100%",
+    height: "100%",
+  },
+  previewBadge: {
+    position: "absolute",
+    top: 14,
+    left: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 18,
+    backgroundColor: "rgba(11,78,62,0.9)",
+  },
+  previewBadgeText: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#FFFFFF",
+    fontSize: 8,
+    letterSpacing: 0.8,
+  },
+  photoMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 13,
+    marginTop: 14,
+    borderRadius: 17,
+    backgroundColor: "#EAF6EE",
+    borderWidth: 1,
+    borderColor: "#D6EBDC",
+  },
+  photoMetaIcon: {
+    width: 39,
+    height: 39,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  photoMetaCopy: {
+    flex: 1,
+  },
+  photoMetaTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: colors.text,
+    fontSize: 13,
+  },
+  photoMetaText: {
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
+    fontSize: 10,
+    lineHeight: 15,
+    marginTop: 2,
+  },
+  tipCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    padding: 13,
+    marginTop: 12,
+    borderRadius: 18,
+    backgroundColor: "#FFF1D5",
+    borderWidth: 1,
+    borderColor: "#F1D6A0",
+  },
+  tipIcon: {
+    width: 39,
+    height: 39,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFE2AE",
+  },
   tipCopy: {
     flex: 1,
   },
   tipTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
-    fontSize: 14,
+    color: "#523915",
+    fontSize: 13,
   },
   tipText: {
     fontFamily: "Poppins_400Regular",
+    color: "#765D2C",
+    fontSize: 10,
+    lineHeight: 16,
+    marginTop: 3,
+  },
+  actionSection: {
+    marginTop: 25,
+  },
+  actionLabel: {
+    fontFamily: "Poppins_600SemiBold",
     color: colors.muted,
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 2,
+    fontSize: 9,
+    letterSpacing: 1.4,
+    marginLeft: 3,
+    marginBottom: 9,
   },
   actions: {
     flexDirection: "row",
-    gap: 12,
-    marginTop: "auto",
-    paddingTop: 20,
+    alignItems: "center",
+    gap: 10,
   },
   retakeButton: {
-    flex: 1,
+    flex: 0.85,
     borderColor: colors.primary,
+    borderRadius: 13,
   },
-  analyzeButtonWrapper: {
+  analyzeArea: {
     flex: 1.35,
+  },
+  analyzeButton: {
+    borderRadius: 13,
   },
   actionButton: {
     height: 52,
   },
   analyzingContainer: {
-    flex: 1.35,
-    minHeight: 52,
-    borderRadius: 5,
+    height: 52,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    flexDirection: "row",
-    gap: 9,
-    backgroundColor: colors.primaryLight,
+    gap: 8,
+    borderRadius: 13,
+    backgroundColor: colors.primary,
   },
   analyzingText: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.primary,
-    fontSize: 12,
+    color: "#FFFFFF",
+    fontSize: 11,
+  },
+  disclaimerCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 7,
+    paddingHorizontal: 9,
+    marginTop: 15,
   },
   disclaimer: {
+    flex: 1,
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
-    fontSize: 11,
-    textAlign: "center",
-    lineHeight: 17,
-    marginTop: 16,
+    fontSize: 9,
+    lineHeight: 15,
   },
-  emptyContainer: {
+  emptyScreen: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 14,
+    gap: 12,
     padding: 24,
     backgroundColor: colors.background,
+  },
+  emptyIcon: {
+    width: 88,
+    height: 88,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primaryLight,
+    marginBottom: 5,
   },
   emptyTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.text,
-    fontSize: 18,
+    fontSize: 19,
+    textAlign: "center",
+  },
+  emptyText: {
+    maxWidth: 290,
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: "center",
   },
 });
