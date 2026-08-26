@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -16,7 +17,7 @@ import {
   View,
 } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { Button, Card, Chip, Text } from "react-native-paper";
+import { Button, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { categoryMeta } from "../../constants/categories";
@@ -41,12 +42,6 @@ type IconName = React.ComponentProps<
   typeof MaterialCommunityIcons
 >["name"];
 
-type Meta = {
-  label: string;
-  icon: IconName | string;
-  color: string;
-};
-
 type FilterValue =
   | "all"
   | "recycle"
@@ -59,6 +54,12 @@ type FilterItem = {
   value: FilterValue;
   label: string;
   icon: IconName;
+};
+
+type Meta = {
+  label: string;
+  icon: IconName;
+  color: string;
 };
 
 const fallbackMeta: Meta = {
@@ -95,6 +96,10 @@ const filters: FilterItem[] = [
   },
 ];
 
+const historyImage = require(
+  "../../../assets/images/pathway-recycle.png"
+);
+
 function getSafeCategory(
   value: unknown
 ): DisposalCategory {
@@ -111,6 +116,22 @@ function getSafeCategory(
   return "trash";
 }
 
+function getMeta(category: DisposalCategory): Meta {
+  const raw = categoryMeta[category] as
+    | {
+        label?: string;
+        icon?: string;
+        color?: string;
+      }
+    | undefined;
+
+  return {
+    label: raw?.label || fallbackMeta.label,
+    icon: (raw?.icon || fallbackMeta.icon) as IconName,
+    color: raw?.color || fallbackMeta.color,
+  };
+}
+
 function getDate(value: unknown): Date | null {
   if (
     value &&
@@ -118,9 +139,9 @@ function getDate(value: unknown): Date | null {
     "toDate" in value &&
     typeof value.toDate === "function"
   ) {
-    const date = value.toDate();
+    const result = value.toDate();
 
-    return date instanceof Date ? date : null;
+    return result instanceof Date ? result : null;
   }
 
   if (value instanceof Date) {
@@ -145,12 +166,12 @@ function getDateText(value: unknown): string {
     return "Recently";
   }
 
-  const now = new Date();
+  const today = new Date();
 
   const isToday =
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear();
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear();
 
   if (isToday) {
     return `Today, ${date.toLocaleTimeString([], {
@@ -173,46 +194,28 @@ function getScore(scan: ScanRecord): number {
   );
 }
 
-function getConfidenceLabel(value: unknown): string {
-  if (typeof value !== "string") {
+function getConfidence(value: unknown): string {
+  if (
+    typeof value !== "string" ||
+    value.trim().length === 0
+  ) {
     return "Unknown confidence";
   }
 
-  const normalized = value.trim().toLowerCase();
-
-  if (!normalized) {
-    return "Unknown confidence";
-  }
-
-  return `${normalized} confidence`;
-}
-
-function getMeta(category: DisposalCategory): Meta {
-  const meta = categoryMeta[category] as
-    | {
-        label?: string;
-        icon?: string;
-        color?: string;
-      }
-    | undefined;
-
-  return {
-    label: meta?.label || fallbackMeta.label,
-    icon: (meta?.icon ||
-      fallbackMeta.icon) as IconName,
-    color: meta?.color || fallbackMeta.color,
-  };
+  return `${value.trim().toLowerCase()} confidence`;
 }
 
 function matchesSearch(
   scan: ScanRecord,
   query: string
 ): boolean {
-  if (!query.trim()) {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  if (!normalizedQuery) {
     return true;
   }
 
-  const text = [
+  const searchableText = [
     scan.itemName,
     scan.category,
     scan.disposalAdvice,
@@ -223,7 +226,7 @@ function matchesSearch(
     .join(" ")
     .toLowerCase();
 
-  return text.includes(query.trim().toLowerCase());
+  return searchableText.includes(normalizedQuery);
 }
 
 export default function HistoryScreen({
@@ -258,20 +261,21 @@ export default function HistoryScreen({
           setIsLoading(true);
         }
 
-        const records = await getUserScans(user.uid);
+        const result = await getUserScans(user.uid);
 
-        const sortedRecords = [...records].sort(
+        const sorted = [...result].sort(
           (first, second) => {
-            const firstDate =
+            const firstTime =
               getDate(first.createdAt)?.getTime() || 0;
-            const secondDate =
+
+            const secondTime =
               getDate(second.createdAt)?.getTime() || 0;
 
-            return secondDate - firstDate;
+            return secondTime - firstTime;
           }
         );
 
-        setScans(sortedRecords);
+        setScans(sorted);
       } catch (error: unknown) {
         const message =
           error instanceof Error
@@ -304,25 +308,14 @@ export default function HistoryScreen({
     return (total / scans.length).toFixed(1);
   }, [scans]);
 
-  const topCategory = useMemo(() => {
-    if (scans.length === 0) {
-      return "No data";
-    }
-
-    const counts = scans.reduce<Record<string, number>>(
-      (result, scan) => {
-        const category = getSafeCategory(scan.category);
-        result[category] = (result[category] || 0) + 1;
-        return result;
-      },
-      {}
+  const pathwayCount = useMemo(() => {
+    const categories = new Set(
+      scans.map((scan) =>
+        getSafeCategory(scan.category)
+      )
     );
 
-    const category = Object.entries(counts).sort(
-      (first, second) => second[1] - first[1]
-    )[0]?.[0];
-
-    return category ? getMeta(category as DisposalCategory).label : "Other";
+    return categories.size;
   }, [scans]);
 
   const filteredScans = useMemo(() => {
@@ -402,7 +395,7 @@ export default function HistoryScreen({
           Login required
         </Text>
 
-        <Text style={styles.emptyDescription}>
+        <Text style={styles.emptyText}>
           Sign in to view your saved scan history.
         </Text>
 
@@ -425,7 +418,7 @@ export default function HistoryScreen({
           color={colors.primary}
         />
 
-        <Text style={styles.emptyDescription}>
+        <Text style={styles.emptyText}>
           Loading your history...
         </Text>
       </View>
@@ -437,7 +430,7 @@ export default function HistoryScreen({
       style={[
         styles.screen,
         {
-          paddingTop: Math.max(insets.top, 16),
+          paddingTop: Math.max(insets.top, 12),
         },
       ]}
     >
@@ -445,7 +438,7 @@ export default function HistoryScreen({
         data={filteredScans}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <ScanHistoryCard
+          <HistoryCard
             scan={item}
             deletingId={deletingId}
             onDelete={confirmDelete}
@@ -455,7 +448,7 @@ export default function HistoryScreen({
         contentContainerStyle={[
           styles.list,
           {
-            paddingBottom: insets.bottom + 28,
+            paddingBottom: insets.bottom + 30,
           },
           filteredScans.length === 0 &&
             styles.emptyList,
@@ -470,23 +463,66 @@ export default function HistoryScreen({
         }
         ListHeaderComponent={
           <View>
-            <View style={styles.headerTop}>
-              <View style={styles.headerText}>
+            <View style={styles.headerRow}>
+              <Pressable
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+              >
+                <MaterialCommunityIcons
+                  name="arrow-left"
+                  size={21}
+                  color="#FFFFFF"
+                />
+              </Pressable>
+
+              <View style={styles.headerTitleArea}>
                 <Text style={styles.title}>
-                  Your history
+                  Your scans
                 </Text>
 
                 <Text style={styles.subtitle}>
-                  Every scan is a step toward less waste.
+                  Your sustainability journey
                 </Text>
               </View>
 
-              <View style={styles.headerIcon}>
+              <View style={styles.headerLeaf}>
                 <MaterialCommunityIcons
-                  name="history"
-                  size={24}
+                  name="leaf"
+                  size={22}
                   color={colors.primary}
                 />
+              </View>
+            </View>
+
+            <View style={styles.heroCard}>
+              <Image
+                source={historyImage}
+                style={styles.heroImage}
+              />
+
+              <View style={styles.heroOverlay} />
+
+              <View style={styles.heroContent}>
+                <View style={styles.heroIcon}>
+                  <MaterialCommunityIcons
+                    name="chart-line"
+                    size={21}
+                    color="#FFFFFF"
+                  />
+                </View>
+
+                <View style={styles.heroText}>
+                  <Text style={styles.heroTitle}>
+                    Your impact, captured
+                  </Text>
+
+                  <Text style={styles.heroDescription}>
+                    Review your choices and keep improving one
+                    scan at a time.
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -506,32 +542,33 @@ export default function HistoryScreen({
 
                 <SummaryCard
                   icon="recycle"
-                  value={topCategory}
-                  label="Top pathway"
-                  compact
+                  value={String(pathwayCount)}
+                  label="Pathways"
                 />
               </View>
             )}
 
             <View style={styles.searchBox}>
-              <MaterialCommunityIcons
-                name="magnify"
-                size={20}
-                color={colors.muted}
-              />
+              <View style={styles.searchIcon}>
+                <MaterialCommunityIcons
+                  name="magnify"
+                  size={19}
+                  color={colors.primary}
+                />
+              </View>
 
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder="Search your scans"
+                placeholder="Search scans"
                 placeholderTextColor={colors.muted}
                 style={styles.searchInput}
               />
 
               {searchQuery.length > 0 && (
                 <Pressable
-                  onPress={() => setSearchQuery("")}
                   style={styles.clearButton}
+                  onPress={() => setSearchQuery("")}
                 >
                   <MaterialCommunityIcons
                     name="close-circle"
@@ -553,24 +590,42 @@ export default function HistoryScreen({
                   activeFilter === item.value;
 
                 return (
-                  <Chip
-                    icon={item.icon}
-                    selected={active}
+                  <Pressable
+                    style={[
+                      styles.filterItem,
+                      active && styles.activeFilterItem,
+                    ]}
                     onPress={() =>
                       setActiveFilter(item.value)
                     }
-                    style={[
-                      styles.filterChip,
-                      active && styles.activeFilterChip,
-                    ]}
-                    textStyle={[
-                      styles.filterText,
-                      active && styles.activeFilterText,
-                    ]}
-                    selectedColor="#FFFFFF"
                   >
-                    {item.label}
-                  </Chip>
+                    <View
+                      style={[
+                        styles.filterIcon,
+                        active &&
+                          styles.activeFilterIcon,
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name={item.icon}
+                        size={16}
+                        color={
+                          active
+                            ? colors.primary
+                            : colors.muted
+                        }
+                      />
+                    </View>
+
+                    <Text
+                      style={[
+                        styles.filterText,
+                        active && styles.activeFilterText,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </Pressable>
                 );
               }}
             />
@@ -595,43 +650,33 @@ function SummaryCard({
   icon,
   value,
   label,
-  compact = false,
 }: {
   icon: IconName;
   value: string;
   label: string;
-  compact?: boolean;
 }) {
   return (
     <View style={styles.summaryCard}>
       <View style={styles.summaryIcon}>
         <MaterialCommunityIcons
           name={icon}
-          size={18}
+          size={17}
           color={colors.primary}
         />
       </View>
 
-      <View style={styles.summaryCopy}>
-        <Text
-          style={[
-            styles.summaryValue,
-            compact && styles.compactSummaryValue,
-          ]}
-          numberOfLines={1}
-        >
-          {value}
-        </Text>
+      <Text style={styles.summaryValue}>
+        {value}
+      </Text>
 
-        <Text style={styles.summaryLabel}>
-          {label}
-        </Text>
-      </View>
+      <Text style={styles.summaryLabel}>
+        {label}
+      </Text>
     </View>
   );
 }
 
-function ScanHistoryCard({
+function HistoryCard({
   scan,
   deletingId,
   onDelete,
@@ -640,172 +685,170 @@ function ScanHistoryCard({
   deletingId: string | null;
   onDelete: (scanId: string) => void;
 }) {
-  const safeCategory = getSafeCategory(scan.category);
-  const meta = getMeta(safeCategory);
-  const warning = scan.warning?.trim() || "";
+  const category = getSafeCategory(scan.category);
+  const meta = getMeta(category);
   const score = getScore(scan);
+  const warning = scan.warning?.trim() || "";
   const isDeleting = deletingId === scan.id;
 
   return (
-    <Card
+    <View
       style={[
-        styles.scanCard,
+        styles.historyCard,
         isDeleting && styles.deletingCard,
       ]}
     >
-      <Card.Content>
-        <View style={styles.cardHeader}>
-          <View
-            style={[
-              styles.itemIcon,
-              {
-                backgroundColor: `${meta.color}18`,
-              },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name={meta.icon as IconName}
-              size={23}
-              color={meta.color}
-            />
-          </View>
-
-          <View style={styles.itemTitleArea}>
-            <Text style={styles.itemName}>
-              {scan.itemName || "Unknown item"}
-            </Text>
-
-            <View style={styles.dateRow}>
-              <MaterialCommunityIcons
-                name="calendar-outline"
-                size={13}
-                color={colors.muted}
-              />
-
-              <Text style={styles.dateText}>
-                {getDateText(scan.createdAt)}
-              </Text>
-            </View>
-          </View>
-
-          <Pressable
-            onPress={() => onDelete(scan.id)}
-            disabled={Boolean(deletingId)}
-            style={styles.deleteButton}
-          >
-            {isDeleting ? (
-              <ActivityIndicator
-                size="small"
-                color={colors.muted}
-              />
-            ) : (
-              <MaterialCommunityIcons
-                name="delete-outline"
-                size={21}
-                color={colors.muted}
-              />
-            )}
-          </Pressable>
+      <View style={styles.cardHeader}>
+        <View
+          style={[
+            styles.itemIcon,
+            {
+              backgroundColor: `${meta.color}18`,
+            },
+          ]}
+        >
+          <MaterialCommunityIcons
+            name={meta.icon}
+            size={23}
+            color={meta.color}
+          />
         </View>
 
-        <View style={styles.metaRow}>
-          <View
+        <View style={styles.itemInfo}>
+          <Text style={styles.itemName}>
+            {scan.itemName || "Unknown item"}
+          </Text>
+
+          <View style={styles.dateRow}>
+            <MaterialCommunityIcons
+              name="calendar-outline"
+              size={13}
+              color={colors.muted}
+            />
+
+            <Text style={styles.dateText}>
+              {getDateText(scan.createdAt)}
+            </Text>
+          </View>
+        </View>
+
+        <Pressable
+          style={styles.deleteButton}
+          onPress={() => onDelete(scan.id)}
+          disabled={Boolean(deletingId)}
+        >
+          {isDeleting ? (
+            <ActivityIndicator
+              size="small"
+              color={colors.muted}
+            />
+          ) : (
+            <MaterialCommunityIcons
+              name="delete-outline"
+              size={21}
+              color={colors.muted}
+            />
+          )}
+        </Pressable>
+      </View>
+
+      <View style={styles.metaRow}>
+        <View
+          style={[
+            styles.categoryPill,
+            {
+              backgroundColor: `${meta.color}18`,
+            },
+          ]}
+        >
+          <MaterialCommunityIcons
+            name={meta.icon}
+            size={14}
+            color={meta.color}
+          />
+
+          <Text
             style={[
-              styles.categoryPill,
+              styles.categoryText,
               {
-                backgroundColor: `${meta.color}18`,
+                color: meta.color,
               },
             ]}
           >
-            <MaterialCommunityIcons
-              name={meta.icon as IconName}
-              size={14}
-              color={meta.color}
-            />
+            {meta.label}
+          </Text>
+        </View>
 
-            <Text
-              style={[
-                styles.categoryText,
-                {
-                  color: meta.color,
-                },
-              ]}
-            >
-              {meta.label}
+        <View style={styles.confidence}>
+          <View
+            style={[
+              styles.confidenceDot,
+              {
+                backgroundColor: meta.color,
+              },
+            ]}
+          />
+
+          <Text style={styles.confidenceText}>
+            {getConfidence(scan.confidence)}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.scorePanel}>
+        <View style={styles.scoreIcon}>
+          <MaterialCommunityIcons
+            name="leaf"
+            size={19}
+            color={colors.primary}
+          />
+        </View>
+
+        <View style={styles.scoreContent}>
+          <View style={styles.scoreHeader}>
+            <Text style={styles.scoreLabel}>
+              Eco score
+            </Text>
+
+            <Text style={styles.scoreValue}>
+              {score.toFixed(1)}/10
             </Text>
           </View>
 
-          <View style={styles.confidence}>
+          <View style={styles.scoreTrack}>
             <View
               style={[
-                styles.confidenceDot,
+                styles.scoreFill,
                 {
-                  backgroundColor: meta.color,
+                  width: `${score * 10}%`,
                 },
               ]}
             />
-
-            <Text style={styles.confidenceText}>
-              {getConfidenceLabel(scan.confidence)}
-            </Text>
           </View>
         </View>
+      </View>
 
-        <View style={styles.scorePanel}>
-          <View style={styles.scoreIcon}>
+      <Text style={styles.advice} numberOfLines={3}>
+        {scan.disposalAdvice ||
+          "Follow your local disposal guidance."}
+      </Text>
+
+      {warning.length > 0 && (
+        <View style={styles.warningBox}>
+          <View style={styles.warningIcon}>
             <MaterialCommunityIcons
-              name="leaf"
-              size={19}
-              color={colors.primary}
+              name="alert-outline"
+              size={15}
+              color={colors.warningText}
             />
           </View>
 
-          <View style={styles.scoreContent}>
-            <View style={styles.scoreHeader}>
-              <Text style={styles.scoreLabel}>
-                Eco score
-              </Text>
-
-              <Text style={styles.scoreValue}>
-                {score.toFixed(1)}/10
-              </Text>
-            </View>
-
-            <View style={styles.scoreTrack}>
-              <View
-                style={[
-                  styles.scoreFill,
-                  {
-                    width: `${score * 10}%`,
-                  },
-                ]}
-              />
-            </View>
-          </View>
+          <Text style={styles.warningText} numberOfLines={2}>
+            {warning}
+          </Text>
         </View>
-
-        <Text style={styles.advice} numberOfLines={3}>
-          {scan.disposalAdvice ||
-            "Follow your local disposal guidance."}
-        </Text>
-
-        {warning.length > 0 && (
-          <View style={styles.warningBox}>
-            <View style={styles.warningIcon}>
-              <MaterialCommunityIcons
-                name="alert-outline"
-                size={15}
-                color={colors.warningText}
-              />
-            </View>
-
-            <Text style={styles.warningText} numberOfLines={2}>
-              {warning}
-            </Text>
-          </View>
-        )}
-      </Card.Content>
-    </Card>
+      )}
+    </View>
   );
 }
 
@@ -834,13 +877,13 @@ function EmptyHistory({
         </Text>
 
         <Text style={styles.emptyResultsText}>
-          Try a different search term or clear your filters.
+          Try another search or clear your filters.
         </Text>
 
         <Button
           mode="outlined"
-          onPress={onClear}
           textColor={colors.primary}
+          onPress={onClear}
         >
           Clear filters
         </Button>
@@ -862,7 +905,7 @@ function EmptyHistory({
         Your history is waiting
       </Text>
 
-      <Text style={styles.emptyDescription}>
+      <Text style={styles.emptyText}>
         Analyze an item and save the result to build your
         personal sustainability log.
       </Text>
@@ -886,72 +929,125 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: 20,
-    paddingBottom: 30,
   },
   emptyList: {
     flexGrow: 1,
   },
-  headerTop: {
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    marginBottom: 17,
   },
-  headerText: {
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primary,
+  },
+  headerTitleArea: {
     flex: 1,
+    alignItems: "center",
+    marginHorizontal: 10,
   },
   title: {
     fontFamily: "Poppins_700Bold",
     color: colors.text,
-    fontSize: 28,
-    letterSpacing: -0.4,
+    fontSize: 24,
   },
   subtitle: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 4,
+    fontSize: 10,
+    marginTop: 1,
   },
-  headerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 17,
+  headerLeaf: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primaryLight,
   },
+  heroCard: {
+    height: 108,
+    overflow: "hidden",
+    borderRadius: 21,
+    marginBottom: 14,
+    backgroundColor: colors.primary,
+  },
+  heroImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+    opacity: 0.42,
+    resizeMode: "cover",
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(4,67,48,0.64)",
+  },
+  heroContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+  },
+  heroIcon: {
+    width: 43,
+    height: 43,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+  heroText: {
+    flex: 1,
+    marginLeft: 11,
+  },
+  heroTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#FFFFFF",
+    fontSize: 15,
+  },
+  heroDescription: {
+    fontFamily: "Poppins_400Regular",
+    color: "#DDF5E5",
+    fontSize: 10,
+    lineHeight: 15,
+    marginTop: 3,
+  },
   summaryRow: {
     flexDirection: "row",
     gap: 8,
-    marginTop: 18,
+    marginBottom: 15,
   },
   summaryCard: {
     flex: 1,
-    minHeight: 70,
-    padding: 9,
+    minHeight: 75,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 8,
     borderRadius: 17,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },
   summaryIcon: {
-    width: 29,
-    height: 29,
-    borderRadius: 11,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primaryLight,
   },
-  summaryCopy: {
-    marginTop: 5,
-  },
   summaryValue: {
+    maxWidth: 90,
     fontFamily: "Poppins_700Bold",
     color: colors.text,
     fontSize: 16,
-  },
-  compactSummaryValue: {
-    fontSize: 11,
+    marginTop: 4,
   },
   summaryLabel: {
     fontFamily: "Poppins_400Regular",
@@ -962,51 +1058,74 @@ const styles = StyleSheet.create({
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
-    height: 48,
-    paddingHorizontal: 13,
-    marginTop: 18,
-    borderRadius: 15,
+    height: 50,
+    paddingHorizontal: 8,
+    borderRadius: 26,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  searchIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primaryLight,
   },
   searchInput: {
     flex: 1,
     height: 48,
     paddingHorizontal: 9,
     paddingVertical: 0,
-    fontFamily: "Poppins_400Regular",
     color: colors.text,
+    fontFamily: "Poppins_400Regular",
     fontSize: 12,
   },
   clearButton: {
-    padding: 3,
+    padding: 5,
   },
   filterList: {
     gap: 8,
     paddingVertical: 13,
   },
-  filterChip: {
-    height: 34,
-    borderRadius: 17,
+  filterItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 37,
+    paddingHorizontal: 8,
+    borderRadius: 20,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  activeFilterChip: {
+  activeFilterItem: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
+  },
+  filterIcon: {
+    width: 25,
+    height: 25,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  activeFilterIcon: {
+    backgroundColor: "#FFFFFF",
   },
   filterText: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.muted,
     fontSize: 10,
+    marginLeft: 5,
   },
   activeFilterText: {
     color: "#FFFFFF",
   },
-  scanCard: {
+  historyCard: {
     marginBottom: 13,
+    padding: 15,
     borderRadius: 21,
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -1022,12 +1141,12 @@ const styles = StyleSheet.create({
   itemIcon: {
     width: 47,
     height: 47,
-    borderRadius: 16,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
   },
-  itemTitleArea: {
+  itemInfo: {
     flex: 1,
     paddingTop: 2,
   },
@@ -1063,8 +1182,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    paddingHorizontal: 10,
     height: 30,
+    paddingHorizontal: 10,
     borderRadius: 15,
   },
   categoryText: {
@@ -1099,7 +1218,7 @@ const styles = StyleSheet.create({
   scoreIcon: {
     width: 32,
     height: 32,
-    borderRadius: 11,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#FFFFFF",
@@ -1176,7 +1295,7 @@ const styles = StyleSheet.create({
   emptyContent: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 70,
+    paddingVertical: 65,
   },
   emptyIcon: {
     width: 88,
@@ -1185,7 +1304,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primaryLight,
-    marginBottom: 7,
+    marginBottom: 8,
   },
   emptyTitle: {
     fontFamily: "Poppins_600SemiBold",
@@ -1193,24 +1312,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: "center",
   },
-  emptyDescription: {
+  emptyText: {
     maxWidth: 290,
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 13,
     lineHeight: 20,
     textAlign: "center",
-    marginTop: 4,
-    marginBottom: 8,
   },
   emptyResults: {
     alignItems: "center",
-    paddingTop: 60,
+    paddingTop: 55,
   },
   emptyResultsIcon: {
     width: 66,
     height: 66,
-    borderRadius: 23,
+    borderRadius: 33,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primaryLight,
