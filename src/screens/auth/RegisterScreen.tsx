@@ -230,7 +230,7 @@ export default function RegisterScreen({
           contentContainerStyle={[
             styles.container,
             {
-              paddingTop: Math.max(insets.top + 20, 32),
+              paddingTop: Math.max(insets.top + 22, 34),
               paddingBottom: Math.max(insets.bottom + 20, 30),
             },
           ]}
@@ -238,12 +238,16 @@ export default function RegisterScreen({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <View style={styles.logoCircle}>
-              <MaterialCommunityIcons
-                name="leaf"
-                size={30}
-                color="#FFFFFF"
-              />
+            <View style={styles.logoOuter}>
+              <View style={styles.logoRing}>
+                <View style={styles.logoCircle}>
+                  <MaterialCommunityIcons
+                    name="leaf"
+                    size={30}
+                    color="#FFFFFF"
+                  />
+                </View>
+              </View>
             </View>
 
             <Text style={styles.brand}>
@@ -577,12 +581,24 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginBottom: 23,
+    marginBottom: 24,
+  },
+  logoOuter: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoRing: {
+    width: 82,
+    height: 82,
+    borderRadius: 41,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#D9EEDD",
   },
   logoCircle: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primary,
@@ -600,7 +616,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 27,
     letterSpacing: -0.6,
-    marginTop: 10,
+    marginTop: 11,
   },
   title: {
     fontFamily: "Poppins_700Bold",
