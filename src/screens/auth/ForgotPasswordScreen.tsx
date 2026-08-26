@@ -153,7 +153,7 @@ export default function ForgotPasswordScreen({
           contentContainerStyle={[
             styles.container,
             {
-              paddingTop: Math.max(insets.top + 28, 42),
+              paddingTop: Math.max(insets.top + 22, 34),
               paddingBottom: Math.max(insets.bottom + 22, 32),
             },
           ]}
@@ -161,12 +161,14 @@ export default function ForgotPasswordScreen({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <View style={styles.logoCircle}>
-              <MaterialCommunityIcons
-                name="lock-reset"
-                size={29}
-                color="#FFFFFF"
-              />
+            <View style={styles.logoRing}>
+              <View style={styles.logoCircle}>
+                <MaterialCommunityIcons
+                  name="leaf"
+                  size={30}
+                  color="#FFFFFF"
+                />
+              </View>
             </View>
 
             <Text style={styles.brand}>
@@ -331,10 +333,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 28,
   },
+  logoRing: {
+    width: 82,
+    height: 82,
+    borderRadius: 41,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#D9EEDD",
+  },
   logoCircle: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primary,
@@ -352,7 +362,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 27,
     letterSpacing: -0.6,
-    marginTop: 10,
+    marginTop: 11,
   },
   title: {
     fontFamily: "Poppins_700Bold",
