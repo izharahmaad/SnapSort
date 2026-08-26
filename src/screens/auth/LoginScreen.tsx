@@ -35,6 +35,18 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+function getErrorCode(error: unknown): string | undefined {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error
+  ) {
+    return String(error.code);
+  }
+
+  return undefined;
+}
+
 function getAuthErrorMessage(
   code?: string
 ): string {
@@ -46,6 +58,12 @@ function getAuthErrorMessage(
     case "auth/wrong-password":
     case "auth/invalid-credential":
       return "The email or password is incorrect.";
+
+    case "auth/email-already-in-use":
+      return "An account with this email already exists.";
+
+    case "auth/weak-password":
+      return "Your password should be at least 6 characters.";
 
     case "auth/user-disabled":
       return "This account has been disabled.";
@@ -61,18 +79,6 @@ function getAuthErrorMessage(
   }
 }
 
-function getErrorCode(error: unknown): string | undefined {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error
-  ) {
-    return String(error.code);
-  }
-
-  return undefined;
-}
-
 export default function LoginScreen({
   navigation,
 }: Props) {
@@ -83,10 +89,10 @@ export default function LoginScreen({
   const [isPasswordVisible, setIsPasswordVisible] =
     useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isResettingPassword, setIsResettingPassword] =
-    useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   const cleanEmail = email.trim().toLowerCase();
+  const isBusy = isLoading || isResetting;
 
   const handleLogin = async () => {
     if (!cleanEmail || !password) {
@@ -127,7 +133,7 @@ export default function LoginScreen({
     if (!cleanEmail) {
       Alert.alert(
         "Enter your email",
-        "Enter your email address first, then tap Forgot password."
+        "Enter your email address first."
       );
       return;
     }
@@ -141,7 +147,7 @@ export default function LoginScreen({
     }
 
     try {
-      setIsResettingPassword(true);
+      setIsResetting(true);
 
       await sendPasswordResetEmail(auth, cleanEmail);
 
@@ -151,15 +157,13 @@ export default function LoginScreen({
       );
     } catch (error: unknown) {
       Alert.alert(
-        "Password reset failed",
+        "Reset failed",
         getAuthErrorMessage(getErrorCode(error))
       );
     } finally {
-      setIsResettingPassword(false);
+      setIsResetting(false);
     }
   };
-
-  const isBusy = isLoading || isResettingPassword;
 
   return (
     <View style={styles.screen}>
@@ -175,8 +179,8 @@ export default function LoginScreen({
           contentContainerStyle={[
             styles.container,
             {
-              paddingTop: Math.max(insets.top + 18, 30),
-              paddingBottom: Math.max(insets.bottom + 24, 36),
+              paddingTop: Math.max(insets.top + 16, 26),
+              paddingBottom: Math.max(insets.bottom + 22, 32),
             },
           ]}
           keyboardShouldPersistTaps="handled"
@@ -184,13 +188,11 @@ export default function LoginScreen({
         >
           <View style={styles.brandSection}>
             <View style={styles.logoCircle}>
-              <View style={styles.logoInnerCircle}>
-                <MaterialCommunityIcons
-                  name="leaf"
-                  size={31}
-                  color="#FFFFFF"
-                />
-              </View>
+              <MaterialCommunityIcons
+                name="leaf"
+                size={29}
+                color="#FFFFFF"
+              />
             </View>
 
             <Text style={styles.brand}>
@@ -212,8 +214,7 @@ export default function LoginScreen({
             </Text>
 
             <Text style={styles.welcomeText}>
-              Sign in to continue your personal sustainability
-              journey.
+              Sign in to continue your sustainability journey.
             </Text>
           </View>
 
@@ -257,63 +258,70 @@ export default function LoginScreen({
               onPress={handleForgotPassword}
               disabled={isBusy}
             >
-              <MaterialCommunityIcons
-                name="help-circle-outline"
-                size={15}
-                color={colors.primary}
-              />
-
               <Text style={styles.forgotText}>
-                {isResettingPassword
+                {isResetting
                   ? "Sending reset email..."
                   : "Forgot password?"}
               </Text>
             </Pressable>
 
-            <Button
-              mode="contained"
-              icon={isLoading ? undefined : "arrow-right"}
-              loading={isLoading}
-              disabled={isBusy}
-              onPress={handleLogin}
-              contentStyle={styles.loginButton}
-              labelStyle={styles.loginButtonLabel}
-              style={styles.loginButtonWrapper}
-              theme={{ roundness: 16 }}
-            >
-              {isLoading ? "Signing in..." : "Sign in"}
-            </Button>
+            <View style={styles.roundedButton}>
+              <Button
+                mode="contained"
+                icon={isLoading ? undefined : "arrow-right"}
+                loading={isLoading}
+                disabled={isBusy}
+                onPress={handleLogin}
+                contentStyle={styles.primaryButton}
+                labelStyle={styles.primaryButtonLabel}
+              >
+                {isLoading ? "Signing in..." : "Sign in"}
+              </Button>
+            </View>
           </View>
 
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-
-            <Text style={styles.dividerText}>
-              NEW TO SNAP SORT AI
+          <View style={styles.createSection}>
+            <Text style={styles.createPrompt}>
+              New to SnapSort AI?
             </Text>
 
-            <View style={styles.dividerLine} />
+            <Pressable
+              style={[
+                styles.createButton,
+                isBusy && styles.disabledButton,
+              ]}
+              onPress={() => navigation.navigate("Register")}
+              disabled={isBusy}
+              accessibilityRole="button"
+              accessibilityLabel="Create an account"
+            >
+              <View style={styles.createButtonIcon}>
+                <MaterialCommunityIcons
+                  name="account-plus-outline"
+                  size={18}
+                  color={colors.primary}
+                />
+              </View>
+
+              <Text style={styles.createButtonText}>
+                Create an account
+              </Text>
+
+              <View style={styles.createArrow}>
+                <MaterialCommunityIcons
+                  name="arrow-right"
+                  size={17}
+                  color="#FFFFFF"
+                />
+              </View>
+            </Pressable>
           </View>
 
-          <Button
-            mode="outlined"
-            icon="account-plus-outline"
-            textColor={colors.primary}
-            onPress={() => navigation.navigate("Register")}
-            contentStyle={styles.registerButton}
-            labelStyle={styles.registerButtonLabel}
-            style={styles.registerButtonWrapper}
-            disabled={isBusy}
-            theme={{ roundness: 16 }}
-          >
-            Create an account
-          </Button>
-
-          <View style={styles.featureRow}>
+          <View style={styles.features}>
             <Feature
               icon="camera-outline"
               title="Scan"
-              text="Identify items"
+              text="Identify"
             />
 
             <Feature
@@ -327,27 +335,6 @@ export default function LoginScreen({
               title="Impact"
               text="Waste less"
             />
-          </View>
-
-          <View style={styles.trustCard}>
-            <View style={styles.trustIcon}>
-              <MaterialCommunityIcons
-                name="shield-check-outline"
-                size={20}
-                color={colors.primary}
-              />
-            </View>
-
-            <View style={styles.trustCopy}>
-              <Text style={styles.trustTitle}>
-                Your choices stay yours
-              </Text>
-
-              <Text style={styles.trustText}>
-                Your scan history is linked to your account and
-                protected by Firebase Authentication.
-              </Text>
-            </View>
           </View>
 
           <Text style={styles.disclaimer}>
@@ -391,7 +378,7 @@ function FormField({
         <View style={styles.inputIcon}>
           <MaterialCommunityIcons
             name={icon}
-            size={19}
+            size={18}
             color={colors.primary}
           />
         </View>
@@ -399,22 +386,22 @@ function FormField({
         <TextInput
           {...inputProps}
           value={value}
+          onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor="#96A09A"
-          onChangeText={onChangeText}
           style={styles.input}
         />
 
         {rightIcon && onRightIconPress ? (
           <Pressable
-            style={styles.rightIconButton}
+            style={styles.rightIcon}
             onPress={onRightIconPress}
             accessibilityRole="button"
             accessibilityLabel="Toggle password visibility"
           >
             <MaterialCommunityIcons
               name={rightIcon}
-              size={19}
+              size={18}
               color={colors.muted}
             />
           </Pressable>
@@ -469,17 +456,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#D7EEDF",
-  },
-  logoInnerCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primary,
@@ -487,55 +466,55 @@ const styles = StyleSheet.create({
   brand: {
     fontFamily: "Poppins_700Bold",
     color: colors.primary,
-    fontSize: 29,
-    letterSpacing: -0.8,
-    marginTop: 12,
+    fontSize: 28,
+    letterSpacing: -0.7,
+    marginTop: 10,
   },
   tagline: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
-    fontSize: 11,
+    fontSize: 10,
     marginTop: 2,
   },
   welcomeSection: {
-    marginTop: 32,
-    marginBottom: 17,
+    marginTop: 28,
+    marginBottom: 15,
   },
   welcomeEyebrow: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.primary,
-    fontSize: 9,
+    fontSize: 8,
     letterSpacing: 1.5,
-    marginBottom: 6,
+    marginBottom: 5,
   },
   welcomeTitle: {
     fontFamily: "Poppins_700Bold",
     color: colors.text,
-    fontSize: 27,
-    lineHeight: 34,
+    fontSize: 26,
+    lineHeight: 33,
   },
   welcomeText: {
-    maxWidth: 305,
+    maxWidth: 290,
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
-    fontSize: 12,
-    lineHeight: 19,
-    marginTop: 5,
+    fontSize: 11,
+    lineHeight: 18,
+    marginTop: 4,
   },
   formCard: {
-    padding: 16,
+    padding: 15,
     borderRadius: 22,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },
   fieldWrapper: {
-    marginBottom: 14,
+    marginBottom: 13,
   },
   fieldLabel: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.text,
-    fontSize: 11,
+    fontSize: 10,
     marginBottom: 6,
     marginLeft: 2,
   },
@@ -543,15 +522,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     height: 54,
-    paddingHorizontal: 8,
-    borderRadius: 17,
+    paddingHorizontal: 7,
+    borderRadius: 27,
+    overflow: "hidden",
     backgroundColor: "#F5F8F5",
     borderWidth: 1,
     borderColor: "#DCE8DE",
   },
   inputIcon: {
-    width: 36,
-    height: 36,
+    width: 35,
+    height: 35,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
@@ -560,83 +540,100 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 52,
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     paddingVertical: 0,
     color: colors.text,
     fontFamily: "Poppins_400Regular",
     fontSize: 12,
   },
-  rightIconButton: {
-    width: 36,
-    height: 36,
+  rightIcon: {
+    width: 35,
+    height: 35,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#FFFFFF",
   },
   forgotButton: {
-    flexDirection: "row",
-    alignItems: "center",
     alignSelf: "flex-end",
-    gap: 4,
-    marginTop: -2,
-    marginBottom: 17,
+    paddingHorizontal: 5,
+    paddingVertical: 4,
+    borderRadius: 18,
+    marginTop: -1,
+    marginBottom: 14,
   },
   forgotText: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.primary,
     fontSize: 10,
   },
-  loginButtonWrapper: {
-    borderRadius: 16,
+  roundedButton: {
     overflow: "hidden",
+    borderRadius: 28,
   },
-  loginButton: {
+  primaryButton: {
     height: 54,
   },
-  loginButtonLabel: {
+  primaryButtonLabel: {
     fontFamily: "Poppins_600SemiBold",
     fontSize: 13,
   },
-  dividerRow: {
+  createSection: {
+    marginTop: 20,
+  },
+  createPrompt: {
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
+    fontSize: 10,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  createButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 9,
-    marginTop: 25,
-    marginBottom: 14,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dividerText: {
-    fontFamily: "Poppins_600SemiBold",
-    color: colors.muted,
-    fontSize: 8,
-    letterSpacing: 1.1,
-  },
-  registerButtonWrapper: {
-    borderRadius: 16,
+    height: 52,
+    paddingHorizontal: 10,
+    borderRadius: 27,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
     borderColor: colors.primary,
   },
-  registerButton: {
-    height: 52,
+  disabledButton: {
+    opacity: 0.5,
   },
-  registerButtonLabel: {
+  createButtonIcon: {
+    width: 33,
+    height: 33,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primaryLight,
+  },
+  createButtonText: {
+    flex: 1,
     fontFamily: "Poppins_600SemiBold",
+    color: colors.primary,
     fontSize: 12,
+    marginLeft: 9,
   },
-  featureRow: {
+  createArrow: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primary,
+  },
+  features: {
     flexDirection: "row",
     gap: 8,
-    marginTop: 19,
+    marginTop: 17,
   },
   feature: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 11,
-    borderRadius: 16,
+    paddingVertical: 10,
+    borderRadius: 17,
     backgroundColor: "#EEF7F0",
     borderWidth: 1,
     borderColor: "#DCECDF",
@@ -653,7 +650,7 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_600SemiBold",
     color: colors.text,
     fontSize: 10,
-    marginTop: 5,
+    marginTop: 4,
   },
   featureText: {
     fontFamily: "Poppins_400Regular",
@@ -661,46 +658,12 @@ const styles = StyleSheet.create({
     fontSize: 8,
     marginTop: 1,
   },
-  trustCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    padding: 13,
-    marginTop: 18,
-    borderRadius: 17,
-    backgroundColor: "#FFF1D5",
-    borderWidth: 1,
-    borderColor: "#F1D6A0",
-  },
-  trustIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-  },
-  trustCopy: {
-    flex: 1,
-  },
-  trustTitle: {
-    fontFamily: "Poppins_600SemiBold",
-    color: "#523915",
-    fontSize: 12,
-  },
-  trustText: {
-    fontFamily: "Poppins_400Regular",
-    color: "#765D2C",
-    fontSize: 9,
-    lineHeight: 14,
-    marginTop: 2,
-  },
   disclaimer: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 9,
     lineHeight: 15,
     textAlign: "center",
-    marginTop: 17,
+    marginTop: 16,
   },
 });
