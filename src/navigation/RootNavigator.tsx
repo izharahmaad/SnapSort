@@ -27,7 +27,8 @@ const Stack =
 
 const defaultScreenOptions: NativeStackNavigationOptions = {
   headerShadowVisible: false,
-  headerBackTitle: "Back",
+  headerBackVisible: false,
+  headerBackTitle: "",
   headerStyle: {
     backgroundColor: colors.background,
   },
@@ -77,7 +78,7 @@ export default function RootNavigator() {
               name="Register"
               component={RegisterScreen}
               options={{
-                title: "Create account",
+                headerShown: false,
               }}
             />
           </>
@@ -97,6 +98,8 @@ export default function RootNavigator() {
               component={CameraScreen}
               options={{
                 title: "Scan an item",
+                headerShown: true,
+                headerBackVisible: false,
                 headerTransparent: true,
                 headerTintColor: "#FFFFFF",
                 headerTitleStyle: {
@@ -114,6 +117,7 @@ export default function RootNavigator() {
               component={PreviewScreen}
               options={{
                 title: "Preview item",
+                headerShown: true,
               }}
             />
 
@@ -122,6 +126,7 @@ export default function RootNavigator() {
               component={ResultScreen}
               options={{
                 title: "SnapSort result",
+                headerShown: true,
               }}
             />
 
@@ -129,7 +134,7 @@ export default function RootNavigator() {
               name="History"
               component={HistoryScreen}
               options={{
-                title: "Scan history",
+                headerShown: false,
               }}
             />
 
@@ -138,6 +143,7 @@ export default function RootNavigator() {
               component={ProfileScreen}
               options={{
                 title: "Your profile",
+                headerShown: true,
               }}
             />
           </>
