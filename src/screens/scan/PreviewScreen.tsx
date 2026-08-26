@@ -54,7 +54,7 @@ export default function PreviewScreen({
 
   const imageReady = useMemo(() => {
     return Boolean(imageUri && imageBase64);
-  }, [imageBase64, imageUri]);
+  }, [imageUri, imageBase64]);
 
   const retakePhoto = () => {
     if (isAnalyzing) {
@@ -111,6 +111,10 @@ export default function PreviewScreen({
           />
         </View>
 
+        <Text style={styles.emptyBrand}>
+          SnapSort AI
+        </Text>
+
         <Text style={styles.emptyTitle}>
           No image selected
         </Text>
@@ -123,6 +127,7 @@ export default function PreviewScreen({
           mode="contained"
           icon="camera-outline"
           onPress={() => navigation.navigate("Camera")}
+          contentStyle={styles.emptyButton}
         >
           Open camera
         </Button>
@@ -137,7 +142,7 @@ export default function PreviewScreen({
           styles.container,
           {
             paddingTop: Math.max(insets.top, 12),
-            paddingBottom: insets.bottom + 24,
+            paddingBottom: insets.bottom + 28,
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -163,7 +168,7 @@ export default function PreviewScreen({
             </Text>
 
             <Text style={styles.headerSubtitle}>
-              Check your photo before analysis
+              SnapSort AI scanner
             </Text>
           </View>
 
@@ -183,6 +188,8 @@ export default function PreviewScreen({
             resizeMode="cover"
           />
 
+          <View style={styles.previewOverlay} />
+
           <View style={styles.previewBadge}>
             <MaterialCommunityIcons
               name="check"
@@ -193,6 +200,14 @@ export default function PreviewScreen({
             <Text style={styles.previewBadgeText}>
               READY TO ANALYZE
             </Text>
+          </View>
+
+          <View style={styles.previewCornerTop}>
+            <MaterialCommunityIcons
+              name="camera-outline"
+              size={22}
+              color="#FFFFFF"
+            />
           </View>
         </View>
 
@@ -211,7 +226,8 @@ export default function PreviewScreen({
             </Text>
 
             <Text style={styles.photoMetaText}>
-              A clear, well-lit image usually gives better guidance.
+              A clear, well-lit image helps SnapSort AI provide
+              better guidance.
             </Text>
           </View>
         </View>
@@ -270,7 +286,7 @@ export default function PreviewScreen({
               ) : (
                 <Button
                   mode="contained"
-                  icon="star-four-points"
+                  icon="star-four-points-outline"
                   buttonColor={colors.primary}
                   textColor="#FFFFFF"
                   style={styles.analyzeButton}
@@ -293,8 +309,8 @@ export default function PreviewScreen({
           />
 
           <Text style={styles.disclaimer}>
-            SnapSort provides general guidance only. Local disposal
-            rules may vary.
+            SnapSort AI provides general guidance only. Local
+            disposal rules may vary.
           </Text>
         </View>
       </ScrollView>
@@ -359,6 +375,10 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  previewOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(3,35,25,0.10)",
+  },
   previewBadge: {
     position: "absolute",
     top: 14,
@@ -376,6 +396,17 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 8,
     letterSpacing: 0.8,
+  },
+  previewCornerTop: {
+    position: "absolute",
+    right: 14,
+    top: 14,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(11,78,62,0.86)",
   },
   photoMeta: {
     flexDirection: "row",
@@ -520,6 +551,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
     marginBottom: 5,
   },
+  emptyBrand: {
+    fontFamily: "Poppins_700Bold",
+    color: colors.primary,
+    fontSize: 16,
+  },
   emptyTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.text,
@@ -533,5 +569,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     textAlign: "center",
+  },
+  emptyButton: {
+    height: 50,
   },
 });
