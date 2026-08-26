@@ -11,7 +11,6 @@ import {
   FlatList,
   Image,
   Pressable,
-  RefreshControl,
   StyleSheet,
   TextInput,
   View,
@@ -166,14 +165,14 @@ function getDateText(value: unknown): string {
     return "Recently";
   }
 
-  const today = new Date();
+  const now = new Date();
 
-  const isToday =
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear();
+  const sameDay =
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear();
 
-  if (isToday) {
+  if (sameDay) {
     return `Today, ${date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
@@ -209,9 +208,9 @@ function matchesSearch(
   scan: ScanRecord,
   query: string
 ): boolean {
-  const normalizedQuery = query.trim().toLowerCase();
+  const value = query.trim().toLowerCase();
 
-  if (!normalizedQuery) {
+  if (!value) {
     return true;
   }
 
@@ -226,7 +225,7 @@ function matchesSearch(
     .join(" ")
     .toLowerCase();
 
-  return searchableText.includes(normalizedQuery);
+  return searchableText.includes(value);
 }
 
 export default function HistoryScreen({
@@ -263,7 +262,7 @@ export default function HistoryScreen({
 
         const result = await getUserScans(user.uid);
 
-        const sorted = [...result].sort(
+        const sortedScans = [...result].sort(
           (first, second) => {
             const firstTime =
               getDate(first.createdAt)?.getTime() || 0;
@@ -275,7 +274,7 @@ export default function HistoryScreen({
           }
         );
 
-        setScans(sorted);
+        setScans(sortedScans);
       } catch (error: unknown) {
         const message =
           error instanceof Error
@@ -309,25 +308,23 @@ export default function HistoryScreen({
   }, [scans]);
 
   const pathwayCount = useMemo(() => {
-    const categories = new Set(
+    return new Set(
       scans.map((scan) =>
         getSafeCategory(scan.category)
       )
-    );
-
-    return categories.size;
+    ).size;
   }, [scans]);
 
   const filteredScans = useMemo(() => {
     return scans.filter((scan) => {
       const category = getSafeCategory(scan.category);
 
-      const matchesCategory =
+      const categoryMatches =
         activeFilter === "all" ||
         category === activeFilter;
 
       return (
-        matchesCategory &&
+        categoryMatches &&
         matchesSearch(scan, searchQuery)
       );
     });
@@ -382,7 +379,7 @@ export default function HistoryScreen({
 
   if (!user) {
     return (
-      <View style={styles.emptyContainer}>
+      <View style={styles.emptyScreen}>
         <View style={styles.emptyIcon}>
           <MaterialCommunityIcons
             name="account-lock-outline"
@@ -412,14 +409,14 @@ export default function HistoryScreen({
 
   if (isLoading) {
     return (
-      <View style={styles.emptyContainer}>
+      <View style={styles.emptyScreen}>
         <ActivityIndicator
           size="large"
           color={colors.primary}
         />
 
         <Text style={styles.emptyText}>
-          Loading your history...
+          Loading your scans...
         </Text>
       </View>
     );
@@ -453,14 +450,8 @@ export default function HistoryScreen({
           filteredScans.length === 0 &&
             styles.emptyList,
         ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => loadScans(true)}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
+        refreshing={isRefreshing}
+        onRefresh={() => loadScans(true)}
         ListHeaderComponent={
           <View>
             <View style={styles.headerRow}>
@@ -502,7 +493,7 @@ export default function HistoryScreen({
                 style={styles.heroImage}
               />
 
-              <View style={styles.heroOverlay} />
+              <View style={styles.heroTint} />
 
               <View style={styles.heroContent}>
                 <View style={styles.heroIcon}>
@@ -593,18 +584,23 @@ export default function HistoryScreen({
                   <Pressable
                     style={[
                       styles.filterItem,
-                      active && styles.activeFilterItem,
+                      active
+                        ? styles.activeFilterItem
+                        : undefined,
                     ]}
                     onPress={() =>
                       setActiveFilter(item.value)
                     }
                   >
                     <View
-                      style={[
-                        styles.filterIcon,
-                        active &&
-                          styles.activeFilterIcon,
-                      ]}
+                      style={
+                        active
+                          ? [
+                              styles.filterIcon,
+                              styles.activeFilterIcon,
+                            ]
+                          : styles.filterIcon
+                      }
                     >
                       <MaterialCommunityIcons
                         name={item.icon}
@@ -618,10 +614,14 @@ export default function HistoryScreen({
                     </View>
 
                     <Text
-                      style={[
-                        styles.filterText,
-                        active && styles.activeFilterText,
-                      ]}
+                      style={
+                        active
+                          ? [
+                              styles.filterText,
+                              styles.activeFilterText,
+                            ]
+                          : styles.filterText
+                      }
                     >
                       {item.label}
                     </Text>
@@ -971,6 +971,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
   },
   heroCard: {
+    position: "relative",
     height: 108,
     overflow: "hidden",
     borderRadius: 21,
@@ -978,13 +979,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   heroImage: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     width: "100%",
     height: "100%",
     opacity: 0.42,
     resizeMode: "cover",
   },
-  heroOverlay: {
+  heroTint: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(4,67,48,0.64)",
   },
@@ -1043,7 +1048,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
   },
   summaryValue: {
-    maxWidth: 90,
     fontFamily: "Poppins_700Bold",
     color: colors.text,
     fontSize: 16,
@@ -1284,7 +1288,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 16,
   },
-  emptyContainer: {
+  emptyScreen: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
