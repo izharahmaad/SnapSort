@@ -98,15 +98,7 @@ export default function RootNavigator() {
               name="Camera"
               component={CameraScreen}
               options={{
-                title: "Scan an item",
-                headerShown: true,
-                headerBackVisible: false,
-                headerTransparent: true,
-                headerTintColor: "#FFFFFF",
-                headerTitleStyle: {
-                  fontFamily: "Poppins_600SemiBold",
-                  color: "#FFFFFF",
-                },
+                headerShown: false,
                 contentStyle: {
                   backgroundColor: "#000000",
                 },
