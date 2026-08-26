@@ -2,32 +2,49 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useRef, useState } from "react";
 import {
   Alert,
+  Pressable,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from "react-native";
 import {
   CameraType,
   CameraView,
+  FlashMode,
   useCameraPermissions,
 } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Button, Text } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors } from "../../constants/theme";
 import { RootStackParamList } from "../../navigation/types";
 import { useScanStore } from "../../stores/scan.store";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Camera">;
+type Props = NativeStackScreenProps<
+  RootStackParamList,
+  "Camera"
+>;
 
-export default function CameraScreen({ navigation }: Props) {
+type IconName = React.ComponentProps<
+  typeof MaterialCommunityIcons
+>["name"];
+
+export default function CameraScreen({
+  navigation,
+}: Props) {
+  const insets = useSafeAreaInsets();
   const cameraRef = useRef<CameraView>(null);
 
-  const [permission, requestPermission] = useCameraPermissions();
+  const [permission, requestPermission] =
+    useCameraPermissions();
+
   const [facing, setFacing] = useState<CameraType>("back");
-  const [isTakingPhoto, setIsTakingPhoto] = useState(false);
-  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [flash, setFlash] = useState<FlashMode>("off");
+  const [isTakingPhoto, setIsTakingPhoto] =
+    useState(false);
+  const [isCameraReady, setIsCameraReady] =
+    useState(false);
 
   const setImage = useScanStore((state) => state.setImage);
 
@@ -36,10 +53,10 @@ export default function CameraScreen({ navigation }: Props) {
     base64: string,
     mimeType = "image/jpeg"
   ) => {
-    if (!base64) {
+    if (!uri || !base64) {
       Alert.alert(
         "Image error",
-        "Image data was not available. Please choose another image."
+        "Image data was not available. Please try again."
       );
       return;
     }
@@ -49,49 +66,65 @@ export default function CameraScreen({ navigation }: Props) {
   };
 
   const takePhoto = async () => {
-    if (!cameraRef.current || !isCameraReady || isTakingPhoto) {
+    if (
+      !cameraRef.current ||
+      !isCameraReady ||
+      isTakingPhoto
+    ) {
       return;
     }
 
     try {
       setIsTakingPhoto(true);
 
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.65,
-        base64: true,
-        skipProcessing: false,
-      });
+      const photo =
+        await cameraRef.current.takePictureAsync({
+          quality: 0.75,
+          base64: true,
+          skipProcessing: false,
+        });
 
-      if (!photo?.uri || !photo?.base64) {
+      if (!photo?.uri || !photo.base64) {
         throw new Error(
-          "The camera did not return Base64 image data."
+          "The camera did not return image data."
         );
       }
 
-      openPreview(photo.uri, photo.base64, "image/jpeg");
-    } catch (error: any) {
-      Alert.alert(
-        "Camera error",
-        error?.message ??
-          "We could not take this photo. Please try again."
+      openPreview(
+        photo.uri,
+        photo.base64,
+        "image/jpeg"
       );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "We could not take this photo.";
+
+      Alert.alert("Camera error", message);
     } finally {
       setIsTakingPhoto(false);
     }
   };
 
   const chooseFromGallery = async () => {
+    if (isTakingPhoto) {
+      return;
+    }
+
     try {
       const result =
         await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ["images"],
           allowsEditing: true,
           aspect: [1, 1],
-          quality: 0.65,
+          quality: 0.75,
           base64: true,
         });
 
-      if (result.canceled) return;
+      if (result.canceled) {
+        return;
+      }
 
       const asset = result.assets[0];
 
@@ -106,20 +139,27 @@ export default function CameraScreen({ navigation }: Props) {
       openPreview(
         asset.uri,
         asset.base64,
-        asset.mimeType ?? "image/jpeg"
+        asset.mimeType || "image/jpeg"
       );
-    } catch (error: any) {
-      Alert.alert(
-        "Gallery error",
-        error?.message ??
-          "We could not select this image. Please try again."
-      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "We could not select this image.";
+
+      Alert.alert("Gallery error", message);
     }
   };
 
   const switchCamera = () => {
     setFacing((current) =>
       current === "back" ? "front" : "back"
+    );
+  };
+
+  const toggleFlash = () => {
+    setFlash((current) =>
+      current === "off" ? "on" : "off"
     );
   };
 
@@ -173,79 +213,134 @@ export default function CameraScreen({ navigation }: Props) {
         ref={cameraRef}
         style={styles.camera}
         facing={facing}
+        flash={flash}
         onCameraReady={() => setIsCameraReady(true)}
       />
 
-      <View style={styles.overlay}>
+      <View
+        style={[
+          styles.overlay,
+          {
+            paddingTop: Math.max(insets.top + 8, 22),
+            paddingBottom: Math.max(insets.bottom + 18, 32),
+          },
+        ]}
+      >
         <View style={styles.topOverlay}>
           <View style={styles.tipPill}>
-            <MaterialCommunityIcons
-              name="lightbulb-outline"
-              size={17}
-              color="#FFFFFF"
-            />
+            <View style={styles.tipIcon}>
+              <MaterialCommunityIcons
+                name="lightbulb-outline"
+                size={16}
+                color="#FFFFFF"
+              />
+            </View>
 
             <Text style={styles.tipText}>
               Keep one item clearly visible
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.flipButton}
-            activeOpacity={0.8}
-            onPress={switchCamera}
-          >
-            <MaterialCommunityIcons
-              name="camera-flip-outline"
-              size={25}
-              color="#FFFFFF"
-            />
-          </TouchableOpacity>
+          <View style={styles.topControls}>
+            <Pressable
+              style={styles.roundControl}
+              onPress={toggleFlash}
+              accessibilityRole="button"
+              accessibilityLabel="Toggle flash"
+            >
+              <MaterialCommunityIcons
+                name={
+                  flash === "on"
+                    ? "flash"
+                    : "flash-off"
+                }
+                size={20}
+                color="#FFFFFF"
+              />
+            </Pressable>
+
+            <Pressable
+              style={styles.roundControl}
+              onPress={switchCamera}
+              accessibilityRole="button"
+              accessibilityLabel="Switch camera"
+            >
+              <MaterialCommunityIcons
+                name="camera-flip-outline"
+                size={21}
+                color="#FFFFFF"
+              />
+            </Pressable>
+          </View>
         </View>
 
-        <View style={styles.scanFrame}>
-          <View style={[styles.corner, styles.topLeft]} />
-          <View style={[styles.corner, styles.topRight]} />
-          <View style={[styles.corner, styles.bottomLeft]} />
-          <View style={[styles.corner, styles.bottomRight]} />
+        <View style={styles.scanArea}>
+          <View style={styles.scanFrame}>
+            <View style={[styles.corner, styles.topLeft]} />
+            <View style={[styles.corner, styles.topRight]} />
+            <View style={[styles.corner, styles.bottomLeft]} />
+            <View style={[styles.corner, styles.bottomRight]} />
+
+            <View style={styles.frameCenter}>
+              <MaterialCommunityIcons
+                name="scan-helper"
+                size={32}
+                color="rgba(255,255,255,0.82)"
+              />
+            </View>
+          </View>
+
+          <Text style={styles.frameHint}>
+            Center the item inside the frame
+          </Text>
         </View>
 
         <View style={styles.bottomOverlay}>
-          <TouchableOpacity
+          <Pressable
             style={styles.galleryButton}
-            activeOpacity={0.8}
             disabled={isTakingPhoto}
             onPress={chooseFromGallery}
+            accessibilityRole="button"
+            accessibilityLabel="Choose image from gallery"
           >
-            <MaterialCommunityIcons
-              name="image-outline"
-              size={28}
-              color="#FFFFFF"
-            />
+            <View style={styles.galleryIcon}>
+              <MaterialCommunityIcons
+                name="image-outline"
+                size={22}
+                color="#FFFFFF"
+              />
+            </View>
 
-            <Text style={styles.galleryText}>Gallery</Text>
-          </TouchableOpacity>
+            <Text style={styles.galleryText}>
+              Gallery
+            </Text>
+          </Pressable>
 
-          <TouchableOpacity
+          <Pressable
             style={[
               styles.captureOuter,
               (!isCameraReady || isTakingPhoto) &&
                 styles.captureDisabled,
             ]}
-            activeOpacity={0.85}
             disabled={!isCameraReady || isTakingPhoto}
             onPress={takePhoto}
+            accessibilityRole="button"
+            accessibilityLabel="Take photo"
           >
             <View style={styles.captureInner}>
               <MaterialCommunityIcons
-                name={isTakingPhoto ? "loading" : "camera"}
+                name={
+                  isTakingPhoto
+                    ? "loading"
+                    : "camera"
+                }
                 size={31}
                 color={colors.primary}
               />
             </View>
-          </TouchableOpacity>
+          </Pressable>
 
-          <View style={styles.rightSpacer} />
+          <View style={styles.bottomSpacer} />
         </View>
       </View>
     </View>
@@ -267,47 +362,78 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "space-between",
-    paddingTop: 20,
-    paddingBottom: 34,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
   },
   topOverlay: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
   },
   tipPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
-    backgroundColor: "rgba(0,0,0,0.48)",
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    maxWidth: 225,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderRadius: 22,
+    backgroundColor: "rgba(0,0,0,0.48)",
+  },
+  tipIcon: {
+    width: 25,
+    height: 25,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(11,78,62,0.9)",
   },
   tipText: {
+    flexShrink: 1,
     fontFamily: "Poppins_400Regular",
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 10,
+    marginLeft: 7,
   },
-  flipButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+  topControls: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  roundControl: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.48)",
   },
+  scanArea: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
   scanFrame: {
-    width: "88%",
-    aspectRatio: 1,
-    alignSelf: "center",
     position: "relative",
+    width: "86%",
+    aspectRatio: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  frameCenter: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(11,78,62,0.2)",
+  },
+  frameHint: {
+    fontFamily: "Poppins_400Regular",
+    color: "rgba(255,255,255,0.84)",
+    fontSize: 11,
+    marginTop: 18,
   },
   corner: {
     position: "absolute",
-    width: 42,
-    height: 42,
+    width: 43,
+    height: 43,
     borderColor: "#FFFFFF",
   },
   topLeft: {
@@ -315,28 +441,28 @@ const styles = StyleSheet.create({
     left: 0,
     borderTopWidth: 4,
     borderLeftWidth: 4,
-    borderTopLeftRadius: 16,
+    borderTopLeftRadius: 17,
   },
   topRight: {
     top: 0,
     right: 0,
     borderTopWidth: 4,
     borderRightWidth: 4,
-    borderTopRightRadius: 16,
+    borderTopRightRadius: 17,
   },
   bottomLeft: {
     bottom: 0,
     left: 0,
     borderBottomWidth: 4,
     borderLeftWidth: 4,
-    borderBottomLeftRadius: 16,
+    borderBottomLeftRadius: 17,
   },
   bottomRight: {
     bottom: 0,
     right: 0,
     borderBottomWidth: 4,
     borderRightWidth: 4,
-    borderBottomRightRadius: 16,
+    borderBottomRightRadius: 17,
   },
   bottomOverlay: {
     flexDirection: "row",
@@ -347,39 +473,49 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 70,
   },
+  galleryIcon: {
+    width: 45,
+    height: 45,
+    borderRadius: 23,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.48)",
+  },
   galleryText: {
     fontFamily: "Poppins_400Regular",
     color: "#FFFFFF",
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 10,
+    marginTop: 5,
   },
   captureOuter: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
-    backgroundColor: "rgba(255,255,255,0.5)",
+    width: 82,
+    height: 82,
+    borderRadius: 41,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.52)",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.85)",
   },
   captureDisabled: {
     opacity: 0.45,
   },
   captureInner: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#FFFFFF",
+    width: 67,
+    height: 67,
+    borderRadius: 34,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#FFFFFF",
   },
-  rightSpacer: {
+  bottomSpacer: {
     width: 70,
   },
   permissionContainer: {
     flex: 1,
-    padding: 28,
     alignItems: "center",
     justifyContent: "center",
+    padding: 28,
     backgroundColor: colors.background,
   },
   permissionIcon: {
@@ -393,15 +529,16 @@ const styles = StyleSheet.create({
   },
   permissionTitle: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 24,
     color: colors.text,
+    fontSize: 24,
     textAlign: "center",
   },
   permissionText: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
-    textAlign: "center",
+    fontSize: 13,
     lineHeight: 22,
+    textAlign: "center",
     marginTop: 10,
     marginBottom: 24,
   },
