@@ -11,6 +11,8 @@ import {
 
 import LoginScreen from "../screens/auth/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
+import ForgotPasswordScreen from "../screens/auth/ForgotPasswordScreen";
+
 import HomeScreen from "../screens/home/HomeScreen";
 import CameraScreen from "../screens/scan/CameraScreen";
 import PreviewScreen from "../screens/scan/PreviewScreen";
@@ -43,10 +45,18 @@ export default function RootNavigator() {
   if (!ready) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-        />
+        <View style={styles.loadingCard}>
+          <View style={styles.loadingLogo}>
+            <TextLeaf />
+          </View>
+
+          <ActivityIndicator
+            size="small"
+            color={colors.primary}
+          />
+
+          <LoadingText />
+        </View>
       </View>
     );
   }
@@ -62,7 +72,6 @@ export default function RootNavigator() {
               name="Login"
               component={LoginScreen}
               options={{
-                headerShown: false,
                 animation: "fade",
               }}
             />
@@ -71,7 +80,14 @@ export default function RootNavigator() {
               name="Register"
               component={RegisterScreen}
               options={{
-                headerShown: false,
+                animation: "slide_from_right",
+              }}
+            />
+
+            <Stack.Screen
+              name="ForgotPassword"
+              component={ForgotPasswordScreen}
+              options={{
                 animation: "slide_from_right",
               }}
             />
@@ -82,7 +98,6 @@ export default function RootNavigator() {
               name="Home"
               component={HomeScreen}
               options={{
-                headerShown: false,
                 animation: "fade",
               }}
             />
@@ -91,10 +106,10 @@ export default function RootNavigator() {
               name="Camera"
               component={CameraScreen}
               options={{
-                headerShown: false,
                 contentStyle: {
                   backgroundColor: "#000000",
                 },
+                animation: "slide_from_bottom",
               }}
             />
 
@@ -102,7 +117,7 @@ export default function RootNavigator() {
               name="Preview"
               component={PreviewScreen}
               options={{
-                headerShown: false,
+                animation: "slide_from_right",
               }}
             />
 
@@ -110,7 +125,7 @@ export default function RootNavigator() {
               name="Result"
               component={ResultScreen}
               options={{
-                headerShown: false,
+                animation: "slide_from_right",
               }}
             />
 
@@ -118,7 +133,7 @@ export default function RootNavigator() {
               name="History"
               component={HistoryScreen}
               options={{
-                headerShown: false,
+                animation: "slide_from_right",
               }}
             />
 
@@ -126,7 +141,7 @@ export default function RootNavigator() {
               name="Profile"
               component={ProfileScreen}
               options={{
-                headerShown: false,
+                animation: "slide_from_right",
               }}
             />
           </>
@@ -136,11 +151,110 @@ export default function RootNavigator() {
   );
 }
 
+function TextLeaf() {
+  return (
+    <View style={styles.leafIcon}>
+      <View style={styles.leafStem} />
+      <View style={styles.leafShape} />
+    </View>
+  );
+}
+
+function LoadingText() {
+  return (
+    <View style={styles.loadingText}>
+      <View style={styles.loadingLineLarge} />
+      <View style={styles.loadingLineSmall} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.background,
+  },
+  loadingCard: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 150,
+    minHeight: 150,
+    padding: 22,
+    borderRadius: 28,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: "#173B25",
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: {
+      width: 0,
+      height: 7,
+    },
+    elevation: 4,
+  },
+  loadingLogo: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    backgroundColor: colors.primary,
+  },
+  leafIcon: {
+    position: "relative",
+    width: 27,
+    height: 30,
+  },
+  leafStem: {
+    position: "absolute",
+    left: 13,
+    bottom: 1,
+    width: 2,
+    height: 18,
+    borderRadius: 2,
+    backgroundColor: "#FFFFFF",
+    transform: [
+      {
+        rotate: "-28deg",
+      },
+    ],
+  },
+  leafShape: {
+    position: "absolute",
+    top: 2,
+    left: 7,
+    width: 17,
+    height: 22,
+    borderTopLeftRadius: 17,
+    borderTopRightRadius: 4,
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 17,
+    backgroundColor: "#FFFFFF",
+    transform: [
+      {
+        rotate: "-35deg",
+      },
+    ],
+  },
+  loadingText: {
+    alignItems: "center",
+    marginTop: 12,
+  },
+  loadingLineLarge: {
+    width: 78,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.primaryLight,
+  },
+  loadingLineSmall: {
+    width: 51,
+    height: 5,
+    borderRadius: 3,
+    marginTop: 6,
+    backgroundColor: colors.border,
   },
 });
