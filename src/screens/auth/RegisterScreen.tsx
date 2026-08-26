@@ -136,7 +136,7 @@ export default function RegisterScreen({
     };
   }, [password]);
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     let valid = true;
 
     setNameError("");
@@ -230,7 +230,7 @@ export default function RegisterScreen({
           contentContainerStyle={[
             styles.container,
             {
-              paddingTop: Math.max(insets.top + 24, 36),
+              paddingTop: Math.max(insets.top + 20, 32),
               paddingBottom: Math.max(insets.bottom + 20, 30),
             },
           ]}
@@ -251,35 +251,23 @@ export default function RegisterScreen({
             </Text>
 
             <Text style={styles.title}>
-              Start your greener journey
+              Create your account
             </Text>
 
             <Text style={styles.subtitle}>
-              Create your account and make every item count.
+              Start making smarter, greener choices today.
             </Text>
           </View>
 
           <View style={styles.cardShadow}>
             <View style={styles.formCard}>
-              <View style={styles.formHeader}>
-                <View style={styles.formIcon}>
-                  <MaterialCommunityIcons
-                    name="account-plus-outline"
-                    size={21}
-                    color={colors.primary}
-                  />
-                </View>
+              <Text style={styles.formTitle}>
+                Let’s get started
+              </Text>
 
-                <View style={styles.formHeaderCopy}>
-                  <Text style={styles.eyebrow}>
-                    CREATE ACCOUNT
-                  </Text>
-
-                  <Text style={styles.formTitle}>
-                    Tell us about you
-                  </Text>
-                </View>
-              </View>
+              <Text style={styles.formSubtitle}>
+                Enter your details to create your account.
+              </Text>
 
               <FormField
                 icon="account-outline"
@@ -589,7 +577,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 23,
   },
   logoCircle: {
     width: 70,
@@ -617,7 +605,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "Poppins_700Bold",
     color: colors.text,
-    fontSize: 21,
+    fontSize: 22,
     textAlign: "center",
     marginTop: 17,
   },
@@ -648,35 +636,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  formHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 18,
-  },
-  formIcon: {
-    width: 43,
-    height: 43,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.primaryLight,
-  },
-  formHeaderCopy: {
-    flex: 1,
-    minWidth: 0,
-    marginLeft: 10,
-  },
-  eyebrow: {
-    fontFamily: "Poppins_600SemiBold",
-    color: colors.primary,
-    fontSize: 9,
-    letterSpacing: 1.1,
-  },
   formTitle: {
     fontFamily: "Poppins_700Bold",
     color: colors.text,
-    fontSize: 20,
-    marginTop: 1,
+    fontSize: 19,
+  },
+  formSubtitle: {
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
+    fontSize: 10,
+    lineHeight: 15,
+    marginTop: 3,
+    marginBottom: 18,
   },
   fieldWrapper: {
     marginBottom: 13,
