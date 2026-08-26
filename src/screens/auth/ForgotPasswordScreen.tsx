@@ -25,6 +25,12 @@ type Props = NativeStackScreenProps<
   "ForgotPassword"
 >;
 
+const PRIVACY_POLICY_URL =
+  "https://your-domain.com/privacy-policy";
+
+const TERMS_OF_SERVICE_URL =
+  "https://your-domain.com/terms-of-service";
+
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
@@ -54,6 +60,30 @@ function getResetError(code?: string): string {
 
     default:
       return "We could not send the reset email. Please try again.";
+  }
+}
+
+async function openLegalPage(
+  url: string,
+  title: string
+) {
+  try {
+    const canOpen = await Linking.canOpenURL(url);
+
+    if (!canOpen) {
+      Alert.alert(
+        `${title} unavailable`,
+        "This page cannot be opened right now."
+      );
+      return;
+    }
+
+    await Linking.openURL(url);
+  } catch {
+    Alert.alert(
+      `${title} unavailable`,
+      "We could not open this page right now."
+    );
   }
 }
 
@@ -90,11 +120,11 @@ export default function ForgotPasswordScreen({
       await sendPasswordResetEmail(auth, cleanEmail);
 
       Alert.alert(
-        "Check your inbox",
-        "We sent a password reset link to your email address.",
+        "Reset link sent",
+        "Please check your email to continue.",
         [
           {
-            text: "Back to login",
+            text: "Return to sign in",
             onPress: () => navigation.navigate("Login"),
           },
         ]
@@ -123,8 +153,8 @@ export default function ForgotPasswordScreen({
           contentContainerStyle={[
             styles.container,
             {
-              paddingTop: Math.max(insets.top + 30, 42),
-              paddingBottom: Math.max(insets.bottom + 24, 34),
+              paddingTop: Math.max(insets.top + 28, 42),
+              paddingBottom: Math.max(insets.bottom + 22, 32),
             },
           ]}
           keyboardShouldPersistTaps="handled"
@@ -134,7 +164,7 @@ export default function ForgotPasswordScreen({
             <View style={styles.logoCircle}>
               <MaterialCommunityIcons
                 name="lock-reset"
-                size={30}
+                size={29}
                 color="#FFFFFF"
               />
             </View>
@@ -148,8 +178,8 @@ export default function ForgotPasswordScreen({
             </Text>
 
             <Text style={styles.subtitle}>
-              Enter your email and we will send you a secure
-              password reset link.
+              Enter your email address and we will send you a
+              secure reset link.
             </Text>
           </View>
 
@@ -160,10 +190,10 @@ export default function ForgotPasswordScreen({
               </Text>
 
               <Text style={styles.cardSubtitle}>
-                We will send instructions to your email address.
+                Use the email associated with your account.
               </Text>
 
-              <Text style={styles.label}>
+              <Text style={styles.fieldLabel}>
                 Email address
               </Text>
 
@@ -184,6 +214,7 @@ export default function ForgotPasswordScreen({
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
+                  textContentType="emailAddress"
                   editable={!isSending}
                   returnKeyType="send"
                   onSubmitEditing={handleSendResetEmail}
@@ -220,41 +251,36 @@ export default function ForgotPasswordScreen({
             </View>
           </View>
 
-          <View style={styles.infoBox}>
-            <MaterialCommunityIcons
-              name="information-outline"
-              size={19}
-              color={colors.primary}
-            />
-
-            <Text style={styles.infoText}>
-              The email may take a few minutes to arrive. Check
-              your spam or promotions folder if needed.
-            </Text>
-          </View>
-
           <Pressable
-            style={styles.signInLink}
+            style={styles.signInButton}
             onPress={() => navigation.navigate("Login")}
             accessibilityRole="button"
             accessibilityLabel="Return to sign in"
           >
-            <Text style={styles.signInLinkText}>
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={16}
+              color={colors.primary}
+            />
+
+            <Text style={styles.signInButtonText}>
               Return to sign in
             </Text>
           </Pressable>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>
+            <Text style={styles.footerIntro}>
               By using SnapSort AI, you agree to our
             </Text>
 
             <View style={styles.footerLinks}>
               <Pressable
                 accessibilityRole="link"
+                accessibilityLabel="Privacy Policy"
                 onPress={() =>
-                  Linking.openURL(
-                    "https://your-domain.com/privacy-policy"
+                  openLegalPage(
+                    PRIVACY_POLICY_URL,
+                    "Privacy Policy"
                   )
                 }
               >
@@ -269,9 +295,11 @@ export default function ForgotPasswordScreen({
 
               <Pressable
                 accessibilityRole="link"
+                accessibilityLabel="Terms of Service"
                 onPress={() =>
-                  Linking.openURL(
-                    "https://your-domain.com/terms-of-service"
+                  openLegalPage(
+                    TERMS_OF_SERVICE_URL,
+                    "Terms of Service"
                   )
                 }
               >
@@ -310,6 +338,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    elevation: 5,
   },
   brand: {
     fontFamily: "Poppins_700Bold",
@@ -323,7 +359,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 23,
     textAlign: "center",
-    marginTop: 19,
+    marginTop: 20,
   },
   subtitle: {
     maxWidth: 300,
@@ -365,7 +401,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
     marginBottom: 19,
   },
-  label: {
+  fieldLabel: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.text,
     fontSize: 10,
@@ -375,6 +411,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
+    width: "100%",
     height: 55,
     paddingHorizontal: 7,
     borderRadius: 28,
@@ -423,42 +460,28 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.55,
   },
-  infoBox: {
+  signInButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 9,
-    padding: 14,
-    marginTop: 17,
-    borderRadius: 19,
-    backgroundColor: "#FFF4DD",
-    borderWidth: 1,
-    borderColor: "#F1D7A5",
-  },
-  infoText: {
-    flex: 1,
-    fontFamily: "Poppins_400Regular",
-    color: "#765D2C",
-    fontSize: 10,
-    lineHeight: 15,
-  },
-  signInLink: {
+    justifyContent: "center",
+    gap: 6,
     alignSelf: "center",
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    marginTop: 17,
+    paddingHorizontal: 17,
+    paddingVertical: 11,
+    marginTop: 19,
     borderRadius: 24,
     backgroundColor: colors.primaryLight,
   },
-  signInLinkText: {
+  signInButtonText: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.primary,
     fontSize: 11,
   },
   footer: {
     alignItems: "center",
-    marginTop: 22,
+    marginTop: 25,
   },
-  footerText: {
+  footerIntro: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 9,
