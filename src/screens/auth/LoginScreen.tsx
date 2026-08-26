@@ -11,7 +11,10 @@ import {
   View,
 } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import { Button, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -27,6 +30,10 @@ type Props = NativeStackScreenProps<
 type IconName = React.ComponentProps<
   typeof MaterialCommunityIcons
 >["name"];
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
 
 function getAuthErrorMessage(
   code?: string
@@ -50,12 +57,20 @@ function getAuthErrorMessage(
       return "Check your internet connection and try again.";
 
     default:
-      return "We could not sign you in. Please try again.";
+      return "We could not complete your request. Please try again.";
   }
 }
 
-function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+function getErrorCode(error: unknown): string | undefined {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error
+  ) {
+    return String(error.code);
+  }
+
+  return undefined;
 }
 
 export default function LoginScreen({
@@ -68,10 +83,12 @@ export default function LoginScreen({
   const [isPasswordVisible, setIsPasswordVisible] =
     useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] =
+    useState(false);
+
+  const cleanEmail = email.trim().toLowerCase();
 
   const handleLogin = async () => {
-    const cleanEmail = email.trim().toLowerCase();
-
     if (!cleanEmail || !password) {
       Alert.alert(
         "Missing information",
@@ -97,28 +114,52 @@ export default function LoginScreen({
         password
       );
     } catch (error: unknown) {
-      const code =
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error
-          ? String(error.code)
-          : undefined;
-
       Alert.alert(
         "Sign in failed",
-        getAuthErrorMessage(code)
+        getAuthErrorMessage(getErrorCode(error))
       );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleForgotPassword = () => {
-    Alert.alert(
-      "Password reset",
-      "Password reset can be connected when your reset flow is ready."
-    );
+  const handleForgotPassword = async () => {
+    if (!cleanEmail) {
+      Alert.alert(
+        "Enter your email",
+        "Enter your email address first, then tap Forgot password."
+      );
+      return;
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      Alert.alert(
+        "Invalid email",
+        "Please enter a valid email address."
+      );
+      return;
+    }
+
+    try {
+      setIsResettingPassword(true);
+
+      await sendPasswordResetEmail(auth, cleanEmail);
+
+      Alert.alert(
+        "Reset email sent",
+        "Check your inbox for instructions to create a new password."
+      );
+    } catch (error: unknown) {
+      Alert.alert(
+        "Password reset failed",
+        getAuthErrorMessage(getErrorCode(error))
+      );
+    } finally {
+      setIsResettingPassword(false);
+    }
   };
+
+  const isBusy = isLoading || isResettingPassword;
 
   return (
     <View style={styles.screen}>
@@ -143,11 +184,13 @@ export default function LoginScreen({
         >
           <View style={styles.brandSection}>
             <View style={styles.logoCircle}>
-              <MaterialCommunityIcons
-                name="leaf"
-                size={34}
-                color="#FFFFFF"
-              />
+              <View style={styles.logoInnerCircle}>
+                <MaterialCommunityIcons
+                  name="leaf"
+                  size={31}
+                  color="#FFFFFF"
+                />
+              </View>
             </View>
 
             <Text style={styles.brand}>
@@ -160,12 +203,17 @@ export default function LoginScreen({
           </View>
 
           <View style={styles.welcomeSection}>
+            <Text style={styles.welcomeEyebrow}>
+              WELCOME BACK
+            </Text>
+
             <Text style={styles.welcomeTitle}>
-              Welcome back
+              Make every choice count.
             </Text>
 
             <Text style={styles.welcomeText}>
-              Sign in to continue your sustainability journey.
+              Sign in to continue your personal sustainability
+              journey.
             </Text>
           </View>
 
@@ -179,7 +227,7 @@ export default function LoginScreen({
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
-              editable={!isLoading}
+              editable={!isBusy}
             />
 
             <FormField
@@ -191,7 +239,7 @@ export default function LoginScreen({
               secureTextEntry={!isPasswordVisible}
               autoCapitalize="none"
               autoCorrect={false}
-              editable={!isLoading}
+              editable={!isBusy}
               rightIcon={
                 isPasswordVisible
                   ? "eye-off-outline"
@@ -207,10 +255,18 @@ export default function LoginScreen({
             <Pressable
               style={styles.forgotButton}
               onPress={handleForgotPassword}
-              disabled={isLoading}
+              disabled={isBusy}
             >
+              <MaterialCommunityIcons
+                name="help-circle-outline"
+                size={15}
+                color={colors.primary}
+              />
+
               <Text style={styles.forgotText}>
-                Forgot password?
+                {isResettingPassword
+                  ? "Sending reset email..."
+                  : "Forgot password?"}
               </Text>
             </Pressable>
 
@@ -218,11 +274,12 @@ export default function LoginScreen({
               mode="contained"
               icon={isLoading ? undefined : "arrow-right"}
               loading={isLoading}
-              disabled={isLoading}
+              disabled={isBusy}
               onPress={handleLogin}
               contentStyle={styles.loginButton}
               labelStyle={styles.loginButtonLabel}
               style={styles.loginButtonWrapper}
+              theme={{ roundness: 16 }}
             >
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
@@ -246,10 +303,31 @@ export default function LoginScreen({
             contentStyle={styles.registerButton}
             labelStyle={styles.registerButtonLabel}
             style={styles.registerButtonWrapper}
-            disabled={isLoading}
+            disabled={isBusy}
+            theme={{ roundness: 16 }}
           >
             Create an account
           </Button>
+
+          <View style={styles.featureRow}>
+            <Feature
+              icon="camera-outline"
+              title="Scan"
+              text="Identify items"
+            />
+
+            <Feature
+              icon="recycle"
+              title="Sort"
+              text="Choose better"
+            />
+
+            <Feature
+              icon="leaf"
+              title="Impact"
+              text="Waste less"
+            />
+          </View>
 
           <View style={styles.trustCard}>
             <View style={styles.trustIcon}>
@@ -346,6 +424,36 @@ function FormField({
   );
 }
 
+function Feature({
+  icon,
+  title,
+  text,
+}: {
+  icon: IconName;
+  title: string;
+  text: string;
+}) {
+  return (
+    <View style={styles.feature}>
+      <View style={styles.featureIcon}>
+        <MaterialCommunityIcons
+          name={icon}
+          size={17}
+          color={colors.primary}
+        />
+      </View>
+
+      <Text style={styles.featureTitle}>
+        {title}
+      </Text>
+
+      <Text style={styles.featureText}>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
@@ -361,19 +469,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logoCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#D7EEDF",
+  },
+  logoInnerCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primary,
-    marginBottom: 12,
   },
   brand: {
     fontFamily: "Poppins_700Bold",
     color: colors.primary,
     fontSize: 29,
     letterSpacing: -0.8,
+    marginTop: 12,
   },
   tagline: {
     fontFamily: "Poppins_400Regular",
@@ -382,21 +498,29 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   welcomeSection: {
-    marginTop: 35,
+    marginTop: 32,
     marginBottom: 17,
+  },
+  welcomeEyebrow: {
+    fontFamily: "Poppins_600SemiBold",
+    color: colors.primary,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    marginBottom: 6,
   },
   welcomeTitle: {
     fontFamily: "Poppins_700Bold",
     color: colors.text,
     fontSize: 27,
+    lineHeight: 34,
   },
   welcomeText: {
-    maxWidth: 300,
+    maxWidth: 305,
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 12,
     lineHeight: 19,
-    marginTop: 4,
+    marginTop: 5,
   },
   formCard: {
     padding: 16,
@@ -418,16 +542,16 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    height: 53,
+    height: 54,
     paddingHorizontal: 8,
-    borderRadius: 16,
+    borderRadius: 17,
     backgroundColor: "#F5F8F5",
     borderWidth: 1,
     borderColor: "#DCE8DE",
   },
   inputIcon: {
-    width: 35,
-    height: 35,
+    width: 36,
+    height: 36,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
@@ -435,7 +559,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: 51,
+    height: 52,
     paddingHorizontal: 10,
     paddingVertical: 0,
     color: colors.text,
@@ -443,14 +567,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   rightIconButton: {
-    width: 35,
-    height: 35,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#FFFFFF",
   },
   forgotButton: {
+    flexDirection: "row",
+    alignItems: "center",
     alignSelf: "flex-end",
-    marginTop: -3,
+    gap: 4,
+    marginTop: -2,
     marginBottom: 17,
   },
   forgotText: {
@@ -459,11 +588,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   loginButtonWrapper: {
-    borderRadius: 15,
+    borderRadius: 16,
     overflow: "hidden",
   },
   loginButton: {
-    height: 53,
+    height: 54,
   },
   loginButtonLabel: {
     fontFamily: "Poppins_600SemiBold",
@@ -488,26 +617,60 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
   },
   registerButtonWrapper: {
-    borderRadius: 15,
+    borderRadius: 16,
     borderColor: colors.primary,
   },
   registerButton: {
-    height: 51,
+    height: 52,
   },
   registerButtonLabel: {
     fontFamily: "Poppins_600SemiBold",
     fontSize: 12,
+  },
+  featureRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 19,
+  },
+  feature: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 11,
+    borderRadius: 16,
+    backgroundColor: "#EEF7F0",
+    borderWidth: 1,
+    borderColor: "#DCECDF",
+  },
+  featureIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  featureTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: colors.text,
+    fontSize: 10,
+    marginTop: 5,
+  },
+  featureText: {
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
+    fontSize: 8,
+    marginTop: 1,
   },
   trustCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     padding: 13,
-    marginTop: 20,
+    marginTop: 18,
     borderRadius: 17,
-    backgroundColor: "#EAF6EE",
+    backgroundColor: "#FFF1D5",
     borderWidth: 1,
-    borderColor: "#D5EBDC",
+    borderColor: "#F1D6A0",
   },
   trustIcon: {
     width: 39,
@@ -522,12 +685,12 @@ const styles = StyleSheet.create({
   },
   trustTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
+    color: "#523915",
     fontSize: 12,
   },
   trustText: {
     fontFamily: "Poppins_400Regular",
-    color: colors.muted,
+    color: "#765D2C",
     fontSize: 9,
     lineHeight: 14,
     marginTop: 2,
@@ -538,6 +701,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     lineHeight: 15,
     textAlign: "center",
-    marginTop: 18,
+    marginTop: 17,
   },
 });
