@@ -90,7 +90,8 @@ export default function RegisterScreen({
   const [confirmPasswordError, setConfirmPasswordError] =
     useState("");
 
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] =
+    useState(false);
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -229,31 +230,18 @@ export default function RegisterScreen({
           contentContainerStyle={[
             styles.container,
             {
-              paddingTop: Math.max(insets.top + 14, 26),
-              paddingBottom: Math.max(insets.bottom + 24, 34),
+              paddingTop: Math.max(insets.top + 24, 36),
+              paddingBottom: Math.max(insets.bottom + 20, 30),
             },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Pressable
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={20}
-              color={colors.text}
-            />
-          </Pressable>
-
           <View style={styles.header}>
             <View style={styles.logoCircle}>
               <MaterialCommunityIcons
                 name="leaf"
-                size={29}
+                size={30}
                 color="#FFFFFF"
               />
             </View>
@@ -304,6 +292,7 @@ export default function RegisterScreen({
                 }}
                 autoCapitalize="words"
                 autoCorrect={false}
+                textContentType="name"
                 editable={!isLoading}
                 error={nameError}
               />
@@ -320,6 +309,7 @@ export default function RegisterScreen({
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                textContentType="emailAddress"
                 editable={!isLoading}
                 error={emailError}
               />
@@ -336,6 +326,7 @@ export default function RegisterScreen({
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+                textContentType="newPassword"
                 editable={!isLoading}
                 error={passwordError}
                 rightIcon={
@@ -386,6 +377,7 @@ export default function RegisterScreen({
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+                textContentType="newPassword"
                 editable={!isLoading}
                 error={confirmPasswordError}
                 rightIcon={
@@ -400,19 +392,19 @@ export default function RegisterScreen({
                 }
               />
 
-              <View style={styles.privacyNote}>
+              <View style={styles.legalNotice}>
                 <MaterialCommunityIcons
                   name="shield-check-outline"
                   size={17}
                   color={colors.primary}
                 />
 
-                <Text style={styles.privacyText}>
-                  Your account and scan history stay private.
+                <Text style={styles.legalText}>
+                  Your account information is handled securely.
                 </Text>
               </View>
 
-              <View style={styles.buttonOuter}>
+              <View style={styles.buttonClip}>
                 <Pressable
                   style={[
                     styles.registerButton,
@@ -443,6 +435,8 @@ export default function RegisterScreen({
                 style={styles.loginButton}
                 onPress={() => navigation.navigate("Login")}
                 disabled={isLoading}
+                accessibilityRole="button"
+                accessibilityLabel="Sign in"
               >
                 <Text style={styles.loginButtonText}>
                   Already have an account?
@@ -455,27 +449,45 @@ export default function RegisterScreen({
             </View>
           </View>
 
-          <View style={styles.benefitRow}>
-            <Benefit
-              icon="camera-outline"
-              text="Smart scans"
-            />
+          <View style={styles.footer}>
+            <Text style={styles.footerIntro}>
+              By creating an account, you agree to our
+            </Text>
 
-            <Benefit
-              icon="history"
-              text="Saved history"
-            />
+            <View style={styles.footerLinks}>
+              <Pressable
+                accessibilityRole="link"
+                onPress={() => {
+                  Alert.alert(
+                    "Privacy Policy",
+                    "Privacy Policy will be available here."
+                  );
+                }}
+              >
+                <Text style={styles.footerLink}>
+                  Privacy Policy
+                </Text>
+              </Pressable>
 
-            <Benefit
-              icon="leaf"
-              text="Greener habits"
-            />
+              <Text style={styles.separator}>
+                •
+              </Text>
+
+              <Pressable
+                accessibilityRole="link"
+                onPress={() => {
+                  Alert.alert(
+                    "Terms of Service",
+                    "Terms of Service will be available here."
+                  );
+                }}
+              >
+                <Text style={styles.footerLink}>
+                  Terms of Service
+                </Text>
+              </Pressable>
+            </View>
           </View>
-
-          <Text style={styles.footerText}>
-            By creating an account, you agree to use SnapSort
-            responsibly.
-          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -521,7 +533,11 @@ function FormField({
           <MaterialCommunityIcons
             name={icon}
             size={18}
-            color={error ? colors.hazardous : colors.primary}
+            color={
+              error
+                ? colors.hazardous
+                : colors.primary
+            }
           />
         </View>
 
@@ -559,30 +575,6 @@ function FormField({
   );
 }
 
-function Benefit({
-  icon,
-  text,
-}: {
-  icon: IconName;
-  text: string;
-}) {
-  return (
-    <View style={styles.benefit}>
-      <View style={styles.benefitIcon}>
-        <MaterialCommunityIcons
-          name={icon}
-          size={17}
-          color={colors.primary}
-        />
-      </View>
-
-      <Text style={styles.benefitText}>
-        {text}
-      </Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
@@ -595,20 +587,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 22,
   },
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
   header: {
     alignItems: "center",
-    marginTop: 22,
-    marginBottom: 23,
+    marginBottom: 24,
   },
   logoCircle: {
     width: 70,
@@ -617,6 +598,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    elevation: 5,
   },
   brand: {
     fontFamily: "Poppins_700Bold",
@@ -628,11 +617,12 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "Poppins_700Bold",
     color: colors.text,
-    fontSize: 20,
-    marginTop: 13,
+    fontSize: 21,
+    textAlign: "center",
+    marginTop: 17,
   },
   subtitle: {
-    maxWidth: 300,
+    maxWidth: 295,
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 11,
@@ -652,7 +642,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   formCard: {
-    padding: 16,
+    padding: 17,
     borderRadius: 24,
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -673,6 +663,7 @@ const styles = StyleSheet.create({
   },
   formHeaderCopy: {
     flex: 1,
+    minWidth: 0,
     marginLeft: 10,
   },
   eyebrow: {
@@ -700,6 +691,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
+    width: "100%",
     height: 54,
     paddingHorizontal: 7,
     borderRadius: 27,
@@ -721,6 +713,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    minWidth: 0,
     height: 52,
     paddingHorizontal: 9,
     paddingVertical: 0,
@@ -762,20 +755,20 @@ const styles = StyleSheet.create({
     fontSize: 9,
     marginTop: 4,
   },
-  privacyNote: {
+  legalNotice: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     marginTop: 1,
     marginBottom: 14,
   },
-  privacyText: {
+  legalText: {
     flex: 1,
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 10,
   },
-  buttonOuter: {
+  buttonClip: {
     borderRadius: 27,
     overflow: "hidden",
   },
@@ -814,41 +807,28 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 10,
   },
-  benefitRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
+  footer: {
     alignItems: "center",
-    marginTop: 17,
-    paddingVertical: 11,
-    borderRadius: 18,
-    backgroundColor: "#F8FBF8",
-    borderWidth: 1,
-    borderColor: "#E2EEE4",
+    marginTop: 21,
   },
-  benefit: {
-    alignItems: "center",
-    gap: 5,
-    minWidth: 82,
-  },
-  benefitIcon: {
-    width: 33,
-    height: 33,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.primaryLight,
-  },
-  benefitText: {
-    fontFamily: "Poppins_600SemiBold",
-    color: colors.muted,
-    fontSize: 9,
-  },
-  footerText: {
+  footerIntro: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 9,
-    lineHeight: 15,
-    textAlign: "center",
-    marginTop: 14,
+  },
+  footerLinks: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    marginTop: 6,
+  },
+  footerLink: {
+    fontFamily: "Poppins_600SemiBold",
+    color: colors.primary,
+    fontSize: 9,
+  },
+  separator: {
+    color: colors.muted,
+    fontSize: 10,
   },
 });
