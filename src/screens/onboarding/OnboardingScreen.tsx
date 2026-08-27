@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Image,
@@ -57,9 +57,6 @@ export default function OnboardingScreen() {
   const { width, height } = useWindowDimensions();
   const listRef = useRef<FlatList<Slide>>(null);
 
-  const isLandscape = width > height;
-  const isTabletLayout = width >= 700 || isLandscape;
-
   const [activeIndex, setActiveIndex] = useState(0);
   const [isCompleting, setIsCompleting] =
     useState(false);
@@ -68,9 +65,27 @@ export default function OnboardingScreen() {
     (state) => state.completeOnboarding
   );
 
-  const activeSlide = slides[activeIndex];
+  const isLandscape = width > height;
+  const isTablet = width >= 700;
+  const isTabletLandscape = isTablet && isLandscape;
+
   const isLastSlide =
     activeIndex === slides.length - 1;
+
+  const listKey = `onboarding-${Math.round(
+    width
+  )}-${Math.round(height)}`;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      listRef.current?.scrollToOffset({
+        offset: activeIndex * width,
+        animated: false,
+      });
+    }, 60);
+
+    return () => clearTimeout(timer);
+  }, [width, height, activeIndex]);
 
   const handleScrollEnd = (
     event: NativeSyntheticEvent<NativeScrollEvent>
@@ -78,12 +93,12 @@ export default function OnboardingScreen() {
     const offsetX = event.nativeEvent.contentOffset.x;
     const nextIndex = Math.round(offsetX / width);
 
-    setActiveIndex(
-      Math.max(
-        0,
-        Math.min(slides.length - 1, nextIndex)
-      )
+    const safeIndex = Math.max(
+      0,
+      Math.min(slides.length - 1, nextIndex)
     );
+
+    setActiveIndex(safeIndex);
   };
 
   const goToSlide = (index: number) => {
@@ -95,8 +110,8 @@ export default function OnboardingScreen() {
       return;
     }
 
-    listRef.current?.scrollToIndex({
-      index,
+    listRef.current?.scrollToOffset({
+      offset: index * width,
       animated: true,
     });
 
@@ -128,12 +143,12 @@ export default function OnboardingScreen() {
   return (
     <View style={styles.screen}>
       <FlatList
+        key={listKey}
         ref={listRef}
         data={slides}
         horizontal
         pagingEnabled
         bounces={false}
-        scrollEventThrottle={16}
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item) => item.id}
         onMomentumScrollEnd={handleScrollEnd}
@@ -160,35 +175,35 @@ export default function OnboardingScreen() {
 
             <LinearGradient
               colors={
-                isTabletLayout
+                isTabletLandscape
                   ? [
-                      "rgba(5,24,13,0.34)",
-                      "rgba(5,24,13,0.03)",
-                      "rgba(5,24,13,0.72)",
+                      "rgba(5,24,13,0.40)",
+                      "rgba(5,24,13,0.04)",
+                      "rgba(5,24,13,0.28)",
                     ]
                   : [
                       "rgba(5,24,13,0.22)",
                       "rgba(5,24,13,0.02)",
-                      "rgba(5,24,13,0.68)",
+                      "rgba(5,24,13,0.52)",
                     ]
               }
               locations={[0, 0.48, 1]}
-              style={styles.imageOverlay}
+              style={styles.pageOverlay}
             />
 
             <View
               style={[
-                styles.brandMark,
+                styles.brand,
                 {
-                  top: Math.max(insets.top + 14, 28),
-                  left: isTabletLayout ? 38 : 22,
+                  top: Math.max(insets.top + 14, 26),
+                  left: isTablet ? 38 : 22,
                 },
               ]}
             >
               <View style={styles.brandIcon}>
                 <MaterialCommunityIcons
                   name="leaf"
-                  size={16}
+                  size={15}
                   color="#FFFFFF"
                 />
               </View>
@@ -200,196 +215,183 @@ export default function OnboardingScreen() {
 
             <View
               style={[
-                styles.counterPill,
+                styles.slideCounter,
                 {
-                  top: Math.max(insets.top + 16, 30),
-                  right: isTabletLayout ? 38 : 22,
+                  top: Math.max(insets.top + 16, 28),
+                  right: isTablet ? 38 : 22,
                 },
               ]}
             >
-              <Text style={styles.counterText}>
-                {activeIndex + 1}/{slides.length}
+              <Text style={styles.slideCounterText}>
+                {activeIndex + 1} / {slides.length}
               </Text>
             </View>
 
             <View
               style={[
                 styles.imageContent,
-                isTabletLayout
+                isTabletLandscape
                   ? styles.imageContentLandscape
                   : styles.imageContentPortrait,
+                {
+                  bottom: isTabletLandscape ? 104 : 148,
+                },
               ]}
             >
-              <View style={styles.badgePill}>
-                <View style={styles.badgeDot} />
+              <LinearGradient
+                pointerEvents="none"
+                colors={[
+                  "rgba(0,0,0,0.70)",
+                  "rgba(0,0,0,0.34)",
+                  "rgba(0,0,0,0)",
+                ]}
+                locations={[0, 0.55, 1]}
+                style={styles.textShadowGradient}
+              />
 
-                <Text style={styles.badgeText}>
-                  {item.badge}
+              <View style={styles.textContent}>
+                <View style={styles.badgePill}>
+                  <View style={styles.badgeDot} />
+
+                  <Text style={styles.badgeText}>
+                    {item.badge}
+                  </Text>
+                </View>
+
+                <Text
+                  style={[
+                    styles.imageTitle,
+                    isTabletLandscape &&
+                      styles.imageTitleLandscape,
+                  ]}
+                >
+                  {item.title}
+                </Text>
+
+                <Text
+                  style={[
+                    styles.imageDescription,
+                    isTabletLandscape &&
+                      styles.imageDescriptionLandscape,
+                  ]}
+                >
+                  {item.description}
                 </Text>
               </View>
+            </View>
 
-              <Text
-                style={[
-                  styles.imageTitle,
-                  isTabletLayout &&
-                    styles.imageTitleLandscape,
-                ]}
-              >
-                {item.title}
-              </Text>
+            <View
+              style={[
+                styles.actionBar,
+                isTabletLandscape &&
+                  styles.actionBarLandscape,
+                {
+                  paddingBottom: Math.max(
+                    insets.bottom + 14,
+                    22
+                  ),
+                },
+              ]}
+            >
+              <View style={styles.progressDots}>
+                {slides.map((slide, index) => (
+                  <Pressable
+                    key={slide.id}
+                    onPress={() => goToSlide(index)}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Go to slide ${
+                      index + 1
+                    }`}
+                  >
+                    <View
+                      style={[
+                        styles.dot,
+                        index === activeIndex &&
+                          styles.activeDot,
+                      ]}
+                    />
+                  </Pressable>
+                ))}
+              </View>
 
-              <Text
-                style={[
-                  styles.imageDescription,
-                  isTabletLayout &&
-                    styles.imageDescriptionLandscape,
-                ]}
-              >
-                {item.description}
-              </Text>
+              <View style={styles.actionRow}>
+                {activeIndex > 0 ? (
+                  <Pressable
+                    style={styles.backButton}
+                    onPress={() =>
+                      goToSlide(activeIndex - 1)
+                    }
+                    disabled={isCompleting}
+                    accessibilityRole="button"
+                    accessibilityLabel="Previous slide"
+                  >
+                    <MaterialCommunityIcons
+                      name="arrow-left"
+                      size={18}
+                      color="#FFFFFF"
+                    />
+
+                    <Text style={styles.backText}>
+                      Back
+                    </Text>
+                  </Pressable>
+                ) : null}
+
+                <Pressable
+                  style={[
+                    styles.continueButton,
+                    isCompleting &&
+                      styles.disabledButton,
+                  ]}
+                  onPress={handleContinue}
+                  disabled={isCompleting}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    isLastSlide
+                      ? "Start exploring SnapSort"
+                      : "Continue onboarding"
+                  }
+                >
+                  <Text style={styles.continueText}>
+                    {isCompleting
+                      ? "Opening..."
+                      : isLastSlide
+                        ? "Start exploring"
+                        : "Continue"}
+                  </Text>
+
+                  {!isCompleting ? (
+                    <MaterialCommunityIcons
+                      name={
+                        isLastSlide
+                          ? "check"
+                          : "arrow-right"
+                      }
+                      size={20}
+                      color="#FFFFFF"
+                    />
+                  ) : null}
+                </Pressable>
+
+                {!isLastSlide ? (
+                  <Pressable
+                    style={styles.skipButton}
+                    onPress={complete}
+                    disabled={isCompleting}
+                    accessibilityRole="button"
+                    accessibilityLabel="Skip onboarding"
+                  >
+                    <Text style={styles.skipText}>
+                      Skip
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
             </View>
           </View>
         )}
       />
-
-      <View
-        style={[
-          styles.bottomPanel,
-          isTabletLayout &&
-            styles.bottomPanelLandscape,
-          {
-            paddingBottom: Math.max(
-              insets.bottom + 14,
-              22
-            ),
-          },
-        ]}
-      >
-        <View style={styles.panelHeader}>
-          <Text style={styles.panelHint}>
-            {isLastSlide
-              ? "Ready to make a difference?"
-              : "Your greener journey starts here"}
-          </Text>
-
-          <View style={styles.progressDots}>
-            {slides.map((slide, index) => (
-              <Pressable
-                key={slide.id}
-                onPress={() => goToSlide(index)}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel={`Go to slide ${index + 1}`}
-              >
-                <View
-                  style={[
-                    styles.dot,
-                    activeIndex === index &&
-                      styles.activeDot,
-                  ]}
-                />
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        <View
-          style={[
-            styles.panelContent,
-            isTabletLayout &&
-              styles.panelContentLandscape,
-          ]}
-        >
-          <View style={styles.panelCopy}>
-            <Text style={styles.panelBadge}>
-              {activeSlide.badge}
-            </Text>
-
-            <Text style={styles.panelTitle}>
-              {activeSlide.title}
-            </Text>
-
-            <Text style={styles.panelDescription}>
-              {activeSlide.description}
-            </Text>
-          </View>
-
-          <View style={styles.actions}>
-            {activeIndex > 0 ? (
-              <Pressable
-                style={styles.backButton}
-                onPress={() =>
-                  goToSlide(activeIndex - 1)
-                }
-                accessibilityRole="button"
-                accessibilityLabel="Previous slide"
-              >
-                <MaterialCommunityIcons
-                  name="arrow-left"
-                  size={18}
-                  color={colors.primary}
-                />
-
-                <Text style={styles.backText}>
-                  Back
-                </Text>
-              </Pressable>
-            ) : null}
-
-            <Pressable
-              style={[
-                styles.continueButton,
-                activeIndex > 0 &&
-                  styles.continueButtonWithBack,
-                isCompleting &&
-                  styles.disabledButton,
-              ]}
-              onPress={handleContinue}
-              disabled={isCompleting}
-              accessibilityRole="button"
-              accessibilityLabel={
-                isLastSlide
-                  ? "Start exploring SnapSort"
-                  : "Continue onboarding"
-              }
-            >
-              <Text style={styles.continueText}>
-                {isCompleting
-                  ? "Opening..."
-                  : isLastSlide
-                    ? "Start exploring"
-                    : "Continue"}
-              </Text>
-
-              {!isCompleting ? (
-                <MaterialCommunityIcons
-                  name={
-                    isLastSlide
-                      ? "check"
-                      : "arrow-right"
-                  }
-                  size={19}
-                  color="#FFFFFF"
-                />
-              ) : null}
-            </Pressable>
-
-            {!isLastSlide ? (
-              <Pressable
-                style={styles.skipButton}
-                onPress={complete}
-                disabled={isCompleting}
-                accessibilityRole="button"
-                accessibilityLabel="Skip onboarding"
-              >
-                <Text style={styles.skipText}>
-                  Skip
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
-        </View>
-      </View>
     </View>
   );
 }
@@ -397,25 +399,26 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: "#173B25",
   },
   slide: {
     position: "relative",
-    backgroundColor: "#DDEFE1",
+    backgroundColor: "#173B25",
   },
   heroImage: {
     ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
   },
-  imageOverlay: {
+  pageOverlay: {
     ...StyleSheet.absoluteFillObject,
   },
-  brandMark: {
+  brand: {
     position: "absolute",
-    zIndex: 3,
+    zIndex: 4,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "transparent",
   },
   brandIcon: {
     width: 31,
@@ -425,46 +428,67 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.primary,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.7)",
+    borderColor: "rgba(255,255,255,0.65)",
+    shadowColor: "#000000",
+    shadowOpacity: 0.24,
+    shadowRadius: 7,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    elevation: 4,
   },
   brandText: {
     fontFamily: "Poppins_700Bold",
     color: "#FFFFFF",
     fontSize: 15,
     letterSpacing: -0.2,
-    textShadowColor: "rgba(0,0,0,0.32)",
+    textShadowColor: "rgba(0,0,0,0.55)",
     textShadowOffset: {
       width: 0,
       height: 1,
     },
-    textShadowRadius: 3,
+    textShadowRadius: 4,
   },
-  counterPill: {
+  slideCounter: {
     position: "absolute",
-    zIndex: 3,
+    zIndex: 4,
     paddingHorizontal: 11,
     paddingVertical: 7,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.86)",
+    backgroundColor: "rgba(0,0,0,0.32)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.28)",
   },
-  counterText: {
+  slideCounterText: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.muted,
+    color: "#FFFFFF",
     fontSize: 10,
   },
   imageContent: {
     position: "absolute",
-    zIndex: 2,
+    zIndex: 3,
+    overflow: "visible",
   },
   imageContentPortrait: {
     left: 23,
     right: 23,
-    bottom: 216,
   },
   imageContentLandscape: {
     left: 42,
-    width: "52%",
-    bottom: 74,
+    width: "55%",
+  },
+  textShadowGradient: {
+    position: "absolute",
+    left: -24,
+    right: -24,
+    top: -44,
+    bottom: -28,
+    borderRadius: 38,
+  },
+  textContent: {
+    position: "relative",
+    zIndex: 2,
   },
   badgePill: {
     flexDirection: "row",
@@ -475,7 +499,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 22,
     backgroundColor: "rgba(255,255,255,0.9)",
-    marginBottom: 13,
+    marginBottom: 14,
   },
   badgeDot: {
     width: 6,
@@ -495,172 +519,134 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 41,
     letterSpacing: -0.6,
-    textShadowColor: "rgba(0,0,0,0.34)",
+    textShadowColor: "rgba(0,0,0,0.82)",
     textShadowOffset: {
       width: 0,
       height: 2,
     },
-    textShadowRadius: 5,
+    textShadowRadius: 6,
   },
   imageTitleLandscape: {
-    fontSize: 37,
-    lineHeight: 44,
+    fontSize: 38,
+    lineHeight: 46,
   },
   imageDescription: {
-    maxWidth: 330,
+    maxWidth: 345,
     fontFamily: "Poppins_400Regular",
-    color: "rgba(255,255,255,0.94)",
+    color: "#FFFFFF",
     fontSize: 13,
     lineHeight: 20,
     marginTop: 10,
-    textShadowColor: "rgba(0,0,0,0.3)",
+    textShadowColor: "rgba(0,0,0,0.86)",
     textShadowOffset: {
       width: 0,
       height: 1,
     },
-    textShadowRadius: 4,
+    textShadowRadius: 5,
   },
   imageDescriptionLandscape: {
-    maxWidth: 440,
+    maxWidth: 470,
     fontSize: 14,
     lineHeight: 22,
   },
-  bottomPanel: {
+  actionBar: {
     position: "absolute",
+    zIndex: 5,
     left: 0,
     right: 0,
     bottom: 0,
     paddingHorizontal: 23,
-    paddingTop: 17,
-    borderTopLeftRadius: 29,
-    borderTopRightRadius: 29,
-    backgroundColor: "rgba(255,255,255,0.98)",
-    shadowColor: "#173B25",
-    shadowOpacity: 0.14,
-    shadowRadius: 18,
-    shadowOffset: {
-      width: 0,
-      height: -6,
-    },
-    elevation: 15,
+    paddingTop: 12,
+    backgroundColor: "transparent",
   },
-  bottomPanelLandscape: {
+  actionBarLandscape: {
     paddingHorizontal: 38,
-    paddingTop: 14,
-    borderTopLeftRadius: 23,
-    borderTopRightRadius: 23,
-  },
-  panelHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  panelHint: {
-    fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
-    fontSize: 11,
+    paddingTop: 10,
   },
   progressDots: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "center",
     gap: 7,
+    marginBottom: 10,
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#D7E4DA",
+    backgroundColor: "rgba(255,255,255,0.43)",
   },
   activeDot: {
     width: 28,
-    backgroundColor: colors.primary,
+    backgroundColor: "#FFFFFF",
   },
-  panelContent: {
-    marginTop: 10,
-  },
-  panelContentLandscape: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 26,
-  },
-  panelCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  panelBadge: {
-    fontFamily: "Poppins_600SemiBold",
-    color: colors.primary,
-    fontSize: 9,
-    letterSpacing: 1,
-  },
-  panelTitle: {
-    fontFamily: "Poppins_700Bold",
-    color: colors.text,
-    fontSize: 25,
-    lineHeight: 32,
-    marginTop: 5,
-  },
-  panelDescription: {
-    maxWidth: 450,
-    fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 11,
-    lineHeight: 17,
-    marginTop: 5,
-  },
-  actions: {
+  actionRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
-    marginTop: 15,
   },
   backButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    width: 94,
-    height: 51,
+    width: 92,
+    height: 52,
     borderRadius: 26,
-    backgroundColor: "#F0F7F1",
+    backgroundColor: "rgba(0,0,0,0.38)",
     borderWidth: 1,
-    borderColor: "#DCE9DF",
+    borderColor: "rgba(255,255,255,0.4)",
+    shadowColor: "#000000",
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    elevation: 6,
   },
   backText: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.primary,
+    color: "#FFFFFF",
     fontSize: 11,
   },
   continueButton: {
     flex: 1,
+    minWidth: 145,
+    height: 54,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    minWidth: 145,
-    height: 51,
-    borderRadius: 26,
+    gap: 9,
+    borderRadius: 27,
     backgroundColor: colors.primary,
-  },
-  continueButtonWithBack: {
-    flex: 1,
+    shadowColor: "#000000",
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    elevation: 9,
   },
   continueText: {
     fontFamily: "Poppins_600SemiBold",
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 13,
   },
   skipButton: {
-    minWidth: 52,
-    height: 46,
+    width: 50,
+    height: 48,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 7,
-    borderRadius: 23,
+    borderRadius: 24,
+    backgroundColor: "rgba(0,0,0,0.34)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.28)",
   },
   skipText: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.muted,
+    color: "#FFFFFF",
     fontSize: 10,
   },
   disabledButton: {
