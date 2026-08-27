@@ -28,7 +28,7 @@ type Slide = {
 const slides: Slide[] = [
   {
     id: "1",
-    image: require("../../../assets/onboarding/onbaording1.jpg"),
+    image: require("../../../assets/onboarding/onboarding1.png"),
     badge: "SMART SCANNING",
     title: "Point. Snap.\nSort smarter.",
     description:
@@ -36,7 +36,7 @@ const slides: Slide[] = [
   },
   {
     id: "2",
-    image: require("../../../assets/onboarding/onbaording2-2.jpg"),
+    image: require("../../../assets/onboarding/onboarding2.png"),
     badge: "SIMPLE GUIDANCE",
     title: "Know where\neverything goes.",
     description:
@@ -44,7 +44,7 @@ const slides: Slide[] = [
   },
   {
     id: "3",
-    image: require("../../../assets/onboarding/onbaording3.jpg"),
+    image: require("../../../assets/onboarding/onboarding3.png"),
     badge: "BUILD BETTER HABITS",
     title: "Small choices.\nReal impact.",
     description:
