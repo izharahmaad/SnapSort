@@ -1,12 +1,12 @@
 import { useRef, useState } from "react";
 import {
-  Dimensions,
   FlatList,
   Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -16,9 +16,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors } from "../../constants/theme";
 import { useOnboardingStore } from "../../stores/onboarding.store";
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } =
-  Dimensions.get("window");
 
 type Slide = {
   id: string;
@@ -31,7 +28,7 @@ type Slide = {
 const slides: Slide[] = [
   {
     id: "1",
-    image: require("../../../assets/onboarding/onboarding1.png"),
+    image: require("../../../assets/onboarding/onbaording1.jpg"),
     badge: "SMART SCANNING",
     title: "Point. Snap.\nSort smarter.",
     description:
@@ -39,7 +36,7 @@ const slides: Slide[] = [
   },
   {
     id: "2",
-    image: require("../../../assets/onboarding/onboarding2.png"),
+    image: require("../../../assets/onboarding/onbaording2-2.jpg"),
     badge: "SIMPLE GUIDANCE",
     title: "Know where\neverything goes.",
     description:
@@ -47,7 +44,7 @@ const slides: Slide[] = [
   },
   {
     id: "3",
-    image: require("../../../assets/onboarding/onboarding3.png"),
+    image: require("../../../assets/onboarding/onbaording3.jpg"),
     badge: "BUILD BETTER HABITS",
     title: "Small choices.\nReal impact.",
     description:
@@ -57,7 +54,11 @@ const slides: Slide[] = [
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const listRef = useRef<FlatList<Slide>>(null);
+
+  const isLandscape = width > height;
+  const isTabletLayout = width >= 700 || isLandscape;
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [isCompleting, setIsCompleting] =
@@ -75,9 +76,7 @@ export default function OnboardingScreen() {
     event: NativeSyntheticEvent<NativeScrollEvent>
   ) => {
     const offsetX = event.nativeEvent.contentOffset.x;
-    const nextIndex = Math.round(
-      offsetX / SCREEN_WIDTH
-    );
+    const nextIndex = Math.round(offsetX / width);
 
     setActiveIndex(
       Math.max(
@@ -139,12 +138,20 @@ export default function OnboardingScreen() {
         keyExtractor={(item) => item.id}
         onMomentumScrollEnd={handleScrollEnd}
         getItemLayout={(_, index) => ({
-          length: SCREEN_WIDTH,
-          offset: SCREEN_WIDTH * index,
+          length: width,
+          offset: width * index,
           index,
         })}
         renderItem={({ item }) => (
-          <View style={styles.slide}>
+          <View
+            style={[
+              styles.slide,
+              {
+                width,
+                height,
+              },
+            ]}
+          >
             <Image
               source={item.image}
               resizeMode="cover"
@@ -152,59 +159,94 @@ export default function OnboardingScreen() {
             />
 
             <LinearGradient
-              colors={[
-                "rgba(5,24,13,0.20)",
-                "rgba(5,24,13,0.02)",
-                "rgba(5,24,13,0.64)",
-              ]}
-              locations={[0, 0.45, 1]}
+              colors={
+                isTabletLayout
+                  ? [
+                      "rgba(5,24,13,0.34)",
+                      "rgba(5,24,13,0.03)",
+                      "rgba(5,24,13,0.72)",
+                    ]
+                  : [
+                      "rgba(5,24,13,0.22)",
+                      "rgba(5,24,13,0.02)",
+                      "rgba(5,24,13,0.68)",
+                    ]
+              }
+              locations={[0, 0.48, 1]}
               style={styles.imageOverlay}
             />
 
             <View
               style={[
-                styles.topBar,
+                styles.brandMark,
                 {
-                  top: Math.max(
-                    insets.top + 14,
-                    28
-                  ),
+                  top: Math.max(insets.top + 14, 28),
+                  left: isTabletLayout ? 38 : 22,
                 },
               ]}
             >
-              <View style={styles.brandPill}>
-                <View style={styles.brandIcon}>
-                  <MaterialCommunityIcons
-                    name="leaf"
-                    size={15}
-                    color="#FFFFFF"
-                  />
-                </View>
-
-                <Text style={styles.brandText}>
-                  SnapSort AI
-                </Text>
-              </View>
-
-              <View style={styles.counterPill}>
-                <Text style={styles.counterText}>
-                  {activeIndex + 1}/{slides.length}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.imageMessage}>
-              <View style={styles.messagePill}>
+              <View style={styles.brandIcon}>
                 <MaterialCommunityIcons
                   name="leaf"
-                  size={14}
+                  size={16}
                   color="#FFFFFF"
                 />
+              </View>
 
-                <Text style={styles.messageText}>
-                  Make a greener choice
+              <Text style={styles.brandText}>
+                SnapSort AI
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.counterPill,
+                {
+                  top: Math.max(insets.top + 16, 30),
+                  right: isTabletLayout ? 38 : 22,
+                },
+              ]}
+            >
+              <Text style={styles.counterText}>
+                {activeIndex + 1}/{slides.length}
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.imageContent,
+                isTabletLayout
+                  ? styles.imageContentLandscape
+                  : styles.imageContentPortrait,
+              ]}
+            >
+              <View style={styles.badgePill}>
+                <View style={styles.badgeDot} />
+
+                <Text style={styles.badgeText}>
+                  {item.badge}
                 </Text>
               </View>
+
+              <Text
+                style={[
+                  styles.imageTitle,
+                  isTabletLayout &&
+                    styles.imageTitleLandscape,
+                ]}
+              >
+                {item.title}
+              </Text>
+
+              <Text
+                style={[
+                  styles.imageDescription,
+                  isTabletLayout &&
+                    styles.imageDescriptionLandscape,
+                ]}
+              >
+                {item.description}
+              </Text>
             </View>
           </View>
         )}
@@ -212,18 +254,22 @@ export default function OnboardingScreen() {
 
       <View
         style={[
-          styles.bottomSheet,
+          styles.bottomPanel,
+          isTabletLayout &&
+            styles.bottomPanelLandscape,
           {
             paddingBottom: Math.max(
-              insets.bottom + 15,
-              24
+              insets.bottom + 14,
+              22
             ),
           },
         ]}
       >
-        <View style={styles.sheetHeader}>
-          <Text style={styles.badge}>
-            {activeSlide.badge}
+        <View style={styles.panelHeader}>
+          <Text style={styles.panelHint}>
+            {isLastSlide
+              ? "Ready to make a difference?"
+              : "Your greener journey starts here"}
           </Text>
 
           <View style={styles.progressDots}>
@@ -247,88 +293,102 @@ export default function OnboardingScreen() {
           </View>
         </View>
 
-        <Text style={styles.title}>
-          {activeSlide.title}
-        </Text>
-
-        <Text style={styles.description}>
-          {activeSlide.description}
-        </Text>
-
-        <View style={styles.actionRow}>
-          {activeIndex > 0 ? (
-            <Pressable
-              style={styles.backButton}
-              onPress={() =>
-                goToSlide(activeIndex - 1)
-              }
-              accessibilityRole="button"
-              accessibilityLabel="Previous slide"
-            >
-              <MaterialCommunityIcons
-                name="arrow-left"
-                size={18}
-                color={colors.primary}
-              />
-
-              <Text style={styles.backText}>
-                Back
-              </Text>
-            </Pressable>
-          ) : null}
-
-          <Pressable
-            style={[
-              styles.continueButton,
-              activeIndex > 0 &&
-                styles.continueButtonWithBack,
-              isCompleting &&
-                styles.disabledButton,
-            ]}
-            onPress={handleContinue}
-            disabled={isCompleting}
-            accessibilityRole="button"
-            accessibilityLabel={
-              isLastSlide
-                ? "Start exploring SnapSort"
-                : "Continue onboarding"
-            }
-          >
-            <Text style={styles.continueText}>
-              {isCompleting
-                ? "Opening..."
-                : isLastSlide
-                  ? "Start exploring"
-                  : "Continue"}
+        <View
+          style={[
+            styles.panelContent,
+            isTabletLayout &&
+              styles.panelContentLandscape,
+          ]}
+        >
+          <View style={styles.panelCopy}>
+            <Text style={styles.panelBadge}>
+              {activeSlide.badge}
             </Text>
 
-            {!isCompleting ? (
-              <MaterialCommunityIcons
-                name={
-                  isLastSlide
-                    ? "check"
-                    : "arrow-right"
+            <Text style={styles.panelTitle}>
+              {activeSlide.title}
+            </Text>
+
+            <Text style={styles.panelDescription}>
+              {activeSlide.description}
+            </Text>
+          </View>
+
+          <View style={styles.actions}>
+            {activeIndex > 0 ? (
+              <Pressable
+                style={styles.backButton}
+                onPress={() =>
+                  goToSlide(activeIndex - 1)
                 }
-                size={19}
-                color="#FFFFFF"
-              />
-            ) : null}
-          </Pressable>
-        </View>
+                accessibilityRole="button"
+                accessibilityLabel="Previous slide"
+              >
+                <MaterialCommunityIcons
+                  name="arrow-left"
+                  size={18}
+                  color={colors.primary}
+                />
 
-        {!isLastSlide ? (
-          <Pressable
-            style={styles.skipButton}
-            onPress={complete}
-            disabled={isCompleting}
-            accessibilityRole="button"
-            accessibilityLabel="Skip onboarding"
-          >
-            <Text style={styles.skipText}>
-              Skip for now
-            </Text>
-          </Pressable>
-        ) : null}
+                <Text style={styles.backText}>
+                  Back
+                </Text>
+              </Pressable>
+            ) : null}
+
+            <Pressable
+              style={[
+                styles.continueButton,
+                activeIndex > 0 &&
+                  styles.continueButtonWithBack,
+                isCompleting &&
+                  styles.disabledButton,
+              ]}
+              onPress={handleContinue}
+              disabled={isCompleting}
+              accessibilityRole="button"
+              accessibilityLabel={
+                isLastSlide
+                  ? "Start exploring SnapSort"
+                  : "Continue onboarding"
+              }
+            >
+              <Text style={styles.continueText}>
+                {isCompleting
+                  ? "Opening..."
+                  : isLastSlide
+                    ? "Start exploring"
+                    : "Continue"}
+              </Text>
+
+              {!isCompleting ? (
+                <MaterialCommunityIcons
+                  name={
+                    isLastSlide
+                      ? "check"
+                      : "arrow-right"
+                  }
+                  size={19}
+                  color="#FFFFFF"
+                />
+              ) : null}
+            </Pressable>
+
+            {!isLastSlide ? (
+              <Pressable
+                style={styles.skipButton}
+                onPress={complete}
+                disabled={isCompleting}
+                accessibilityRole="button"
+                accessibilityLabel="Skip onboarding"
+              >
+                <Text style={styles.skipText}>
+                  Skip
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -340,8 +400,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   slide: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    position: "relative",
     backgroundColor: "#DDEFE1",
   },
   heroImage: {
@@ -350,80 +409,134 @@ const styles = StyleSheet.create({
   imageOverlay: {
     ...StyleSheet.absoluteFillObject,
   },
-  topBar: {
+  brandMark: {
     position: "absolute",
-    left: 22,
-    right: 22,
-    zIndex: 2,
+    zIndex: 3,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-  },
-  brandPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-    paddingLeft: 6,
-    paddingRight: 12,
-    paddingVertical: 6,
-    borderRadius: 24,
-    backgroundColor: "rgba(255,255,255,0.90)",
+    gap: 8,
+    backgroundColor: "transparent",
   },
   brandIcon: {
-    width: 29,
-    height: 29,
-    borderRadius: 15,
+    width: 31,
+    height: 31,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primary,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.7)",
   },
   brandText: {
     fontFamily: "Poppins_700Bold",
-    color: colors.primary,
-    fontSize: 13,
+    color: "#FFFFFF",
+    fontSize: 15,
+    letterSpacing: -0.2,
+    textShadowColor: "rgba(0,0,0,0.32)",
+    textShadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    textShadowRadius: 3,
   },
   counterPill: {
+    position: "absolute",
+    zIndex: 3,
     paddingHorizontal: 11,
     paddingVertical: 7,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.90)",
+    backgroundColor: "rgba(255,255,255,0.86)",
   },
   counterText: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.muted,
     fontSize: 10,
   },
-  imageMessage: {
+  imageContent: {
     position: "absolute",
-    left: 22,
-    bottom: 214,
+    zIndex: 2,
   },
-  messagePill: {
+  imageContentPortrait: {
+    left: 23,
+    right: 23,
+    bottom: 216,
+  },
+  imageContentLandscape: {
+    left: 42,
+    width: "52%",
+    bottom: 74,
+  },
+  badgePill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    alignSelf: "flex-start",
+    gap: 7,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 22,
-    backgroundColor: "rgba(29,117,67,0.92)",
+    backgroundColor: "rgba(255,255,255,0.9)",
+    marginBottom: 13,
   },
-  messageText: {
+  badgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+  },
+  badgeText: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#FFFFFF",
-    fontSize: 10,
+    color: colors.primary,
+    fontSize: 9,
+    letterSpacing: 1,
   },
-  bottomSheet: {
+  imageTitle: {
+    fontFamily: "Poppins_700Bold",
+    color: "#FFFFFF",
+    fontSize: 34,
+    lineHeight: 41,
+    letterSpacing: -0.6,
+    textShadowColor: "rgba(0,0,0,0.34)",
+    textShadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    textShadowRadius: 5,
+  },
+  imageTitleLandscape: {
+    fontSize: 37,
+    lineHeight: 44,
+  },
+  imageDescription: {
+    maxWidth: 330,
+    fontFamily: "Poppins_400Regular",
+    color: "rgba(255,255,255,0.94)",
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 10,
+    textShadowColor: "rgba(0,0,0,0.3)",
+    textShadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    textShadowRadius: 4,
+  },
+  imageDescriptionLandscape: {
+    maxWidth: 440,
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  bottomPanel: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
     paddingHorizontal: 23,
-    paddingTop: 21,
-    borderTopLeftRadius: 31,
-    borderTopRightRadius: 31,
-    backgroundColor: "#FFFFFF",
+    paddingTop: 17,
+    borderTopLeftRadius: 29,
+    borderTopRightRadius: 29,
+    backgroundColor: "rgba(255,255,255,0.98)",
     shadowColor: "#173B25",
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.14,
     shadowRadius: 18,
     shadowOffset: {
       width: 0,
@@ -431,16 +544,21 @@ const styles = StyleSheet.create({
     },
     elevation: 15,
   },
-  sheetHeader: {
+  bottomPanelLandscape: {
+    paddingHorizontal: 38,
+    paddingTop: 14,
+    borderTopLeftRadius: 23,
+    borderTopRightRadius: 23,
+  },
+  panelHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  badge: {
+  panelHint: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.primary,
-    fontSize: 9,
-    letterSpacing: 1.1,
+    color: colors.text,
+    fontSize: 11,
   },
   progressDots: {
     flexDirection: "row",
@@ -457,36 +575,53 @@ const styles = StyleSheet.create({
     width: 28,
     backgroundColor: colors.primary,
   },
-  title: {
-    fontFamily: "Poppins_700Bold",
-    color: colors.text,
-    fontSize: 28,
-    lineHeight: 35,
-    letterSpacing: -0.4,
-    marginTop: 11,
+  panelContent: {
+    marginTop: 10,
   },
-  description: {
-    maxWidth: 330,
-    fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 12,
-    lineHeight: 19,
-    marginTop: 8,
-  },
-  actionRow: {
+  panelContentLandscape: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginTop: 18,
+    gap: 26,
+  },
+  panelCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  panelBadge: {
+    fontFamily: "Poppins_600SemiBold",
+    color: colors.primary,
+    fontSize: 9,
+    letterSpacing: 1,
+  },
+  panelTitle: {
+    fontFamily: "Poppins_700Bold",
+    color: colors.text,
+    fontSize: 25,
+    lineHeight: 32,
+    marginTop: 5,
+  },
+  panelDescription: {
+    maxWidth: 450,
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 17,
+    marginTop: 5,
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    marginTop: 15,
   },
   backButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    width: 101,
-    height: 54,
-    borderRadius: 27,
+    gap: 5,
+    width: 94,
+    height: 51,
+    borderRadius: 26,
     backgroundColor: "#F0F7F1",
     borderWidth: 1,
     borderColor: "#DCE9DF",
@@ -494,16 +629,17 @@ const styles = StyleSheet.create({
   backText: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.primary,
-    fontSize: 12,
+    fontSize: 11,
   },
   continueButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 9,
-    height: 54,
-    borderRadius: 27,
+    gap: 8,
+    minWidth: 145,
+    height: 51,
+    borderRadius: 26,
     backgroundColor: colors.primary,
   },
   continueButtonWithBack: {
@@ -512,21 +648,22 @@ const styles = StyleSheet.create({
   continueText: {
     fontFamily: "Poppins_600SemiBold",
     color: "#FFFFFF",
-    fontSize: 13,
-  },
-  disabledButton: {
-    opacity: 0.55,
+    fontSize: 12,
   },
   skipButton: {
-    alignSelf: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    marginTop: 3,
-    borderRadius: 20,
+    minWidth: 52,
+    height: 46,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 7,
+    borderRadius: 23,
   },
   skipText: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.muted,
-    fontSize: 11,
+    fontSize: 10,
+  },
+  disabledButton: {
+    opacity: 0.55,
   },
 });
