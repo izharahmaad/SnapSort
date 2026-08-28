@@ -1,12 +1,11 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
-  Linking,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,121 +22,59 @@ type IconName = React.ComponentProps<
 >["name"];
 
 const WHITE = "#FFFFFF";
-const CREAM = "#FFFEFA";
+const BACKGROUND = "#FFFEFA";
 const FOREST = "#075C34";
-const DEEP_FOREST = "#04331D";
-const EMERALD = "#16824B";
 const TEXT = "#17271D";
 const MUTED = "#6D7B72";
 const LIGHT_GREEN = "#EAF7EE";
 const LIGHT_GOLD = "#FFF3DB";
 const GOLD = "#C98718";
+const BORDER = "#E2ECE4";
 
 export default function AboutScreen({
   navigation,
 }: Props) {
   const insets = useSafeAreaInsets();
 
-  const handleSupport = async () => {
-    const emailUrl =
-      "mailto:support@snapsort.ai?subject=SnapSort%20AI%20Support";
-
-    const canOpen = await Linking.canOpenURL(emailUrl);
-
-    if (canOpen) {
-      await Linking.openURL(emailUrl);
-    }
+  const handleSupport = () => {
+    Alert.alert(
+      "Contact support",
+      "Add your real support email or support form link here before publishing the app."
+    );
   };
 
   return (
     <View style={styles.screen}>
-      <LinearGradient
-        colors={[DEEP_FOREST, FOREST, EMERALD]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <View
         style={[
           styles.header,
           {
             paddingTop: Math.max(
               insets.top + 10,
-              22
+              20
             ),
           },
         ]}
       >
-        <View style={styles.topBar}>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={21}
-              color={WHITE}
-            />
-          </Pressable>
-
-          <View style={styles.brand}>
-            <View style={styles.brandIcon}>
-              <MaterialCommunityIcons
-                name="leaf"
-                size={14}
-                color={FOREST}
-              />
-            </View>
-
-            <Text style={styles.brandText}>
-              SnapSort AI
-            </Text>
-          </View>
-
-          <View style={styles.topSpace} />
-        </View>
-
-        <View style={styles.headerContent}>
-          <View style={styles.logoOuter}>
-            <View style={styles.logoInner}>
-              <MaterialCommunityIcons
-                name="leaf"
-                size={35}
-                color={FOREST}
-              />
-            </View>
-          </View>
-
-          <Text style={styles.headerTitle}>
-            SnapSort AI
-          </Text>
-
-          <Text style={styles.headerSubtitle}>
-            Make every disposal decision count.
-          </Text>
-
-          <View style={styles.versionBadge}>
-            <Text style={styles.versionText}>
-              VERSION 1.0.0
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.decorLeaf}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <MaterialCommunityIcons
-            name="leaf"
-            size={32}
-            color="rgba(255,255,255,0.14)"
+            name="arrow-left"
+            size={22}
+            color={TEXT}
           />
-        </View>
+        </Pressable>
 
-        <View style={styles.decorRecycle}>
-          <MaterialCommunityIcons
-            name="recycle"
-            size={18}
-            color="rgba(255,255,255,0.14)"
-          />
-        </View>
-      </LinearGradient>
+        <Text style={styles.headerTitle}>
+          About
+        </Text>
+
+        <View style={styles.headerSpace} />
+      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -145,116 +82,134 @@ export default function AboutScreen({
           styles.content,
           {
             paddingBottom: Math.max(
-              insets.bottom + 30,
-              40
+              insets.bottom + 28,
+              36
             ),
           },
         ]}
       >
-        <Text style={styles.introTitle}>
-          Better choices start with clarity.
-        </Text>
-
-        <Text style={styles.introText}>
-          SnapSort AI helps you identify everyday items and
-          understand how to dispose of them more responsibly.
-          Scan an item, receive clear guidance, and build
-          more sustainable habits over time.
-        </Text>
-
-        <View style={styles.missionCard}>
-          <View style={styles.missionIcon}>
+        <View style={styles.introBlock}>
+          <View style={styles.introIcon}>
             <MaterialCommunityIcons
-              name="earth"
-              size={23}
+              name="leaf"
+              size={29}
               color={FOREST}
             />
           </View>
 
-          <View style={styles.missionCopy}>
-            <Text style={styles.missionLabel}>
-              OUR MISSION
-            </Text>
+          <Text style={styles.pageTitle}>
+            SnapSort AI
+          </Text>
 
-            <Text style={styles.missionText}>
-              Make sustainable disposal simple, useful,
-              and accessible for everyone.
-            </Text>
-          </View>
+          <Text style={styles.versionText}>
+            Version 1.0.0
+          </Text>
+        </View>
+
+        <Text style={styles.description}>
+          SnapSort AI helps you make better decisions about
+          everyday items. Scan an item, understand the right
+          disposal approach, and build more sustainable habits
+          one step at a time.
+        </Text>
+
+        <Text style={styles.sectionLabel}>
+          WHAT WE DO
+        </Text>
+
+        <View style={styles.card}>
+          <FeatureRow
+            icon="camera-outline"
+            title="Identify everyday items"
+            subtitle="Use your camera to scan and identify items."
+            color={FOREST}
+            background={LIGHT_GREEN}
+          />
+
+          <Divider />
+
+          <FeatureRow
+            icon="recycle"
+            title="Support better disposal"
+            subtitle="Get simple guidance for smarter choices."
+            color={FOREST}
+            background={LIGHT_GREEN}
+          />
+
+          <Divider />
+
+          <FeatureRow
+            icon="sprout"
+            title="Build sustainable habits"
+            subtitle="Turn everyday actions into positive impact."
+            color={GOLD}
+            background={LIGHT_GOLD}
+          />
         </View>
 
         <Text style={styles.sectionLabel}>
-          WHAT SNAPSort AI HELPS WITH
+          APP INFORMATION
         </Text>
 
-        <FeatureCard
-          icon="camera-outline"
-          title="Smart item scans"
-          text="Scan an everyday item and receive simple guidance on how to handle it."
-          iconBackground={LIGHT_GREEN}
-          iconColor={FOREST}
-        />
+        <View style={styles.card}>
+          <InfoRow
+            icon="information-outline"
+            title="App version"
+            value="1.0.0"
+          />
 
-        <FeatureCard
-          icon="history"
-          title="Saved scan history"
-          text="Keep your previous scans in one place and revisit guidance whenever you need it."
-          iconBackground={LIGHT_GREEN}
-          iconColor={FOREST}
-        />
+          <Divider />
 
-        <FeatureCard
-          icon="sprout"
-          title="Greener everyday habits"
-          text="Use each scan as a small step toward more mindful choices."
-          iconBackground={LIGHT_GOLD}
-          iconColor={GOLD}
-        />
+          <InfoRow
+            icon="shield-check-outline"
+            title="Account protection"
+            value="Firebase authentication"
+          />
 
-        <Text style={styles.sectionLabel}>
-          SUPPORT
-        </Text>
+          <Divider />
 
-        <Pressable
-          style={styles.supportCard}
-          onPress={handleSupport}
-          accessibilityRole="button"
-          accessibilityLabel="Contact SnapSort AI support"
-        >
-          <View style={styles.supportIcon}>
+          <Pressable
+            style={styles.supportRow}
+            onPress={handleSupport}
+            accessibilityRole="button"
+            accessibilityLabel="Contact support"
+          >
+            <View style={styles.supportIcon}>
+              <MaterialCommunityIcons
+                name="email-outline"
+                size={18}
+                color={FOREST}
+              />
+            </View>
+
+            <View style={styles.supportCopy}>
+              <Text style={styles.supportTitle}>
+                Contact support
+              </Text>
+
+              <Text style={styles.supportSubtitle}>
+                Questions, feedback, or account help
+              </Text>
+            </View>
+
             <MaterialCommunityIcons
-              name="email-outline"
+              name="chevron-right"
               size={20}
-              color={WHITE}
+              color={MUTED}
             />
-          </View>
+          </Pressable>
+        </View>
 
-          <View style={styles.supportCopy}>
-            <Text style={styles.supportTitle}>
-              Contact support
-            </Text>
-
-            <Text style={styles.supportText}>
-              Need help or want to share feedback?
-            </Text>
-          </View>
-
+        <View style={styles.missionCard}>
           <MaterialCommunityIcons
-            name="chevron-right"
-            size={20}
-            color={FOREST}
-          />
-        </Pressable>
-
-        <View style={styles.bottomInfo}>
-          <MaterialCommunityIcons
-            name="heart-outline"
-            size={15}
+            name="earth"
+            size={21}
             color={FOREST}
           />
 
-          <Text style={styles.bottomInfoText}>
-            Built to support thoughtful everyday choices.
+          <Text style={styles.missionText}>
+            Our goal is simple: make sustainable disposal
+            easier to understand and easier to do.
           </Text>
         </View>
 
@@ -266,33 +221,33 @@ export default function AboutScreen({
   );
 }
 
-function FeatureCard({
+function FeatureRow({
   icon,
   title,
-  text,
-  iconBackground,
-  iconColor,
+  subtitle,
+  color,
+  background,
 }: {
   icon: IconName;
   title: string;
-  text: string;
-  iconBackground: string;
-  iconColor: string;
+  subtitle: string;
+  color: string;
+  background: string;
 }) {
   return (
-    <View style={styles.featureCard}>
+    <View style={styles.featureRow}>
       <View
         style={[
           styles.featureIcon,
           {
-            backgroundColor: iconBackground,
+            backgroundColor: background,
           },
         ]}
       >
         <MaterialCommunityIcons
           name={icon}
-          size={20}
-          color={iconColor}
+          size={19}
+          color={color}
         />
       </View>
 
@@ -301,206 +256,126 @@ function FeatureCard({
           {title}
         </Text>
 
-        <Text style={styles.featureText}>
-          {text}
+        <Text style={styles.featureSubtitle}>
+          {subtitle}
         </Text>
       </View>
     </View>
   );
 }
 
+function InfoRow({
+  icon,
+  title,
+  value,
+}: {
+  icon: IconName;
+  title: string;
+  value: string;
+}) {
+  return (
+    <View style={styles.infoRow}>
+      <View style={styles.infoIcon}>
+        <MaterialCommunityIcons
+          name={icon}
+          size={18}
+          color={FOREST}
+        />
+      </View>
+
+      <View style={styles.infoCopy}>
+        <Text style={styles.infoTitle}>
+          {title}
+        </Text>
+
+        <Text style={styles.infoValue}>
+          {value}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function Divider() {
+  return <View style={styles.divider} />;
+}
+
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: CREAM,
+    backgroundColor: BACKGROUND,
   },
 
   header: {
-    minHeight: 300,
-    overflow: "hidden",
-    paddingHorizontal: 20,
-  },
-
-  topBar: {
+    minHeight: 70,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 20,
+    backgroundColor: WHITE,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
   },
 
   backButton: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.24)",
-  },
-
-  brand: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  brandIcon: {
-    width: 29,
-    height: 29,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: WHITE,
-    marginRight: 7,
-  },
-
-  brandText: {
-    fontFamily: "Poppins_600SemiBold",
-    color: WHITE,
-    fontSize: 11,
-  },
-
-  topSpace: {
-    width: 43,
-    height: 43,
-  },
-
-  headerContent: {
-    alignItems: "center",
-    marginTop: 20,
-  },
-
-  logoOuter: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.16)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.27)",
-  },
-
-  logoInner: {
-    width: 67,
-    height: 67,
-    borderRadius: 34,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: WHITE,
+    backgroundColor: LIGHT_GREEN,
   },
 
   headerTitle: {
-    fontFamily: "Poppins_700Bold",
-    color: WHITE,
-    fontSize: 27,
-    marginTop: 12,
-  },
-
-  headerSubtitle: {
-    fontFamily: "Poppins_400Regular",
-    color: "rgba(255,255,255,0.82)",
-    fontSize: 10,
-    marginTop: 2,
-  },
-
-  versionBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 13,
-    marginTop: 12,
-    backgroundColor: "rgba(255,255,255,0.13)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
-  },
-
-  versionText: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#D8F8E1",
-    fontSize: 8,
-    letterSpacing: 1.1,
+    color: TEXT,
+    fontSize: 15,
   },
 
-  decorLeaf: {
-    position: "absolute",
-    right: 24,
-    bottom: 24,
-    width: 65,
-    height: 65,
-    borderRadius: 33,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
-  },
-
-  decorRecycle: {
-    position: "absolute",
-    left: 35,
-    bottom: 27,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
+  headerSpace: {
+    width: 42,
+    height: 42,
   },
 
   content: {
     paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingTop: 28,
   },
 
-  introTitle: {
+  introBlock: {
+    alignItems: "center",
+  },
+
+  introIcon: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: LIGHT_GREEN,
+  },
+
+  pageTitle: {
     fontFamily: "Poppins_700Bold",
     color: TEXT,
-    fontSize: 18,
+    fontSize: 24,
+    marginTop: 12,
   },
 
-  introText: {
+  versionText: {
+    fontFamily: "Poppins_500Medium",
+    color: MUTED,
+    fontSize: 10,
+    marginTop: 2,
+  },
+
+  description: {
     fontFamily: "Poppins_400Regular",
     color: MUTED,
     fontSize: 11,
     lineHeight: 18,
-    marginTop: 6,
-  },
-
-  missionCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
+    textAlign: "center",
     marginTop: 21,
-    borderRadius: 22,
-    backgroundColor: LIGHT_GREEN,
-    borderWidth: 1,
-    borderColor: "#C9E8D1",
-  },
-
-  missionIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: WHITE,
-  },
-
-  missionCopy: {
-    flex: 1,
-    marginLeft: 10,
-  },
-
-  missionLabel: {
-    fontFamily: "Poppins_600SemiBold",
-    color: FOREST,
-    fontSize: 8,
-    letterSpacing: 1.1,
-  },
-
-  missionText: {
-    fontFamily: "Poppins_600SemiBold",
-    color: TEXT,
-    fontSize: 10,
-    lineHeight: 16,
-    marginTop: 3,
   },
 
   sectionLabel: {
@@ -508,42 +383,45 @@ const styles = StyleSheet.create({
     color: FOREST,
     fontSize: 9,
     letterSpacing: 1.2,
-    marginTop: 25,
+    marginTop: 27,
     marginBottom: 9,
     marginLeft: 2,
   },
 
-  featureCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    marginTop: 9,
-    borderRadius: 22,
+  card: {
+    paddingHorizontal: 14,
+    borderRadius: 20,
     backgroundColor: WHITE,
     borderWidth: 1,
-    borderColor: "#E3ECE5",
+    borderColor: BORDER,
+  },
+
+  featureRow: {
+    minHeight: 72,
+    flexDirection: "row",
+    alignItems: "center",
   },
 
   featureIcon: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },
 
   featureCopy: {
     flex: 1,
-    marginLeft: 11,
+    marginLeft: 10,
   },
 
   featureTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: TEXT,
-    fontSize: 11,
+    fontSize: 10,
   },
 
-  featureText: {
+  featureSubtitle: {
     fontFamily: "Poppins_400Regular",
     color: MUTED,
     fontSize: 9,
@@ -551,24 +429,52 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  supportCard: {
-    minHeight: 76,
+  infoRow: {
+    minHeight: 63,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 13,
-    borderRadius: 22,
+  },
+
+  infoIcon: {
+    width: 39,
+    height: 39,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: LIGHT_GREEN,
-    borderWidth: 1,
-    borderColor: "#C7E8D1",
+  },
+
+  infoCopy: {
+    flex: 1,
+    marginLeft: 10,
+  },
+
+  infoTitle: {
+    fontFamily: "Poppins_400Regular",
+    color: MUTED,
+    fontSize: 9,
+  },
+
+  infoValue: {
+    fontFamily: "Poppins_600SemiBold",
+    color: TEXT,
+    fontSize: 10,
+    marginTop: 2,
+  },
+
+  supportRow: {
+    minHeight: 68,
+    flexDirection: "row",
+    alignItems: "center",
   },
 
   supportIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 39,
+    height: 39,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: FOREST,
+    backgroundColor: LIGHT_GREEN,
   },
 
   supportCopy: {
@@ -579,28 +485,40 @@ const styles = StyleSheet.create({
   supportTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: TEXT,
-    fontSize: 11,
+    fontSize: 10,
   },
 
-  supportText: {
+  supportSubtitle: {
     fontFamily: "Poppins_400Regular",
     color: MUTED,
     fontSize: 9,
     marginTop: 2,
   },
 
-  bottomInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 20,
+  divider: {
+    height: 1,
+    marginLeft: 49,
+    backgroundColor: "#E7EEE8",
   },
 
-  bottomInfoText: {
-    fontFamily: "Poppins_400Regular",
-    color: MUTED,
-    fontSize: 9,
-    marginLeft: 6,
+  missionCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    marginTop: 24,
+    borderRadius: 19,
+    backgroundColor: LIGHT_GREEN,
+    borderWidth: 1,
+    borderColor: "#CBE8D3",
+  },
+
+  missionText: {
+    flex: 1,
+    fontFamily: "Poppins_500Medium",
+    color: FOREST,
+    fontSize: 10,
+    lineHeight: 16,
+    marginLeft: 9,
   },
 
   footerText: {
@@ -608,6 +526,6 @@ const styles = StyleSheet.create({
     color: MUTED,
     fontSize: 9,
     textAlign: "center",
-    marginTop: 14,
+    marginTop: 20,
   },
 });

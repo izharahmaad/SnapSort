@@ -5,7 +5,6 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,13 +17,12 @@ type Props = NativeStackScreenProps<
 >;
 
 const WHITE = "#FFFFFF";
-const CREAM = "#FFFEFA";
+const BACKGROUND = "#FFFEFA";
 const FOREST = "#075C34";
-const DEEP_FOREST = "#04331D";
-const EMERALD = "#16824B";
 const TEXT = "#17271D";
 const MUTED = "#6D7B72";
 const LIGHT_GREEN = "#EAF7EE";
+const BORDER = "#E2ECE4";
 
 export default function PrivacyPolicyScreen({
   navigation,
@@ -33,85 +31,36 @@ export default function PrivacyPolicyScreen({
 
   return (
     <View style={styles.screen}>
-      <LinearGradient
-        colors={[DEEP_FOREST, FOREST, EMERALD]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <View
         style={[
           styles.header,
           {
             paddingTop: Math.max(
               insets.top + 10,
-              22
+              20
             ),
           },
         ]}
       >
-        <View style={styles.topBar}>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={21}
-              color={WHITE}
-            />
-          </Pressable>
-
-          <View style={styles.brand}>
-            <View style={styles.brandIcon}>
-              <MaterialCommunityIcons
-                name="leaf"
-                size={14}
-                color={FOREST}
-              />
-            </View>
-
-            <Text style={styles.brandText}>
-              SnapSort AI
-            </Text>
-          </View>
-
-          <View style={styles.topSpace} />
-        </View>
-
-        <View style={styles.headerContent}>
-          <View style={styles.headerIcon}>
-            <MaterialCommunityIcons
-              name="shield-lock-outline"
-              size={30}
-              color={WHITE}
-            />
-          </View>
-
-          <Text style={styles.headerTitle}>
-            Privacy policy
-          </Text>
-
-          <Text style={styles.headerSubtitle}>
-            How SnapSort AI handles and protects your information.
-          </Text>
-        </View>
-
-        <View style={styles.headerLeafOne}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <MaterialCommunityIcons
-            name="leaf"
-            size={31}
-            color="rgba(255,255,255,0.14)"
-          />
-        </View>
-
-        <View style={styles.headerLeafTwo}>
-          <MaterialCommunityIcons
-            name="sprout"
+            name="arrow-left"
             size={22}
-            color="rgba(255,255,255,0.14)"
+            color={TEXT}
           />
-        </View>
-      </LinearGradient>
+        </Pressable>
+
+        <Text style={styles.headerTitle}>
+          Privacy policy
+        </Text>
+
+        <View style={styles.headerSpace} />
+      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -119,110 +68,99 @@ export default function PrivacyPolicyScreen({
           styles.content,
           {
             paddingBottom: Math.max(
-              insets.bottom + 30,
-              40
+              insets.bottom + 28,
+              36
             ),
           },
         ]}
       >
-        <View style={styles.updatedCard}>
-          <View style={styles.updatedIcon}>
-            <MaterialCommunityIcons
-              name="calendar-check-outline"
-              size={18}
-              color={FOREST}
-            />
-          </View>
+        <Text style={styles.pageTitle}>
+          Your privacy matters
+        </Text>
 
-          <View style={styles.updatedCopy}>
+        <Text style={styles.pageDescription}>
+          This policy explains what information SnapSort AI
+          uses, why we use it, and the choices you have.
+        </Text>
+
+        <View style={styles.updatedCard}>
+          <MaterialCommunityIcons
+            name="calendar-check-outline"
+            size={18}
+            color={FOREST}
+          />
+
+          <View style={styles.updatedText}>
             <Text style={styles.updatedLabel}>
               LAST UPDATED
             </Text>
 
             <Text style={styles.updatedDate}>
-              August 28, 2026
+              August 29, 2026
             </Text>
           </View>
         </View>
 
-        <Text style={styles.introText}>
-          Your privacy matters to us. SnapSort AI only uses
-          information that helps provide disposal guidance,
-          save your scans, and improve your experience.
-        </Text>
-
         <PolicySection
           number="01"
-          icon="account-outline"
           title="Information we collect"
-          text="We may collect basic account information such as your name, email address, and profile photo when you choose to provide them."
+          text="When you use SnapSort AI, we may collect account details such as your name, email address, and profile photo. We may also collect app activity related to scans and saved results."
         />
 
         <PolicySection
           number="02"
-          icon="camera-outline"
           title="Photos and scan results"
-          text="When you scan an item, SnapSort AI may process the photo to identify the item and provide disposal guidance. Your saved scan history is linked to your account."
+          text="Photos you select or scan may be processed to identify an item and provide disposal guidance. Your scan history may be stored with your account when you choose to save it."
         />
 
         <PolicySection
           number="03"
-          icon="chart-line"
-          title="How we use information"
-          text="We use your information to operate the app, show your scan history, improve accuracy, maintain account security, and support your sustainability journey."
+          title="How we use your information"
+          text="We use your information to provide app features, maintain account security, improve disposal guidance, save your preferences, and support your use of SnapSort AI."
         />
 
         <PolicySection
           number="04"
-          icon="shield-check-outline"
-          title="How we protect your data"
-          text="We use reasonable safeguards to protect your account information. Keep your sign-in details private and sign out when using a shared device."
+          title="Data sharing"
+          text="We do not sell personal information. We may use trusted service providers for services such as authentication, cloud storage, analytics, and app infrastructure."
         />
 
         <PolicySection
           number="05"
-          icon="share-variant-outline"
-          title="When data is shared"
-          text="We do not sell your personal information. Data may only be shared with trusted services that help operate SnapSort AI, such as authentication and cloud storage providers."
+          title="Your choices"
+          text="You can update your profile information, manage notification preferences, sign out of your account, and contact support if you need help with your information."
         />
 
         <PolicySection
           number="06"
-          icon="delete-outline"
-          title="Your choices"
-          text="You can update your profile photo, review your scan history, sign out, or contact us if you need help with your account information."
+          title="Changes to this policy"
+          text="We may update this policy when SnapSort AI changes. The latest version will always be available in the app, along with the date it was last updated."
         />
 
         <View style={styles.contactCard}>
           <View style={styles.contactIcon}>
             <MaterialCommunityIcons
               name="email-outline"
-              size={20}
+              size={19}
               color={WHITE}
             />
           </View>
 
           <View style={styles.contactCopy}>
             <Text style={styles.contactTitle}>
-              Questions about privacy?
+              Privacy questions?
             </Text>
 
             <Text style={styles.contactText}>
-              Contact the SnapSort AI support team for help.
+              Contact support if you need help with your account data.
             </Text>
           </View>
-
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={20}
-            color={FOREST}
-          />
         </View>
 
         <Text style={styles.footerText}>
-          This privacy policy is a general in-app summary.
-          Your final production policy should be reviewed
-          for your country and app-store requirements.
+          This page is an in-app privacy summary. Your final
+          published policy should be reviewed for your legal,
+          country, and app-store requirements.
         </Text>
       </ScrollView>
     </View>
@@ -231,42 +169,30 @@ export default function PrivacyPolicyScreen({
 
 function PolicySection({
   number,
-  icon,
   title,
   text,
 }: {
   number: string;
-  icon: React.ComponentProps<
-    typeof MaterialCommunityIcons
-  >["name"];
   title: string;
   text: string;
 }) {
   return (
-    <View style={styles.policyCard}>
-      <View style={styles.policyTopRow}>
-        <View style={styles.policyNumber}>
-          <Text style={styles.policyNumberText}>
-            {number}
-          </Text>
-        </View>
-
-        <View style={styles.policyIcon}>
-          <MaterialCommunityIcons
-            name={icon}
-            size={18}
-            color={FOREST}
-          />
-        </View>
+    <View style={styles.policySection}>
+      <View style={styles.policyNumber}>
+        <Text style={styles.policyNumberText}>
+          {number}
+        </Text>
       </View>
 
-      <Text style={styles.policyTitle}>
-        {title}
-      </Text>
+      <View style={styles.policyCopy}>
+        <Text style={styles.policyTitle}>
+          {title}
+        </Text>
 
-      <Text style={styles.policyText}>
-        {text}
-      </Text>
+        <Text style={styles.policyText}>
+          {text}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -274,141 +200,73 @@ function PolicySection({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: CREAM,
+    backgroundColor: BACKGROUND,
   },
 
   header: {
-    minHeight: 250,
-    overflow: "hidden",
-    paddingHorizontal: 20,
-  },
-
-  topBar: {
+    minHeight: 70,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 20,
+    backgroundColor: WHITE,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
   },
 
   backButton: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.24)",
-  },
-
-  brand: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  brandIcon: {
-    width: 29,
-    height: 29,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: WHITE,
-    marginRight: 7,
-  },
-
-  brandText: {
-    fontFamily: "Poppins_600SemiBold",
-    color: WHITE,
-    fontSize: 11,
-  },
-
-  topSpace: {
-    width: 43,
-    height: 43,
-  },
-
-  headerContent: {
-    alignItems: "center",
-    marginTop: 22,
-  },
-
-  headerIcon: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.25)",
+    backgroundColor: LIGHT_GREEN,
   },
 
   headerTitle: {
-    fontFamily: "Poppins_700Bold",
-    color: WHITE,
-    fontSize: 26,
-    marginTop: 12,
+    fontFamily: "Poppins_600SemiBold",
+    color: TEXT,
+    fontSize: 15,
   },
 
-  headerSubtitle: {
-    maxWidth: 290,
-    fontFamily: "Poppins_400Regular",
-    color: "rgba(255,255,255,0.81)",
-    fontSize: 10,
-    lineHeight: 16,
-    textAlign: "center",
-    marginTop: 3,
-  },
-
-  headerLeafOne: {
-    position: "absolute",
-    top: 122,
-    right: 26,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
-  },
-
-  headerLeafTwo: {
-    position: "absolute",
-    bottom: 20,
-    left: 33,
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
+  headerSpace: {
+    width: 42,
+    height: 42,
   },
 
   content: {
     paddingHorizontal: 20,
-    paddingTop: 22,
+    paddingTop: 26,
+  },
+
+  pageTitle: {
+    fontFamily: "Poppins_700Bold",
+    color: TEXT,
+    fontSize: 24,
+  },
+
+  pageDescription: {
+    maxWidth: 330,
+    fontFamily: "Poppins_400Regular",
+    color: MUTED,
+    fontSize: 11,
+    lineHeight: 18,
+    marginTop: 5,
   },
 
   updatedCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
+    padding: 13,
+    marginTop: 20,
     borderRadius: 18,
     backgroundColor: LIGHT_GREEN,
     borderWidth: 1,
-    borderColor: "#CDE9D5",
+    borderColor: "#CBE8D3",
   },
 
-  updatedIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: WHITE,
-  },
-
-  updatedCopy: {
-    marginLeft: 10,
+  updatedText: {
+    marginLeft: 9,
   },
 
   updatedLabel: {
@@ -425,34 +283,20 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  introText: {
-    fontFamily: "Poppins_400Regular",
-    color: MUTED,
-    fontSize: 11,
-    lineHeight: 18,
-    marginTop: 20,
-    marginBottom: 3,
-  },
-
-  policyCard: {
-    padding: 16,
-    marginTop: 12,
-    borderRadius: 22,
-    backgroundColor: WHITE,
-    borderWidth: 1,
-    borderColor: "#E3ECE5",
-  },
-
-  policyTopRow: {
+  policySection: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingVertical: 19,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
   },
 
   policyNumber: {
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 11,
+    width: 33,
+    height: 33,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: LIGHT_GREEN,
   },
 
@@ -462,20 +306,15 @@ const styles = StyleSheet.create({
     fontSize: 9,
   },
 
-  policyIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: LIGHT_GREEN,
+  policyCopy: {
+    flex: 1,
+    marginLeft: 11,
   },
 
   policyTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: TEXT,
-    fontSize: 13,
-    marginTop: 12,
+    fontSize: 12,
   },
 
   policyText: {
@@ -487,15 +326,14 @@ const styles = StyleSheet.create({
   },
 
   contactCard: {
-    minHeight: 76,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 13,
-    marginTop: 20,
-    borderRadius: 22,
-    backgroundColor: LIGHT_GREEN,
+    padding: 14,
+    marginTop: 24,
+    borderRadius: 20,
+    backgroundColor: WHITE,
     borderWidth: 1,
-    borderColor: "#C7E8D1",
+    borderColor: BORDER,
   },
 
   contactIcon: {
@@ -522,6 +360,7 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_400Regular",
     color: MUTED,
     fontSize: 9,
+    lineHeight: 14,
     marginTop: 2,
   },
 

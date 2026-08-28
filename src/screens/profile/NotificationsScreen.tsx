@@ -8,7 +8,6 @@ import {
   Switch,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -25,143 +24,76 @@ type IconName = React.ComponentProps<
 >["name"];
 
 const WHITE = "#FFFFFF";
-const CREAM = "#FFFEFA";
+const BACKGROUND = "#FFFEFA";
 const FOREST = "#075C34";
-const DEEP_FOREST = "#04331D";
-const EMERALD = "#16824B";
 const TEXT = "#17271D";
 const MUTED = "#6D7B72";
 const LIGHT_GREEN = "#EAF7EE";
-const SOFT_GREEN = "#D8F0E0";
-const LIGHT_GOLD = "#FFF3DB";
-const GOLD = "#C98718";
+const BORDER = "#E2ECE4";
 
 export default function NotificationsScreen({
   navigation,
 }: Props) {
   const insets = useSafeAreaInsets();
 
-  const [remindersEnabled, setRemindersEnabled] =
+  const [dailyReminder, setDailyReminder] =
     useState(true);
 
-  const [weeklySummaryEnabled, setWeeklySummaryEnabled] =
+  const [weeklySummary, setWeeklySummary] =
     useState(true);
 
-  const [tipsEnabled, setTipsEnabled] =
+  const [sortingTips, setSortingTips] =
     useState(false);
 
-  const [updatesEnabled, setUpdatesEnabled] =
+  const [productUpdates, setProductUpdates] =
     useState(true);
 
-  const [quietHoursEnabled, setQuietHoursEnabled] =
-    useState(false);
-
-  const handleReminderToggle = (value: boolean) => {
-    setRemindersEnabled(value);
-
-    if (value) {
-      Alert.alert(
-        "Reminders enabled",
-        "SnapSort AI will remind you to make mindful disposal choices."
-      );
-    }
-  };
-
-  const showTimePickerMessage = () => {
+  const handleReminderTime = () => {
     Alert.alert(
       "Reminder time",
-      "Time selection can be connected here later. Your reminder is currently set for 7:00 PM."
+      "Your daily sorting reminder is currently scheduled for 7:00 PM."
     );
   };
 
-  const showQuietHoursMessage = () => {
+  const handleQuietHours = () => {
     Alert.alert(
       "Quiet hours",
-      "Quiet hours can be configured here later. This setting will silence non-essential notifications during your selected time."
+      "Quiet hours are currently disabled. You can add time selection here later."
     );
   };
 
   return (
     <View style={styles.screen}>
-      <LinearGradient
-        colors={[DEEP_FOREST, FOREST, EMERALD]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <View
         style={[
           styles.header,
           {
             paddingTop: Math.max(
               insets.top + 10,
-              22
+              20
             ),
           },
         ]}
       >
-        <View style={styles.topBar}>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={21}
-              color={WHITE}
-            />
-          </Pressable>
-
-          <View style={styles.brand}>
-            <View style={styles.brandIcon}>
-              <MaterialCommunityIcons
-                name="leaf"
-                size={14}
-                color={FOREST}
-              />
-            </View>
-
-            <Text style={styles.brandText}>
-              SnapSort AI
-            </Text>
-          </View>
-
-          <View style={styles.topSpace} />
-        </View>
-
-        <View style={styles.headerContent}>
-          <View style={styles.headerBell}>
-            <MaterialCommunityIcons
-              name="bell-ring-outline"
-              size={31}
-              color={WHITE}
-            />
-          </View>
-
-          <Text style={styles.headerTitle}>
-            Notifications
-          </Text>
-
-          <Text style={styles.headerSubtitle}>
-            Stay on track with helpful reminders and updates.
-          </Text>
-        </View>
-
-        <View style={styles.headerLeaf}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <MaterialCommunityIcons
-            name="leaf"
-            size={32}
-            color="rgba(255,255,255,0.15)"
+            name="arrow-left"
+            size={22}
+            color={TEXT}
           />
-        </View>
+        </Pressable>
 
-        <View style={styles.headerSprout}>
-          <MaterialCommunityIcons
-            name="sprout"
-            size={21}
-            color="rgba(255,255,255,0.15)"
-          />
-        </View>
-      </LinearGradient>
+        <Text style={styles.headerTitle}>
+          Notifications
+        </Text>
+
+        <View style={styles.headerSpace} />
+      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -169,85 +101,56 @@ export default function NotificationsScreen({
           styles.content,
           {
             paddingBottom: Math.max(
-              insets.bottom + 30,
-              40
+              insets.bottom + 28,
+              36
             ),
           },
         ]}
       >
-        <View style={styles.reminderHeroCard}>
-          <View style={styles.reminderHeroIcon}>
-            <MaterialCommunityIcons
-              name={
-                remindersEnabled
-                  ? "bell-ring-outline"
-                  : "bell-off-outline"
-              }
-              size={24}
-              color={WHITE}
-            />
-          </View>
+        <Text style={styles.pageTitle}>
+          Stay in control
+        </Text>
 
-          <View style={styles.reminderHeroCopy}>
-            <Text style={styles.reminderHeroTitle}>
-              {remindersEnabled
-                ? "Your reminders are active"
-                : "Your reminders are paused"}
-            </Text>
+        <Text style={styles.pageDescription}>
+          Choose the updates and reminders you would like
+          to receive from SnapSort AI.
+        </Text>
 
-            <Text style={styles.reminderHeroText}>
-              {remindersEnabled
-                ? "A small reminder can help build greener habits."
-                : "Turn on reminders whenever you need a little nudge."}
-            </Text>
-          </View>
-        </View>
+        <Text style={styles.sectionLabel}>
+          REMINDERS
+        </Text>
 
-        <SectionHeader
-          label="REMINDERS"
-          title="Stay mindful"
-        />
-
-        <View style={styles.settingsCard}>
-          <NotificationRow
-            icon="bell-ring-outline"
+        <View style={styles.card}>
+          <ToggleRow
+            icon="bell-outline"
             title="Daily sorting reminder"
-            subtitle="A gentle reminder to sort responsibly"
-            value={remindersEnabled}
-            onValueChange={handleReminderToggle}
+            subtitle="A reminder to make mindful disposal choices"
+            value={dailyReminder}
+            onChange={setDailyReminder}
           />
 
           <Divider />
 
           <Pressable
-            style={styles.timeRow}
-            onPress={showTimePickerMessage}
-            disabled={!remindersEnabled}
+            style={[
+              styles.pressableRow,
+              !dailyReminder && styles.rowDisabled,
+            ]}
+            onPress={handleReminderTime}
+            disabled={!dailyReminder}
             accessibilityRole="button"
             accessibilityLabel="Change reminder time"
           >
-            <View
-              style={[
-                styles.rowIcon,
-                !remindersEnabled && styles.disabledIcon,
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="clock-outline"
-                size={18}
-                color={
-                  remindersEnabled
-                    ? FOREST
-                    : "#A6B3AA"
-                }
-              />
-            </View>
+            <IconBox
+              icon="clock-outline"
+              disabled={!dailyReminder}
+            />
 
-            <View style={styles.rowCopy}>
+            <View style={styles.rowText}>
               <Text
                 style={[
                   styles.rowTitle,
-                  !remindersEnabled && styles.disabledText,
+                  !dailyReminder && styles.textDisabled,
                 ]}
               >
                 Reminder time
@@ -256,7 +159,7 @@ export default function NotificationsScreen({
               <Text
                 style={[
                   styles.rowSubtitle,
-                  !remindersEnabled && styles.disabledText,
+                  !dailyReminder && styles.textDisabled,
                 ]}
               >
                 Every day at 7:00 PM
@@ -266,15 +169,13 @@ export default function NotificationsScreen({
             <View
               style={[
                 styles.timeBadge,
-                !remindersEnabled &&
-                  styles.disabledTimeBadge,
+                !dailyReminder && styles.timeBadgeDisabled,
               ]}
             >
               <Text
                 style={[
-                  styles.timeBadgeText,
-                  !remindersEnabled &&
-                    styles.disabledTimeBadgeText,
+                  styles.timeText,
+                  !dailyReminder && styles.timeTextDisabled,
                 ]}
               >
                 7:00 PM
@@ -283,80 +184,60 @@ export default function NotificationsScreen({
           </Pressable>
         </View>
 
-        <SectionHeader
-          label="ACTIVITY"
-          title="Your SnapSort updates"
-        />
+        <Text style={styles.sectionLabel}>
+          ACTIVITY
+        </Text>
 
-        <View style={styles.settingsCard}>
-          <NotificationRow
+        <View style={styles.card}>
+          <ToggleRow
             icon="chart-line"
             title="Weekly impact summary"
-            subtitle="See your weekly sustainable progress"
-            value={weeklySummaryEnabled}
-            onValueChange={setWeeklySummaryEnabled}
+            subtitle="See a weekly summary of your activity"
+            value={weeklySummary}
+            onChange={setWeeklySummary}
           />
 
           <Divider />
 
-          <NotificationRow
+          <ToggleRow
             icon="lightbulb-outline"
-            title="Smart sorting tips"
-            subtitle="Helpful disposal and recycling tips"
-            value={tipsEnabled}
-            onValueChange={setTipsEnabled}
+            title="Sorting tips"
+            subtitle="Helpful tips for everyday items"
+            value={sortingTips}
+            onChange={setSortingTips}
           />
 
           <Divider />
 
-          <NotificationRow
+          <ToggleRow
             icon="update"
             title="App updates"
-            subtitle="Important SnapSort AI improvements"
-            value={updatesEnabled}
-            onValueChange={setUpdatesEnabled}
+            subtitle="Important updates and improvements"
+            value={productUpdates}
+            onChange={setProductUpdates}
           />
         </View>
 
-        <SectionHeader
-          label="PREFERENCES"
-          title="Control your interruptions"
-        />
+        <Text style={styles.sectionLabel}>
+          PREFERENCES
+        </Text>
 
-        <View style={styles.settingsCard}>
+        <View style={styles.card}>
           <Pressable
-            style={styles.timeRow}
-            onPress={showQuietHoursMessage}
+            style={styles.pressableRow}
+            onPress={handleQuietHours}
             accessibilityRole="button"
             accessibilityLabel="Configure quiet hours"
           >
-            <View
-              style={[
-                styles.rowIcon,
-                quietHoursEnabled &&
-                  styles.quietHoursActiveIcon,
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="weather-night"
-                size={18}
-                color={
-                  quietHoursEnabled
-                    ? GOLD
-                    : FOREST
-                }
-              />
-            </View>
+            <IconBox icon="weather-night" />
 
-            <View style={styles.rowCopy}>
+            <View style={styles.rowText}>
               <Text style={styles.rowTitle}>
                 Quiet hours
               </Text>
 
               <Text style={styles.rowSubtitle}>
-                {quietHoursEnabled
-                  ? "10:00 PM to 8:00 AM"
-                  : "Notifications can arrive anytime"}
+                Notifications can arrive anytime
               </Text>
             </View>
 
@@ -366,94 +247,44 @@ export default function NotificationsScreen({
               color={MUTED}
             />
           </Pressable>
+        </View>
 
-          <Divider />
-
-          <NotificationRow
-            icon="volume-high"
-            title="Notification sounds"
-            subtitle="Play sound for important reminders"
-            value={quietHoursEnabled}
-            onValueChange={setQuietHoursEnabled}
-            switchLabel="Toggle quiet hours"
+        <View style={styles.infoCard}>
+          <MaterialCommunityIcons
+            name="information-outline"
+            size={18}
+            color={FOREST}
           />
+
+          <Text style={styles.infoText}>
+            You can update these preferences anytime.
+            Device notification permissions are managed
+            in your phone settings.
+          </Text>
         </View>
-
-        <View style={styles.tipCard}>
-          <View style={styles.tipIcon}>
-            <MaterialCommunityIcons
-              name="leaf"
-              size={20}
-              color={FOREST}
-            />
-          </View>
-
-          <View style={styles.tipCopy}>
-            <Text style={styles.tipTitle}>
-              Keep it helpful
-            </Text>
-
-            <Text style={styles.tipText}>
-              SnapSort AI notifications are designed to be useful,
-              simple, and easy to control.
-            </Text>
-          </View>
-        </View>
-
-        <Text style={styles.footerText}>
-          You can change these preferences at any time.
-        </Text>
       </ScrollView>
     </View>
   );
 }
 
-function SectionHeader({
-  label,
-  title,
-}: {
-  label: string;
-  title: string;
-}) {
-  return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionLabel}>
-        {label}
-      </Text>
-
-      <Text style={styles.sectionTitle}>
-        {title}
-      </Text>
-    </View>
-  );
-}
-
-function NotificationRow({
+function ToggleRow({
   icon,
   title,
   subtitle,
   value,
-  onValueChange,
-  switchLabel,
+  onChange,
 }: {
   icon: IconName;
   title: string;
   subtitle: string;
   value: boolean;
-  onValueChange: (value: boolean) => void;
-  switchLabel?: string;
+  onChange: (value: boolean) => void;
 }) {
   return (
-    <View style={styles.notificationRow}>
-      <View style={styles.rowIcon}>
-        <MaterialCommunityIcons
-          name={icon}
-          size={18}
-          color={FOREST}
-        />
-      </View>
+    <View style={styles.toggleRow}>
+      <IconBox icon={icon} />
 
-      <View style={styles.rowCopy}>
+      <View style={styles.rowText}>
         <Text style={styles.rowTitle}>
           {title}
         </Text>
@@ -465,14 +296,36 @@ function NotificationRow({
 
       <Switch
         value={value}
-        onValueChange={onValueChange}
+        onValueChange={onChange}
         trackColor={{
           false: "#D7E1D9",
           true: "#91D5A7",
         }}
-        thumbColor={value ? FOREST : "#FFFFFF"}
+        thumbColor={value ? FOREST : WHITE}
         ios_backgroundColor="#D7E1D9"
-        accessibilityLabel={switchLabel || title}
+      />
+    </View>
+  );
+}
+
+function IconBox({
+  icon,
+  disabled = false,
+}: {
+  icon: IconName;
+  disabled?: boolean;
+}) {
+  return (
+    <View
+      style={[
+        styles.iconBox,
+        disabled && styles.iconBoxDisabled,
+      ]}
+    >
+      <MaterialCommunityIcons
+        name={icon}
+        size={18}
+        color={disabled ? "#A5B1A8" : FOREST}
       />
     </View>
   );
@@ -485,163 +338,58 @@ function Divider() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: CREAM,
+    backgroundColor: BACKGROUND,
   },
 
   header: {
-    minHeight: 250,
-    overflow: "hidden",
-    paddingHorizontal: 20,
-  },
-
-  topBar: {
+    minHeight: 70,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 20,
+    backgroundColor: WHITE,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
   },
 
   backButton: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.24)",
-  },
-
-  brand: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  brandIcon: {
-    width: 29,
-    height: 29,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: WHITE,
-    marginRight: 7,
-  },
-
-  brandText: {
-    fontFamily: "Poppins_600SemiBold",
-    color: WHITE,
-    fontSize: 11,
-  },
-
-  topSpace: {
-    width: 43,
-    height: 43,
-  },
-
-  headerContent: {
-    alignItems: "center",
-    marginTop: 22,
-  },
-
-  headerBell: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.26)",
+    backgroundColor: LIGHT_GREEN,
   },
 
   headerTitle: {
-    fontFamily: "Poppins_700Bold",
-    color: WHITE,
-    fontSize: 26,
-    marginTop: 12,
+    fontFamily: "Poppins_600SemiBold",
+    color: TEXT,
+    fontSize: 15,
   },
 
-  headerSubtitle: {
-    maxWidth: 290,
-    fontFamily: "Poppins_400Regular",
-    color: "rgba(255,255,255,0.82)",
-    fontSize: 10,
-    lineHeight: 16,
-    textAlign: "center",
-    marginTop: 3,
-  },
-
-  headerLeaf: {
-    position: "absolute",
-    right: 25,
-    bottom: 24,
-    width: 63,
-    height: 63,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
-  },
-
-  headerSprout: {
-    position: "absolute",
-    left: 33,
-    bottom: 26,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
+  headerSpace: {
+    width: 42,
+    height: 42,
   },
 
   content: {
     paddingHorizontal: 20,
-    paddingTop: 22,
+    paddingTop: 26,
   },
 
-  reminderHeroCard: {
-    minHeight: 82,
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 13,
-    borderRadius: 22,
-    backgroundColor: LIGHT_GREEN,
-    borderWidth: 1,
-    borderColor: "#C9E8D1",
-  },
-
-  reminderHeroIcon: {
-    width: 47,
-    height: 47,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: FOREST,
-  },
-
-  reminderHeroCopy: {
-    flex: 1,
-    marginLeft: 11,
-  },
-
-  reminderHeroTitle: {
-    fontFamily: "Poppins_600SemiBold",
+  pageTitle: {
+    fontFamily: "Poppins_700Bold",
     color: TEXT,
-    fontSize: 11,
+    fontSize: 24,
   },
 
-  reminderHeroText: {
+  pageDescription: {
+    maxWidth: 330,
     fontFamily: "Poppins_400Regular",
     color: MUTED,
-    fontSize: 9,
-    lineHeight: 14,
-    marginTop: 2,
-  },
-
-  sectionHeader: {
-    marginTop: 24,
-    marginBottom: 9,
-    marginLeft: 2,
+    fontSize: 11,
+    lineHeight: 18,
+    marginTop: 5,
   },
 
   sectionLabel: {
@@ -649,36 +397,36 @@ const styles = StyleSheet.create({
     color: FOREST,
     fontSize: 9,
     letterSpacing: 1.2,
+    marginTop: 26,
+    marginBottom: 9,
+    marginLeft: 2,
   },
 
-  sectionTitle: {
-    fontFamily: "Poppins_700Bold",
-    color: TEXT,
-    fontSize: 16,
-    marginTop: 2,
-  },
-
-  settingsCard: {
+  card: {
     paddingHorizontal: 14,
-    borderRadius: 22,
+    borderRadius: 20,
     backgroundColor: WHITE,
     borderWidth: 1,
-    borderColor: "#E3ECE5",
+    borderColor: BORDER,
   },
 
-  notificationRow: {
-    minHeight: 68,
+  toggleRow: {
+    minHeight: 70,
     flexDirection: "row",
     alignItems: "center",
   },
 
-  timeRow: {
-    minHeight: 68,
+  pressableRow: {
+    minHeight: 70,
     flexDirection: "row",
     alignItems: "center",
   },
 
-  rowIcon: {
+  rowDisabled: {
+    opacity: 0.55,
+  },
+
+  iconBox: {
     width: 39,
     height: 39,
     borderRadius: 20,
@@ -687,15 +435,11 @@ const styles = StyleSheet.create({
     backgroundColor: LIGHT_GREEN,
   },
 
-  quietHoursActiveIcon: {
-    backgroundColor: LIGHT_GOLD,
-  },
-
-  disabledIcon: {
+  iconBoxDisabled: {
     backgroundColor: "#F0F3F0",
   },
 
-  rowCopy: {
+  rowText: {
     flex: 1,
     minWidth: 0,
     marginLeft: 10,
@@ -714,8 +458,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  disabledText: {
-    color: "#A6B3AA",
+  textDisabled: {
+    color: "#A5B1A8",
   },
 
   timeBadge: {
@@ -725,70 +469,43 @@ const styles = StyleSheet.create({
     backgroundColor: LIGHT_GREEN,
   },
 
-  timeBadgeText: {
+  timeBadgeDisabled: {
+    backgroundColor: "#F0F3F0",
+  },
+
+  timeText: {
     fontFamily: "Poppins_600SemiBold",
     color: FOREST,
     fontSize: 9,
   },
 
-  disabledTimeBadge: {
-    backgroundColor: "#F0F3F0",
-  },
-
-  disabledTimeBadgeText: {
-    color: "#A6B3AA",
+  timeTextDisabled: {
+    color: "#A5B1A8",
   },
 
   divider: {
     height: 1,
     marginLeft: 49,
-    backgroundColor: "#E6EEE7",
+    backgroundColor: "#E7EEE8",
   },
 
-  tipCard: {
+  infoCard: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     padding: 14,
     marginTop: 24,
-    borderRadius: 22,
+    borderRadius: 18,
     backgroundColor: LIGHT_GREEN,
     borderWidth: 1,
-    borderColor: "#C9E8D1",
+    borderColor: "#CBE8D3",
   },
 
-  tipIcon: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: WHITE,
-  },
-
-  tipCopy: {
+  infoText: {
     flex: 1,
-    marginLeft: 10,
-  },
-
-  tipTitle: {
-    fontFamily: "Poppins_600SemiBold",
-    color: TEXT,
-    fontSize: 11,
-  },
-
-  tipText: {
     fontFamily: "Poppins_400Regular",
-    color: MUTED,
+    color: FOREST,
     fontSize: 9,
-    lineHeight: 14,
-    marginTop: 2,
-  },
-
-  footerText: {
-    fontFamily: "Poppins_400Regular",
-    color: MUTED,
-    fontSize: 9,
-    textAlign: "center",
-    marginTop: 18,
+    lineHeight: 15,
+    marginLeft: 8,
   },
 });
