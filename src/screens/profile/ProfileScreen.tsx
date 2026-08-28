@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   Pressable,
@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Text } from "react-native-paper";
 import { signOut } from "firebase/auth";
@@ -32,14 +33,14 @@ export default function ProfileScreen({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const user = useAuthStore((state) => state.user);
 
+  const user = useAuthStore((state) => state.user);
   const [isSigningOut, setIsSigningOut] =
     useState(false);
 
   const isTablet = width >= 700;
   const horizontalPadding = isTablet ? 38 : 20;
-  const contentMaxWidth = isTablet ? 680 : undefined;
+  const contentMaxWidth = isTablet ? 760 : undefined;
 
   const displayName =
     user?.displayName?.trim() || "SnapSort user";
@@ -47,21 +48,8 @@ export default function ProfileScreen({
   const email = user?.email || "No email available";
   const initials = getInitials(displayName);
 
-  const memberSince = useMemo(() => {
-    if (!user?.metadata?.creationTime) {
-      return "SnapSort member";
-    }
-
-    const date = new Date(user.metadata.creationTime);
-
-    return `Member since ${date.toLocaleDateString(
-      "en-US",
-      {
-        month: "short",
-        year: "numeric",
-      }
-    )}`;
-  }, [user?.metadata?.creationTime]);
+  // Safe static value: avoids user.metadata TypeScript error.
+  const memberSince = "SnapSort member";
 
   const handleSignOut = () => {
     if (isSigningOut) {
@@ -99,88 +87,128 @@ export default function ProfileScreen({
 
   if (!user) {
     return (
-      <SignedOutView
+      <SignedOutState
         onSignIn={() => navigation.navigate("Login")}
       />
     );
   }
 
   return (
-    <View
-      style={[
-        styles.screen,
-        {
-          paddingTop: Math.max(insets.top + 8, 16),
-        },
-      ]}
-    >
+    <View style={styles.screen}>
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingHorizontal: horizontalPadding,
             paddingBottom: Math.max(
               insets.bottom + 28,
-              36
+              34
             ),
           },
         ]}
         showsVerticalScrollIndicator={false}
       >
+        <LinearGradient
+          colors={[
+            "#0B5D31",
+            colors.primary,
+            "#168148",
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[
+            styles.hero,
+            {
+              paddingTop: Math.max(
+                insets.top + 12,
+                22
+              ),
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.heroInner,
+              {
+                maxWidth: contentMaxWidth,
+                paddingHorizontal: horizontalPadding,
+              },
+            ]}
+          >
+            <View style={styles.heroGlowLarge} />
+            <View style={styles.heroGlowSmall} />
+
+            <View style={styles.heroTopRow}>
+              <Pressable
+                style={styles.heroBackButton}
+                onPress={() => navigation.goBack()}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+              >
+                <MaterialCommunityIcons
+                  name="arrow-left"
+                  size={20}
+                  color="#FFFFFF"
+                />
+              </Pressable>
+
+              <View style={styles.heroBrand}>
+                <View style={styles.heroLeaf}>
+                  <MaterialCommunityIcons
+                    name="leaf"
+                    size={14}
+                    color={colors.primary}
+                  />
+                </View>
+
+                <Text style={styles.heroBrandText}>
+                  SnapSort AI
+                </Text>
+              </View>
+
+              <View style={styles.heroMenuIcon}>
+                <MaterialCommunityIcons
+                  name="account-cog-outline"
+                  size={20}
+                  color="#FFFFFF"
+                />
+              </View>
+            </View>
+
+            <View style={styles.heroTitleArea}>
+              <Text style={styles.heroEyebrow}>
+                ACCOUNT
+              </Text>
+
+              <Text style={styles.heroTitle}>
+                Your profile
+              </Text>
+
+              <Text style={styles.heroSubtitle}>
+                Manage your account and continue building greener habits.
+              </Text>
+            </View>
+          </View>
+        </LinearGradient>
+
         <View
           style={[
             styles.content,
             {
               maxWidth: contentMaxWidth,
+              paddingHorizontal: horizontalPadding,
             },
           ]}
         >
-          <View style={styles.header}>
-            <Pressable
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <MaterialCommunityIcons
-                name="arrow-left"
-                size={20}
-                color={colors.primary}
-              />
-            </Pressable>
-
-            <View style={styles.headerCopy}>
-              <Text style={styles.headerTitle}>
-                Profile
-              </Text>
-
-              <Text style={styles.headerSubtitle}>
-                Your SnapSort account
-              </Text>
-            </View>
-
-            <View style={styles.headerLeaf}>
-              <MaterialCommunityIcons
-                name="leaf"
-                size={18}
-                color="#FFFFFF"
-              />
-            </View>
-          </View>
-
-          <View style={styles.profileShadow}>
-            <View style={styles.profileHero}>
-              <View style={styles.heroOrbLarge} />
-              <View style={styles.heroOrbSmall} />
-
-              <View style={styles.avatarOuter}>
+          <View style={styles.identityShadow}>
+            <View style={styles.identityCard}>
+              <View style={styles.avatarRing}>
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>
                     {initials}
                   </Text>
                 </View>
 
-                <View style={styles.verifiedDot}>
+                <View style={styles.verifiedBadge}>
                   <MaterialCommunityIcons
                     name="check"
                     size={11}
@@ -189,108 +217,153 @@ export default function ProfileScreen({
                 </View>
               </View>
 
-              <Text style={styles.profileName}>
-                {displayName}
-              </Text>
+              <View style={styles.identityCopy}>
+                <Text
+                  style={styles.profileName}
+                  numberOfLines={1}
+                >
+                  {displayName}
+                </Text>
 
-              <Text
-                style={styles.profileEmail}
-                numberOfLines={1}
-              >
-                {email}
-              </Text>
+                <Text
+                  style={styles.profileEmail}
+                  numberOfLines={1}
+                >
+                  {email}
+                </Text>
 
-              <View style={styles.memberPill}>
+                <View style={styles.memberChip}>
+                  <MaterialCommunityIcons
+                    name="leaf"
+                    size={12}
+                    color={colors.primary}
+                  />
+
+                  <Text style={styles.memberText}>
+                    {memberSince}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.identityIcon}>
                 <MaterialCommunityIcons
-                  name="leaf"
-                  size={13}
+                  name="account-outline"
+                  size={20}
                   color={colors.primary}
                 />
-
-                <Text style={styles.memberText}>
-                  {memberSince}
-                </Text>
               </View>
             </View>
           </View>
 
-          <View style={styles.quickActions}>
-            <QuickAction
+          <View style={styles.actionGrid}>
+            <ActionTile
               icon="camera-outline"
-              label="New scan"
+              title="Scan"
+              subtitle="New item"
+              accent="#E1F5E7"
               onPress={() => navigation.navigate("Camera")}
             />
 
-            <QuickAction
+            <ActionTile
               icon="history"
-              label="History"
+              title="History"
+              subtitle="Saved scans"
+              accent="#E7EEFF"
               onPress={() => navigation.navigate("History")}
             />
 
-            <QuickAction
+            <ActionTile
               icon="chart-line"
-              label="Impact"
+              title="Impact"
+              subtitle="Your progress"
+              accent="#FFF0D7"
               onPress={() => navigation.navigate("History")}
             />
           </View>
 
-          <SectionLabel title="YOUR SNAP SORT" />
+          <SectionHeader
+            title="YOUR ACTIVITY"
+            subtitle="Continue your sustainability journey"
+          />
 
-          <View style={styles.menuShadow}>
-            <View style={styles.menuCard}>
-              <MenuItem
-                icon="camera-outline"
-                title="Scan an item"
-                subtitle="Get clear disposal guidance"
-                onPress={() => navigation.navigate("Camera")}
-              />
-
-              <MenuDivider />
-
-              <MenuItem
-                icon="history"
-                title="Scan history"
-                subtitle="Review your saved decisions"
-                onPress={() => navigation.navigate("History")}
-              />
-
-              <MenuDivider />
-
-              <MenuItem
-                icon="chart-line"
-                title="Your progress"
-                subtitle="Build better habits over time"
-                onPress={() => navigation.navigate("History")}
+          <View style={styles.activityHighlight}>
+            <View style={styles.activityIcon}>
+              <MaterialCommunityIcons
+                name="camera-plus-outline"
+                size={24}
+                color="#FFFFFF"
               />
             </View>
+
+            <View style={styles.activityCopy}>
+              <Text style={styles.activityTitle}>
+                What are you sorting today?
+              </Text>
+
+              <Text style={styles.activityText}>
+                Take a photo and get clear disposal guidance in seconds.
+              </Text>
+            </View>
+
+            <Pressable
+              style={styles.activityButton}
+              onPress={() => navigation.navigate("Camera")}
+              accessibilityRole="button"
+              accessibilityLabel="Start a new scan"
+            >
+              <MaterialCommunityIcons
+                name="arrow-right"
+                size={18}
+                color={colors.primary}
+              />
+            </Pressable>
           </View>
 
-          <SectionLabel title="ACCOUNT DETAILS" />
+          <View style={styles.menuCard}>
+            <ProfileMenuItem
+              icon="history"
+              title="Scan history"
+              subtitle="Review your saved decisions"
+              onPress={() => navigation.navigate("History")}
+            />
 
-          <View style={styles.menuShadow}>
-            <View style={styles.menuCard}>
-              <InfoItem
-                icon="email-outline"
-                label="Email address"
-                value={email}
-              />
+            <Divider />
 
-              <MenuDivider />
+            <ProfileMenuItem
+              icon="chart-line"
+              title="Your impact"
+              subtitle="See how your habits add up"
+              onPress={() => navigation.navigate("History")}
+            />
+          </View>
 
-              <InfoItem
-                icon="shield-check-outline"
-                label="Account status"
-                value="Active"
-              />
+          <SectionHeader
+            title="ACCOUNT SETTINGS"
+            subtitle="Your account information"
+          />
 
-              <MenuDivider />
+          <View style={styles.menuCard}>
+            <InfoMenuItem
+              icon="email-outline"
+              title="Email address"
+              value={email}
+            />
 
-              <InfoItem
-                icon="cloud-check-outline"
-                label="Cloud sync"
-                value="Connected"
-              />
-            </View>
+            <Divider />
+
+            <InfoMenuItem
+              icon="shield-check-outline"
+              title="Account status"
+              value="Active"
+            />
+
+            <Divider />
+
+            <InfoMenuItem
+              icon="cloud-check-outline"
+              title="Cloud sync"
+              value="Connected"
+            />
           </View>
 
           <Pressable
@@ -303,13 +376,11 @@ export default function ProfileScreen({
             accessibilityRole="button"
             accessibilityLabel="Sign out"
           >
-            <View style={styles.signOutIcon}>
-              <MaterialCommunityIcons
-                name="logout"
-                size={17}
-                color="#B3261E"
-              />
-            </View>
+            <MaterialCommunityIcons
+              name="logout"
+              size={17}
+              color="#B3261E"
+            />
 
             <Text style={styles.signOutText}>
               {isSigningOut
@@ -328,7 +399,7 @@ export default function ProfileScreen({
   );
 }
 
-function SignedOutView({
+function SignedOutState({
   onSignIn,
 }: {
   onSignIn: () => void;
@@ -339,18 +410,18 @@ function SignedOutView({
         <View style={styles.emptyLogo}>
           <MaterialCommunityIcons
             name="leaf"
-            size={29}
+            size={30}
             color="#FFFFFF"
           />
         </View>
       </View>
 
       <Text style={styles.emptyTitle}>
-        Your profile is waiting
+        Your account is waiting
       </Text>
 
       <Text style={styles.emptyText}>
-        Sign in to access your account and saved scan history.
+        Sign in to access your profile and saved scanning history.
       </Text>
 
       <Pressable
@@ -373,50 +444,73 @@ function SignedOutView({
   );
 }
 
-function SectionLabel({
+function SectionHeader({
   title,
+  subtitle,
 }: {
   title: string;
+  subtitle: string;
 }) {
   return (
-    <Text style={styles.sectionLabel}>
-      {title}
-    </Text>
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>
+        {title}
+      </Text>
+
+      <Text style={styles.sectionSubtitle}>
+        {subtitle}
+      </Text>
+    </View>
   );
 }
 
-function QuickAction({
+function ActionTile({
   icon,
-  label,
+  title,
+  subtitle,
+  accent,
   onPress,
 }: {
   icon: IconName;
-  label: string;
+  title: string;
+  subtitle: string;
+  accent: string;
   onPress: () => void;
 }) {
   return (
     <Pressable
-      style={styles.quickAction}
+      style={styles.actionTile}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={title}
     >
-      <View style={styles.quickActionIcon}>
+      <View
+        style={[
+          styles.actionTileIcon,
+          {
+            backgroundColor: accent,
+          },
+        ]}
+      >
         <MaterialCommunityIcons
           name={icon}
-          size={18}
+          size={20}
           color={colors.primary}
         />
       </View>
 
-      <Text style={styles.quickActionText}>
-        {label}
+      <Text style={styles.actionTileTitle}>
+        {title}
+      </Text>
+
+      <Text style={styles.actionTileSubtitle}>
+        {subtitle}
       </Text>
     </Pressable>
   );
 }
 
-function MenuItem({
+function ProfileMenuItem({
   icon,
   title,
   subtitle,
@@ -429,33 +523,33 @@ function MenuItem({
 }) {
   return (
     <Pressable
-      style={styles.menuItem}
+      style={styles.menuRow}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={title}
     >
-      <View style={styles.menuIcon}>
+      <View style={styles.menuRowIcon}>
         <MaterialCommunityIcons
           name={icon}
-          size={19}
+          size={20}
           color={colors.primary}
         />
       </View>
 
-      <View style={styles.menuCopy}>
-        <Text style={styles.menuTitle}>
+      <View style={styles.menuRowCopy}>
+        <Text style={styles.menuRowTitle}>
           {title}
         </Text>
 
-        <Text style={styles.menuSubtitle}>
+        <Text style={styles.menuRowSubtitle}>
           {subtitle}
         </Text>
       </View>
 
-      <View style={styles.chevronCircle}>
+      <View style={styles.menuArrow}>
         <MaterialCommunityIcons
           name="chevron-right"
-          size={18}
+          size={19}
           color={colors.muted}
         />
       </View>
@@ -463,28 +557,28 @@ function MenuItem({
   );
 }
 
-function InfoItem({
+function InfoMenuItem({
   icon,
-  label,
+  title,
   value,
 }: {
   icon: IconName;
-  label: string;
+  title: string;
   value: string;
 }) {
   return (
-    <View style={styles.infoItem}>
-      <View style={styles.menuIcon}>
+    <View style={styles.menuRow}>
+      <View style={styles.menuRowIcon}>
         <MaterialCommunityIcons
           name={icon}
-          size={18}
+          size={19}
           color={colors.primary}
         />
       </View>
 
-      <View style={styles.menuCopy}>
-        <Text style={styles.infoLabel}>
-          {label}
+      <View style={styles.menuRowCopy}>
+        <Text style={styles.infoTitle}>
+          {title}
         </Text>
 
         <Text
@@ -498,7 +592,7 @@ function InfoItem({
   );
 }
 
-function MenuDivider() {
+function Divider() {
   return <View style={styles.divider} />;
 }
 
@@ -525,230 +619,322 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
-  content: {
+
+  hero: {
+    minHeight: 235,
+    overflow: "hidden",
+  },
+  heroInner: {
+    position: "relative",
     width: "100%",
     alignSelf: "center",
   },
-
-  header: {
+  heroTopRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 19,
+    justifyContent: "space-between",
   },
-  backButton: {
-    width: 42,
-    height: 42,
+  heroBackButton: {
+    width: 41,
+    height: 41,
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: "rgba(255,255,255,0.16)",
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: "rgba(255,255,255,0.22)",
   },
-  headerCopy: {
-    flex: 1,
+  heroBrand: {
+    flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 10,
+    gap: 7,
   },
-  headerTitle: {
-    fontFamily: "Poppins_700Bold",
-    color: colors.text,
-    fontSize: 22,
-    letterSpacing: -0.3,
-  },
-  headerSubtitle: {
-    fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 10,
-    marginTop: 1,
-  },
-  headerLeaf: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.18,
-    shadowRadius: 7,
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    elevation: 4,
-  },
-
-  profileShadow: {
-    borderRadius: 27,
-    shadowColor: "#173B25",
-    shadowOpacity: 0.1,
-    shadowRadius: 17,
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    elevation: 5,
-  },
-  profileHero: {
-    position: "relative",
-    alignItems: "center",
-    overflow: "hidden",
-    paddingHorizontal: 20,
-    paddingTop: 25,
-    paddingBottom: 21,
-    borderRadius: 27,
-    backgroundColor: colors.primary,
-  },
-  heroOrbLarge: {
-    position: "absolute",
-    width: 250,
-    height: 120,
-    borderRadius: 80,
-    top: -68,
-    right: -44,
-    backgroundColor: "rgba(255,255,255,0.1)",
-  },
-  heroOrbSmall: {
-    position: "absolute",
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    left: -75,
-    bottom: -76,
-    backgroundColor: "rgba(255,255,255,0.08)",
-  },
-  avatarOuter: {
-    position: "relative",
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.17)",
-    marginBottom: 11,
-  },
-  avatar: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
+  heroLeaf: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#FFFFFF",
   },
-  avatarText: {
-    fontFamily: "Poppins_700Bold",
-    color: colors.primary,
-    fontSize: 26,
-  },
-  verifiedDot: {
-    position: "absolute",
-    right: 0,
-    bottom: 1,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#D9902C",
-    borderWidth: 3,
-    borderColor: colors.primary,
-  },
-  profileName: {
+  heroBrandText: {
     fontFamily: "Poppins_700Bold",
     color: "#FFFFFF",
-    fontSize: 21,
+    fontSize: 13,
   },
-  profileEmail: {
-    maxWidth: "95%",
-    fontFamily: "Poppins_400Regular",
-    color: "rgba(255,255,255,0.82)",
-    fontSize: 11,
-    marginTop: 2,
-  },
-  memberPill: {
-    flexDirection: "row",
+  heroMenuIcon: {
+    width: 41,
+    height: 41,
+    borderRadius: 21,
     alignItems: "center",
-    gap: 6,
-    marginTop: 13,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-    borderRadius: 18,
-    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.22)",
   },
-  memberText: {
+  heroTitleArea: {
+    marginTop: 33,
+    maxWidth: 360,
+  },
+  heroEyebrow: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.primary,
-    fontSize: 10,
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 9,
+    letterSpacing: 1.4,
+  },
+  heroTitle: {
+    fontFamily: "Poppins_700Bold",
+    color: "#FFFFFF",
+    fontSize: 31,
+    letterSpacing: -0.6,
+    marginTop: 4,
+  },
+  heroSubtitle: {
+    fontFamily: "Poppins_400Regular",
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 11,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  heroGlowLarge: {
+    position: "absolute",
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    top: -105,
+    right: -95,
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  heroGlowSmall: {
+    position: "absolute",
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    bottom: -50,
+    right: 42,
+    backgroundColor: "rgba(255,255,255,0.08)",
   },
 
-  quickActions: {
+  content: {
+    width: "100%",
+    alignSelf: "center",
+    marginTop: -60,
+  },
+  identityShadow: {
+    borderRadius: 25,
+    shadowColor: "#123B22",
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    shadowOffset: {
+      width: 0,
+      height: 9,
+    },
+    elevation: 7,
+  },
+  identityCard: {
+    minHeight: 112,
     flexDirection: "row",
-    gap: 9,
-    marginTop: 13,
-  },
-  quickAction: {
-    flex: 1,
     alignItems: "center",
-    paddingVertical: 12,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
+    padding: 15,
+    borderRadius: 25,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: "#E3EEE5",
   },
-  quickActionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  avatarRing: {
+    position: "relative",
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primaryLight,
   },
-  quickActionText: {
-    fontFamily: "Poppins_600SemiBold",
+  avatar: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primary,
+  },
+  avatarText: {
+    fontFamily: "Poppins_700Bold",
+    color: "#FFFFFF",
+    fontSize: 22,
+  },
+  verifiedBadge: {
+    position: "absolute",
+    right: -1,
+    bottom: 1,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#DB962C",
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
+  },
+  identityCopy: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: 12,
+  },
+  profileName: {
+    fontFamily: "Poppins_700Bold",
     color: colors.text,
+    fontSize: 17,
+  },
+  profileEmail: {
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
     fontSize: 10,
-    marginTop: 6,
+    marginTop: 2,
+  },
+  memberChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 5,
+    marginTop: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 14,
+    backgroundColor: colors.primaryLight,
+  },
+  memberText: {
+    fontFamily: "Poppins_600SemiBold",
+    color: colors.primary,
+    fontSize: 8,
+  },
+  identityIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F1F7F2",
   },
 
-  sectionLabel: {
-    fontFamily: "Poppins_600SemiBold",
-    color: colors.muted,
-    fontSize: 9,
-    letterSpacing: 1.4,
-    marginTop: 24,
-    marginBottom: 9,
-    marginLeft: 3,
+  actionGrid: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 16,
   },
-  menuShadow: {
-    borderRadius: 22,
-    shadowColor: "#173B25",
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-    elevation: 2,
-  },
-  menuCard: {
-    paddingHorizontal: 14,
-    borderRadius: 22,
-    backgroundColor: colors.surface,
+  actionTile: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 13,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: colors.border,
   },
-  menuItem: {
-    minHeight: 67,
+  actionTileIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionTileTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: colors.text,
+    fontSize: 11,
+    marginTop: 7,
+  },
+  actionTileSubtitle: {
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
+    fontSize: 8,
+    marginTop: 1,
+  },
+
+  sectionHeader: {
+    marginTop: 25,
+    marginBottom: 9,
+    marginLeft: 2,
+  },
+  sectionTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: colors.primary,
+    fontSize: 9,
+    letterSpacing: 1.3,
+  },
+  sectionSubtitle: {
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
+    fontSize: 10,
+    marginTop: 2,
+  },
+
+  activityHighlight: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 23,
+    backgroundColor: "#EAF7ED",
+    borderWidth: 1,
+    borderColor: "#D1EAD7",
+  },
+  activityIcon: {
+    width: 45,
+    height: 45,
+    borderRadius: 23,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primary,
+  },
+  activityCopy: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: 11,
+  },
+  activityTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: colors.text,
+    fontSize: 12,
+  },
+  activityText: {
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
+    fontSize: 9,
+    lineHeight: 14,
+    marginTop: 2,
+  },
+  activityButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#173B25",
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    elevation: 3,
+  },
+
+  menuCard: {
+    marginTop: 12,
+    paddingHorizontal: 14,
+    borderRadius: 23,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  menuRow: {
+    minHeight: 66,
     flexDirection: "row",
     alignItems: "center",
   },
-  infoItem: {
-    minHeight: 62,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  menuIcon: {
+  menuRowIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -756,37 +942,37 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.primaryLight,
   },
-  menuCopy: {
+  menuRowCopy: {
     flex: 1,
     minWidth: 0,
-    marginLeft: 10,
+    marginLeft: 11,
   },
-  menuTitle: {
+  menuRowTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.text,
     fontSize: 12,
   },
-  menuSubtitle: {
+  menuRowSubtitle: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 9,
     lineHeight: 14,
     marginTop: 2,
   },
-  chevronCircle: {
+  menuArrow: {
     width: 30,
     height: 30,
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F2F6F2",
+    backgroundColor: "#F3F7F3",
   },
   divider: {
     height: 1,
-    marginLeft: 50,
+    marginLeft: 51,
     backgroundColor: colors.border,
   },
-  infoLabel: {
+  infoTitle: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 9,
@@ -804,22 +990,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 7,
-    minWidth: 145,
-    height: 45,
-    paddingHorizontal: 17,
-    marginTop: 23,
-    borderRadius: 23,
+    minWidth: 142,
+    height: 44,
+    paddingHorizontal: 16,
+    marginTop: 24,
+    borderRadius: 22,
     backgroundColor: "#FFF0EF",
     borderWidth: 1,
     borderColor: "#F1C1BE",
-  },
-  signOutIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
   },
   signOutText: {
     fontFamily: "Poppins_600SemiBold",
@@ -830,7 +1008,7 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   footerText: {
-    maxWidth: 300,
+    maxWidth: 310,
     alignSelf: "center",
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
@@ -866,9 +1044,9 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontFamily: "Poppins_700Bold",
     color: colors.text,
-    fontSize: 21,
+    fontSize: 22,
     textAlign: "center",
-    marginTop: 19,
+    marginTop: 20,
   },
   emptyText: {
     maxWidth: 290,
@@ -880,12 +1058,12 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   emptyButton: {
-    minWidth: 145,
-    height: 48,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+    minWidth: 145,
+    height: 48,
     paddingHorizontal: 17,
     marginTop: 20,
     borderRadius: 24,
