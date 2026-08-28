@@ -32,13 +32,13 @@ export default function ProfileScreen({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-
   const user = useAuthStore((state) => state.user);
+
   const [isSigningOut, setIsSigningOut] =
     useState(false);
 
   const isTablet = width >= 700;
-  const horizontalPadding = isTablet ? 36 : 20;
+  const horizontalPadding = isTablet ? 38 : 20;
   const contentMaxWidth = isTablet ? 680 : undefined;
 
   const displayName =
@@ -47,13 +47,21 @@ export default function ProfileScreen({
   const email = user?.email || "No email available";
   const initials = getInitials(displayName);
 
-  const memberLabel = useMemo(() => {
-    if (!user) {
+  const memberSince = useMemo(() => {
+    if (!user?.metadata?.creationTime) {
       return "SnapSort member";
     }
 
-    return "Active member";
-  }, [user]);
+    const date = new Date(user.metadata.creationTime);
+
+    return `Member since ${date.toLocaleDateString(
+      "en-US",
+      {
+        month: "short",
+        year: "numeric",
+      }
+    )}`;
+  }, [user?.metadata?.creationTime]);
 
   const handleSignOut = () => {
     if (isSigningOut) {
@@ -62,7 +70,7 @@ export default function ProfileScreen({
 
     Alert.alert(
       "Sign out?",
-      "You can sign in again anytime to access your scan history.",
+      "You can sign in again anytime to access your saved scans.",
       [
         {
           text: "Cancel",
@@ -91,42 +99,9 @@ export default function ProfileScreen({
 
   if (!user) {
     return (
-      <View style={styles.emptyScreen}>
-        <View style={styles.emptyLogoRing}>
-          <View style={styles.emptyLogo}>
-            <MaterialCommunityIcons
-              name="leaf"
-              size={31}
-              color="#FFFFFF"
-            />
-          </View>
-        </View>
-
-        <Text style={styles.emptyTitle}>
-          You are not signed in
-        </Text>
-
-        <Text style={styles.emptyText}>
-          Sign in to view your profile and saved scans.
-        </Text>
-
-        <Pressable
-          style={styles.emptySignInButton}
-          onPress={() => navigation.navigate("Login")}
-          accessibilityRole="button"
-          accessibilityLabel="Sign in"
-        >
-          <Text style={styles.emptySignInText}>
-            Sign in
-          </Text>
-
-          <MaterialCommunityIcons
-            name="arrow-right"
-            size={18}
-            color="#FFFFFF"
-          />
-        </Pressable>
-      </View>
+      <SignedOutView
+        onSignIn={() => navigation.navigate("Login")}
+      />
     );
   }
 
@@ -145,8 +120,8 @@ export default function ProfileScreen({
           {
             paddingHorizontal: horizontalPadding,
             paddingBottom: Math.max(
-              insets.bottom + 26,
-              34
+              insets.bottom + 28,
+              36
             ),
           },
         ]}
@@ -160,7 +135,7 @@ export default function ProfileScreen({
             },
           ]}
         >
-          <View style={styles.topBar}>
+          <View style={styles.header}>
             <Pressable
               style={styles.backButton}
               onPress={() => navigation.goBack()}
@@ -174,37 +149,38 @@ export default function ProfileScreen({
               />
             </Pressable>
 
-            <View style={styles.topTitleArea}>
-              <Text style={styles.topTitle}>
+            <View style={styles.headerCopy}>
+              <Text style={styles.headerTitle}>
                 Profile
               </Text>
 
-              <Text style={styles.topSubtitle}>
+              <Text style={styles.headerSubtitle}>
                 Your SnapSort account
               </Text>
             </View>
 
-            <View style={styles.profileTopIcon}>
+            <View style={styles.headerLeaf}>
               <MaterialCommunityIcons
-                name="account-outline"
-                size={20}
-                color={colors.primary}
+                name="leaf"
+                size={18}
+                color="#FFFFFF"
               />
             </View>
           </View>
 
           <View style={styles.profileShadow}>
-            <View style={styles.profileCard}>
-              <View style={styles.profileAccentTop} />
+            <View style={styles.profileHero}>
+              <View style={styles.heroOrbLarge} />
+              <View style={styles.heroOrbSmall} />
 
-              <View style={styles.avatarRing}>
+              <View style={styles.avatarOuter}>
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>
                     {initials}
                   </Text>
                 </View>
 
-                <View style={styles.statusIcon}>
+                <View style={styles.verifiedDot}>
                   <MaterialCommunityIcons
                     name="check"
                     size={11}
@@ -232,7 +208,7 @@ export default function ProfileScreen({
                 />
 
                 <Text style={styles.memberText}>
-                  {memberLabel}
+                  {memberSince}
                 </Text>
               </View>
             </View>
@@ -253,69 +229,65 @@ export default function ProfileScreen({
 
             <QuickAction
               icon="chart-line"
-              label="Progress"
+              label="Impact"
               onPress={() => navigation.navigate("History")}
             />
           </View>
 
-          <Text style={styles.sectionTitle}>
-            YOUR ACTIVITY
-          </Text>
+          <SectionLabel title="YOUR SNAP SORT" />
 
-          <View style={styles.cardShadow}>
-            <View style={styles.listCard}>
-              <ProfileRow
+          <View style={styles.menuShadow}>
+            <View style={styles.menuCard}>
+              <MenuItem
                 icon="camera-outline"
-                title="Scan something new"
-                subtitle="Identify an item and get guidance"
+                title="Scan an item"
+                subtitle="Get clear disposal guidance"
                 onPress={() => navigation.navigate("Camera")}
               />
 
-              <View style={styles.divider} />
+              <MenuDivider />
 
-              <ProfileRow
+              <MenuItem
                 icon="history"
                 title="Scan history"
-                subtitle="View your saved results"
+                subtitle="Review your saved decisions"
                 onPress={() => navigation.navigate("History")}
               />
 
-              <View style={styles.divider} />
+              <MenuDivider />
 
-              <ProfileRow
+              <MenuItem
                 icon="chart-line"
-                title="Your sustainability journey"
-                subtitle="Review your progress and habits"
+                title="Your progress"
+                subtitle="Build better habits over time"
                 onPress={() => navigation.navigate("History")}
               />
             </View>
           </View>
 
-          <Text style={styles.sectionTitle}>
-            ACCOUNT
-          </Text>
+          <SectionLabel title="ACCOUNT DETAILS" />
 
-          <View style={styles.cardShadow}>
-            <View style={styles.listCard}>
-              <InfoRow
+          <View style={styles.menuShadow}>
+            <View style={styles.menuCard}>
+              <InfoItem
                 icon="email-outline"
                 label="Email address"
                 value={email}
               />
 
-              <View style={styles.divider} />
+              <MenuDivider />
 
-              <InfoRow
+              <InfoItem
                 icon="shield-check-outline"
                 label="Account status"
                 value="Active"
               />
 
-              <View style={styles.divider} />
+              <MenuDivider />
 
-              <InfoRow
+              <InfoItem
                 icon="cloud-check-outline"
-                label="Data sync"
+                label="Cloud sync"
                 value="Connected"
               />
             </View>
@@ -331,11 +303,13 @@ export default function ProfileScreen({
             accessibilityRole="button"
             accessibilityLabel="Sign out"
           >
-            <MaterialCommunityIcons
-              name="logout"
-              size={18}
-              color="#B3261E"
-            />
+            <View style={styles.signOutIcon}>
+              <MaterialCommunityIcons
+                name="logout"
+                size={17}
+                color="#B3261E"
+              />
+            </View>
 
             <Text style={styles.signOutText}>
               {isSigningOut
@@ -354,19 +328,61 @@ export default function ProfileScreen({
   );
 }
 
-function getInitials(name: string): string {
-  const parts = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2);
+function SignedOutView({
+  onSignIn,
+}: {
+  onSignIn: () => void;
+}) {
+  return (
+    <View style={styles.emptyScreen}>
+      <View style={styles.emptyLogoRing}>
+        <View style={styles.emptyLogo}>
+          <MaterialCommunityIcons
+            name="leaf"
+            size={29}
+            color="#FFFFFF"
+          />
+        </View>
+      </View>
 
-  if (!parts.length) {
-    return "S";
-  }
+      <Text style={styles.emptyTitle}>
+        Your profile is waiting
+      </Text>
 
-  return parts
-    .map((part) => part.charAt(0).toUpperCase())
-    .join("");
+      <Text style={styles.emptyText}>
+        Sign in to access your account and saved scan history.
+      </Text>
+
+      <Pressable
+        style={styles.emptyButton}
+        onPress={onSignIn}
+        accessibilityRole="button"
+        accessibilityLabel="Sign in"
+      >
+        <Text style={styles.emptyButtonText}>
+          Sign in
+        </Text>
+
+        <MaterialCommunityIcons
+          name="arrow-right"
+          size={18}
+          color="#FFFFFF"
+        />
+      </Pressable>
+    </View>
+  );
+}
+
+function SectionLabel({
+  title,
+}: {
+  title: string;
+}) {
+  return (
+    <Text style={styles.sectionLabel}>
+      {title}
+    </Text>
+  );
 }
 
 function QuickAction({
@@ -388,19 +404,19 @@ function QuickAction({
       <View style={styles.quickActionIcon}>
         <MaterialCommunityIcons
           name={icon}
-          size={19}
+          size={18}
           color={colors.primary}
         />
       </View>
 
-      <Text style={styles.quickActionLabel}>
+      <Text style={styles.quickActionText}>
         {label}
       </Text>
     </Pressable>
   );
 }
 
-function ProfileRow({
+function MenuItem({
   icon,
   title,
   subtitle,
@@ -413,12 +429,12 @@ function ProfileRow({
 }) {
   return (
     <Pressable
-      style={styles.profileRow}
+      style={styles.menuItem}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={title}
     >
-      <View style={styles.rowIcon}>
+      <View style={styles.menuIcon}>
         <MaterialCommunityIcons
           name={icon}
           size={19}
@@ -426,26 +442,28 @@ function ProfileRow({
         />
       </View>
 
-      <View style={styles.rowCopy}>
-        <Text style={styles.rowTitle}>
+      <View style={styles.menuCopy}>
+        <Text style={styles.menuTitle}>
           {title}
         </Text>
 
-        <Text style={styles.rowSubtitle}>
+        <Text style={styles.menuSubtitle}>
           {subtitle}
         </Text>
       </View>
 
-      <MaterialCommunityIcons
-        name="chevron-right"
-        size={20}
-        color={colors.muted}
-      />
+      <View style={styles.chevronCircle}>
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={18}
+          color={colors.muted}
+        />
+      </View>
     </Pressable>
   );
 }
 
-function InfoRow({
+function InfoItem({
   icon,
   label,
   value,
@@ -455,8 +473,8 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <View style={styles.infoRow}>
-      <View style={styles.rowIcon}>
+    <View style={styles.infoItem}>
+      <View style={styles.menuIcon}>
         <MaterialCommunityIcons
           name={icon}
           size={18}
@@ -464,7 +482,7 @@ function InfoRow({
         />
       </View>
 
-      <View style={styles.rowCopy}>
+      <View style={styles.menuCopy}>
         <Text style={styles.infoLabel}>
           {label}
         </Text>
@@ -480,6 +498,25 @@ function InfoRow({
   );
 }
 
+function MenuDivider() {
+  return <View style={styles.divider} />;
+}
+
+function getInitials(name: string): string {
+  const parts = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+
+  if (!parts.length) {
+    return "S";
+  }
+
+  return parts
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+}
+
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
@@ -492,10 +529,11 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "center",
   },
-  topBar: {
+
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 18,
+    marginBottom: 19,
   },
   backButton: {
     width: 42,
@@ -507,73 +545,93 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  topTitleArea: {
+  headerCopy: {
     flex: 1,
     alignItems: "center",
     marginHorizontal: 10,
   },
-  topTitle: {
+  headerTitle: {
     fontFamily: "Poppins_700Bold",
     color: colors.text,
     fontSize: 22,
+    letterSpacing: -0.3,
   },
-  topSubtitle: {
+  headerSubtitle: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 10,
     marginTop: 1,
   },
-  profileTopIcon: {
+  headerLeaf: {
     width: 42,
     height: 42,
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primaryLight,
-  },
-  profileShadow: {
-    borderRadius: 25,
-    shadowColor: "#173B25",
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.18,
+    shadowRadius: 7,
     shadowOffset: {
       width: 0,
-      height: 7,
+      height: 3,
+    },
+    elevation: 4,
+  },
+
+  profileShadow: {
+    borderRadius: 27,
+    shadowColor: "#173B25",
+    shadowOpacity: 0.1,
+    shadowRadius: 17,
+    shadowOffset: {
+      width: 0,
+      height: 8,
     },
     elevation: 5,
   },
-  profileCard: {
+  profileHero: {
     position: "relative",
     alignItems: "center",
     overflow: "hidden",
     paddingHorizontal: 20,
     paddingTop: 25,
-    paddingBottom: 20,
-    borderRadius: 25,
+    paddingBottom: 21,
+    borderRadius: 27,
     backgroundColor: colors.primary,
   },
-  profileAccentTop: {
+  heroOrbLarge: {
     position: "absolute",
-    width: 260,
-    height: 110,
+    width: 250,
+    height: 120,
     borderRadius: 80,
-    top: -62,
-    backgroundColor: "rgba(255,255,255,0.11)",
+    top: -68,
+    right: -44,
+    backgroundColor: "rgba(255,255,255,0.1)",
   },
-  avatarRing: {
+  heroOrbSmall: {
+    position: "absolute",
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    left: -75,
+    bottom: -76,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  avatarOuter: {
     position: "relative",
-    width: 82,
-    height: 82,
-    borderRadius: 41,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(255,255,255,0.17)",
     marginBottom: 11,
   },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 74,
+    height: 74,
+    borderRadius: 37,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#FFFFFF",
@@ -581,14 +639,14 @@ const styles = StyleSheet.create({
   avatarText: {
     fontFamily: "Poppins_700Bold",
     color: colors.primary,
-    fontSize: 25,
+    fontSize: 26,
   },
-  statusIcon: {
+  verifiedDot: {
     position: "absolute",
     right: 0,
     bottom: 1,
-    width: 23,
-    height: 23,
+    width: 24,
+    height: 24,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -612,7 +670,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 12,
+    marginTop: 13,
     paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 18,
@@ -623,6 +681,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 10,
   },
+
   quickActions: {
     flexDirection: "row",
     gap: 9,
@@ -645,22 +704,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.primaryLight,
   },
-  quickActionLabel: {
+  quickActionText: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.text,
     fontSize: 10,
     marginTop: 6,
   },
-  sectionTitle: {
+
+  sectionLabel: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.muted,
     fontSize: 9,
     letterSpacing: 1.4,
-    marginTop: 23,
+    marginTop: 24,
     marginBottom: 9,
     marginLeft: 3,
   },
-  cardShadow: {
+  menuShadow: {
     borderRadius: 22,
     shadowColor: "#173B25",
     shadowOpacity: 0.05,
@@ -671,52 +731,60 @@ const styles = StyleSheet.create({
     },
     elevation: 2,
   },
-  listCard: {
+  menuCard: {
     paddingHorizontal: 14,
     borderRadius: 22,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  profileRow: {
+  menuItem: {
     minHeight: 67,
     flexDirection: "row",
     alignItems: "center",
   },
-  rowIcon: {
-    width: 39,
-    height: 39,
+  infoItem: {
+    minHeight: 62,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  menuIcon: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primaryLight,
   },
-  rowCopy: {
+  menuCopy: {
     flex: 1,
     minWidth: 0,
     marginLeft: 10,
   },
-  rowTitle: {
+  menuTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.text,
     fontSize: 12,
   },
-  rowSubtitle: {
+  menuSubtitle: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 9,
     lineHeight: 14,
     marginTop: 2,
   },
+  chevronCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F2F6F2",
+  },
   divider: {
     height: 1,
-    marginLeft: 49,
+    marginLeft: 50,
     backgroundColor: colors.border,
-  },
-  infoRow: {
-    minHeight: 62,
-    flexDirection: "row",
-    alignItems: "center",
   },
   infoLabel: {
     fontFamily: "Poppins_400Regular",
@@ -729,20 +797,29 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
   },
+
   signOutButton: {
+    alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    alignSelf: "center",
     gap: 7,
-    height: 46,
-    minWidth: 150,
-    paddingHorizontal: 18,
-    marginTop: 22,
+    minWidth: 145,
+    height: 45,
+    paddingHorizontal: 17,
+    marginTop: 23,
     borderRadius: 23,
-    backgroundColor: "#FFF1F0",
+    backgroundColor: "#FFF0EF",
     borderWidth: 1,
     borderColor: "#F1C1BE",
+  },
+  signOutIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
   },
   signOutText: {
     fontFamily: "Poppins_600SemiBold",
@@ -762,6 +839,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 17,
   },
+
   emptyScreen: {
     flex: 1,
     alignItems: "center",
@@ -801,9 +879,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 6,
   },
-  emptySignInButton: {
-    height: 48,
+  emptyButton: {
     minWidth: 145,
+    height: 48,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -813,7 +891,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: colors.primary,
   },
-  emptySignInText: {
+  emptyButtonText: {
     fontFamily: "Poppins_600SemiBold",
     color: "#FFFFFF",
     fontSize: 12,
