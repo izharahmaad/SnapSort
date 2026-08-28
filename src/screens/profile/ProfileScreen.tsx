@@ -32,9 +32,10 @@ type IconName = React.ComponentProps<
 
 const FOREST = "#0B6035";
 const DEEP_FOREST = "#073E23";
-const GREEN = "#168047";
-const LIGHT_GREEN = "#E8F6EB";
+const EMERALD = "#168047";
 const CREAM = "#FFFDF7";
+const LIGHT_GREEN = "#E8F6EB";
+const MID_GREEN = "#D3EDDA";
 const GOLD = "#D99A32";
 const LIGHT_RED = "#FFF1F0";
 const RED = "#B3261E";
@@ -57,7 +58,7 @@ export default function ProfileScreen({
 
   const isTablet = width >= 700;
   const horizontalPadding = isTablet ? 38 : 20;
-  const contentMaxWidth = isTablet ? 650 : undefined;
+  const maxContentWidth = isTablet ? 660 : undefined;
 
   const displayName =
     user?.displayName?.trim() || "SnapSort user";
@@ -65,7 +66,7 @@ export default function ProfileScreen({
   const email = user?.email || "No email available";
   const initials = getInitials(displayName);
 
-  const photoUri =
+  const profilePhotoUri =
     localPhotoUri || user?.photoURL || null;
 
   const handleChoosePhoto = async () => {
@@ -81,8 +82,8 @@ export default function ProfileScreen({
 
       if (!permission.granted) {
         Alert.alert(
-          "Permission needed",
-          "Allow photo access to choose a profile picture."
+          "Photo permission needed",
+          "Allow photo library access to choose a profile picture."
         );
         return;
       }
@@ -99,17 +100,17 @@ export default function ProfileScreen({
         return;
       }
 
-      const selectedUri = result.assets[0].uri;
+      const photoUri = result.assets[0].uri;
 
-      setLocalPhotoUri(selectedUri);
+      setLocalPhotoUri(photoUri);
 
       await updateProfile(auth.currentUser, {
-        photoURL: selectedUri,
+        photoURL: photoUri,
       });
     } catch {
       Alert.alert(
         "Photo update failed",
-        "We could not update your profile picture."
+        "We could not update your profile picture. Please try again."
       );
     } finally {
       setIsPickingImage(false);
@@ -123,7 +124,7 @@ export default function ProfileScreen({
 
     Alert.alert(
       "Sign out of SnapSort AI?",
-      "Your saved scans will remain linked to your account. You can sign in again anytime.",
+      "Your saved scans will remain connected to your account. You can sign in again anytime.",
       [
         {
           text: "Keep me signed in",
@@ -168,15 +169,15 @@ export default function ProfileScreen({
           styles.scrollContent,
           {
             paddingBottom: Math.max(
-              insets.bottom + 28,
-              36
+              insets.bottom + 30,
+              38
             ),
           },
         ]}
         showsVerticalScrollIndicator={false}
       >
         <LinearGradient
-          colors={[DEEP_FOREST, FOREST, GREEN]}
+          colors={[DEEP_FOREST, FOREST, EMERALD]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[
@@ -193,60 +194,91 @@ export default function ProfileScreen({
             style={[
               styles.headerInner,
               {
-                maxWidth: contentMaxWidth,
+                maxWidth: maxContentWidth,
                 paddingHorizontal: horizontalPadding,
               },
             ]}
           >
-            <Pressable
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <MaterialCommunityIcons
-                name="arrow-left"
-                size={19}
-                color="#FFFFFF"
-              />
-            </Pressable>
+            <View style={styles.headerTopRow}>
+              <Pressable
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+              >
+                <MaterialCommunityIcons
+                  name="arrow-left"
+                  size={19}
+                  color="#FFFFFF"
+                />
+              </Pressable>
 
-            <View style={styles.headerText}>
-              <Text style={styles.headerEyebrow}>
-                MY ACCOUNT
-              </Text>
+              <View style={styles.accountStatus}>
+                <View style={styles.statusDot} />
+
+                <Text style={styles.statusText}>
+                  Account active
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.headerCopy}>
+              <View style={styles.headerLabelRow}>
+                <MaterialCommunityIcons
+                  name="account-circle-outline"
+                  size={15}
+                  color="rgba(255,255,255,0.72)"
+                />
+
+                <Text style={styles.headerEyebrow}>
+                  MY ACCOUNT
+                </Text>
+              </View>
 
               <Text style={styles.headerTitle}>
                 Profile
               </Text>
 
               <Text style={styles.headerSubtitle}>
-                Manage your account and preferences.
+                Keep your account and sustainable habits in one place.
               </Text>
             </View>
 
-            <View style={styles.headerLeafOne}>
-              <MaterialCommunityIcons
-                name="leaf"
-                size={19}
-                color="rgba(255,255,255,0.30)"
-              />
-            </View>
+            <View style={styles.headerIllustration}>
+              <View style={styles.artLeafLarge}>
+                <MaterialCommunityIcons
+                  name="leaf"
+                  size={30}
+                  color="rgba(255,255,255,0.18)"
+                />
+              </View>
 
-            <View style={styles.headerLeafTwo}>
-              <MaterialCommunityIcons
-                name="sprout"
-                size={16}
-                color="rgba(255,255,255,0.24)"
-              />
-            </View>
+              <View style={styles.artSprout}>
+                <MaterialCommunityIcons
+                  name="sprout"
+                  size={22}
+                  color="rgba(255,255,255,0.16)"
+                />
+              </View>
 
-            <View style={styles.headerLeafThree}>
-              <MaterialCommunityIcons
-                name="recycle"
-                size={14}
-                color="rgba(255,255,255,0.20)"
-              />
+              <View style={styles.artFlower}>
+                <MaterialCommunityIcons
+                  name="flower-outline"
+                  size={18}
+                  color="rgba(255,255,255,0.15)"
+                />
+              </View>
+
+              <View style={styles.artRecycle}>
+                <MaterialCommunityIcons
+                  name="recycle"
+                  size={16}
+                  color="rgba(255,255,255,0.14)"
+                />
+              </View>
+
+              <View style={styles.artDotOne} />
+              <View style={styles.artDotTwo} />
             </View>
           </View>
         </LinearGradient>
@@ -255,7 +287,7 @@ export default function ProfileScreen({
           style={[
             styles.content,
             {
-              maxWidth: contentMaxWidth,
+              maxWidth: maxContentWidth,
               paddingHorizontal: horizontalPadding,
             },
           ]}
@@ -269,9 +301,11 @@ export default function ProfileScreen({
                 accessibilityRole="button"
                 accessibilityLabel="Change profile picture"
               >
-                {photoUri ? (
+                {profilePhotoUri ? (
                   <Image
-                    source={{ uri: photoUri }}
+                    source={{
+                      uri: profilePhotoUri,
+                    }}
                     style={styles.avatarImage}
                   />
                 ) : (
@@ -323,7 +357,7 @@ export default function ProfileScreen({
                 </View>
               </View>
 
-              <View style={styles.accountVerified}>
+              <View style={styles.verifiedCircle}>
                 <MaterialCommunityIcons
                   name="shield-check-outline"
                   size={18}
@@ -343,7 +377,7 @@ export default function ProfileScreen({
             </Text>
 
             <Pressable
-              style={styles.journeyCard}
+              style={styles.journeyButton}
               onPress={() => navigation.navigate("Camera")}
               accessibilityRole="button"
               accessibilityLabel="Scan your next item"
@@ -361,7 +395,7 @@ export default function ProfileScreen({
                   Scan your next item
                 </Text>
 
-                <Text style={styles.journeyText}>
+                <Text style={styles.journeySubtitle}>
                   Get clear disposal guidance in seconds.
                 </Text>
               </View>
@@ -376,7 +410,27 @@ export default function ProfileScreen({
             </Pressable>
           </View>
 
-          <View style={styles.sectionHeader}>
+          <View style={styles.miniActionRow}>
+            <MiniAction
+              icon="history"
+              title="History"
+              subtitle="Saved scans"
+              color={FOREST}
+              background={LIGHT_GREEN}
+              onPress={() => navigation.navigate("History")}
+            />
+
+            <MiniAction
+              icon="sprout"
+              title="Impact"
+              subtitle="Your habits"
+              color="#A8640C"
+              background="#FFF0D5"
+              onPress={() => navigation.navigate("History")}
+            />
+          </View>
+
+          <View style={styles.settingsHeader}>
             <Text style={styles.sectionLabel}>
               SETTINGS
             </Text>
@@ -387,7 +441,7 @@ export default function ProfileScreen({
           </View>
 
           <View style={styles.settingsCard}>
-            <AccountRow
+            <InfoRow
               icon="email-outline"
               title="Email address"
               value={email}
@@ -395,7 +449,7 @@ export default function ProfileScreen({
 
             <Divider />
 
-            <AccountRow
+            <InfoRow
               icon="shield-check-outline"
               title="Account status"
               value="Active and protected"
@@ -403,7 +457,7 @@ export default function ProfileScreen({
 
             <Divider />
 
-            <AccountRow
+            <InfoRow
               icon="cloud-check-outline"
               title="Cloud sync"
               value="Firebase connected"
@@ -428,7 +482,7 @@ export default function ProfileScreen({
             <SettingRow
               icon="lock-outline"
               title="Privacy and security"
-              subtitle="Manage your data preferences"
+              subtitle="Manage data preferences"
               onPress={() =>
                 Alert.alert(
                   "Privacy and security",
@@ -498,7 +552,7 @@ export default function ProfileScreen({
             </Pressable>
           </View>
 
-          <Text style={styles.footer}>
+          <Text style={styles.footerText}>
             SnapSort AI provides general disposal guidance.
             Local rules may vary.
           </Text>
@@ -530,7 +584,7 @@ function SignedOutState({
       </Text>
 
       <Text style={styles.emptyText}>
-        Sign in to access your saved scans and account preferences.
+        Sign in to access saved scans and your account preferences.
       </Text>
 
       <Pressable
@@ -553,7 +607,63 @@ function SignedOutState({
   );
 }
 
-function AccountRow({
+function MiniAction({
+  icon,
+  title,
+  subtitle,
+  color,
+  background,
+  onPress,
+}: {
+  icon: IconName;
+  title: string;
+  subtitle: string;
+  color: string;
+  background: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={styles.miniAction}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+    >
+      <View
+        style={[
+          styles.miniActionIcon,
+          {
+            backgroundColor: background,
+          },
+        ]}
+      >
+        <MaterialCommunityIcons
+          name={icon}
+          size={19}
+          color={color}
+        />
+      </View>
+
+      <View style={styles.miniActionCopy}>
+        <Text style={styles.miniActionTitle}>
+          {title}
+        </Text>
+
+        <Text style={styles.miniActionSubtitle}>
+          {subtitle}
+        </Text>
+      </View>
+
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={18}
+        color={colors.muted}
+      />
+    </Pressable>
+  );
+}
+
+function InfoRow({
   icon,
   title,
   value,
@@ -563,8 +673,8 @@ function AccountRow({
   value: string;
 }) {
   return (
-    <View style={styles.accountRow}>
-      <View style={styles.accountIcon}>
+    <View style={styles.settingsRow}>
+      <View style={styles.settingsIcon}>
         <MaterialCommunityIcons
           name={icon}
           size={18}
@@ -572,13 +682,13 @@ function AccountRow({
         />
       </View>
 
-      <View style={styles.accountCopy}>
-        <Text style={styles.accountTitle}>
+      <View style={styles.settingsCopy}>
+        <Text style={styles.settingsTitle}>
           {title}
         </Text>
 
         <Text
-          style={styles.accountValue}
+          style={styles.settingsValue}
           numberOfLines={1}
         >
           {value}
@@ -601,12 +711,12 @@ function SettingRow({
 }) {
   return (
     <Pressable
-      style={styles.settingRow}
+      style={styles.settingsRow}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={title}
     >
-      <View style={styles.accountIcon}>
+      <View style={styles.settingsIcon}>
         <MaterialCommunityIcons
           name={icon}
           size={18}
@@ -614,12 +724,12 @@ function SettingRow({
         />
       </View>
 
-      <View style={styles.accountCopy}>
-        <Text style={styles.accountTitle}>
+      <View style={styles.settingsCopy}>
+        <Text style={styles.settingsTitle}>
           {title}
         </Text>
 
-        <Text style={styles.accountValue}>
+        <Text style={styles.settingsValue}>
           {subtitle}
         </Text>
       </View>
@@ -662,7 +772,7 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    minHeight: 198,
+    minHeight: 206,
     overflow: "hidden",
   },
   headerInner: {
@@ -670,117 +780,197 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "center",
   },
+  headerTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: "rgba(255,255,255,0.14)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.24)",
   },
-  headerText: {
-    marginTop: 16,
+  accountStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.13)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#B8F3C6",
+  },
+  statusText: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#FFFFFF",
+    fontSize: 9,
+  },
+  headerCopy: {
+    maxWidth: 335,
+    marginTop: 22,
+  },
+  headerLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   headerEyebrow: {
     fontFamily: "Poppins_600SemiBold",
-    color: "rgba(255,255,255,0.75)",
+    color: "rgba(255,255,255,0.74)",
     fontSize: 9,
-    letterSpacing: 1.4,
+    letterSpacing: 1.3,
   },
   headerTitle: {
     fontFamily: "Poppins_700Bold",
     color: "#FFFFFF",
-    fontSize: 29,
-    lineHeight: 36,
-    marginTop: 1,
+    fontSize: 31,
+    lineHeight: 38,
+    letterSpacing: -0.7,
+    marginTop: 5,
   },
   headerSubtitle: {
-    maxWidth: 295,
+    maxWidth: 290,
     fontFamily: "Poppins_400Regular",
-    color: "rgba(255,255,255,0.82)",
+    color: "rgba(255,255,255,0.83)",
     fontSize: 10,
     lineHeight: 16,
-    marginTop: 2,
+    marginTop: 3,
   },
-  headerLeafOne: {
+  headerIllustration: {
     position: "absolute",
-    top: 68,
-    right: 24,
+    right: -10,
+    bottom: -10,
+    width: 170,
+    height: 135,
+  },
+  artLeafLarge: {
+    position: "absolute",
+    right: 9,
+    top: 13,
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    transform: [
+      {
+        rotate: "-16deg",
+      },
+    ],
+  },
+  artSprout: {
+    position: "absolute",
+    left: 33,
+    bottom: 27,
+    width: 47,
+    height: 47,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    transform: [
+      {
+        rotate: "13deg",
+      },
+    ],
+  },
+  artFlower: {
+    position: "absolute",
+    right: 0,
+    bottom: 0,
     width: 42,
     height: 42,
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
-  headerLeafTwo: {
+  artRecycle: {
     position: "absolute",
-    top: 119,
-    right: 77,
+    left: 4,
+    top: 28,
     width: 34,
     height: 34,
     borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
-  headerLeafThree: {
+  artDotOne: {
     position: "absolute",
-    top: 136,
-    right: 28,
-    width: 27,
-    height: 27,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    top: 20,
+    left: 54,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(255,255,255,0.26)",
+  },
+  artDotTwo: {
+    position: "absolute",
+    bottom: 11,
+    left: 89,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.30)",
   },
 
   content: {
     width: "100%",
     alignSelf: "center",
-    marginTop: -24,
+    marginTop: -25,
   },
   profileCardShadow: {
-    borderRadius: 21,
+    borderRadius: 22,
     shadowColor: "#123B22",
     shadowOpacity: 0.13,
-    shadowRadius: 13,
+    shadowRadius: 14,
     shadowOffset: {
       width: 0,
-      height: 6,
+      height: 7,
     },
-    elevation: 5,
+    elevation: 6,
   },
   profileCard: {
-    minHeight: 86,
+    minHeight: 88,
     flexDirection: "row",
     alignItems: "center",
-    padding: 11,
-    borderRadius: 21,
+    padding: 12,
+    borderRadius: 22,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E1EDE3",
   },
   avatarArea: {
     position: "relative",
-    width: 61,
-    height: 61,
+    width: 62,
+    height: 62,
     borderRadius: 31,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: LIGHT_GREEN,
   },
   avatarImage: {
-    width: 55,
-    height: 55,
+    width: 56,
+    height: 56,
     borderRadius: 28,
   },
   avatarFallback: {
-    width: 55,
-    height: 55,
+    width: 56,
+    height: 56,
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
@@ -827,7 +1017,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 7,
     paddingVertical: 3,
-    marginTop: 5,
+    marginTop: 6,
     borderRadius: 12,
     backgroundColor: LIGHT_GREEN,
   },
@@ -836,7 +1026,7 @@ const styles = StyleSheet.create({
     color: FOREST,
     fontSize: 8,
   },
-  accountVerified: {
+  verifiedCircle: {
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -863,22 +1053,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 2,
   },
-  journeyCard: {
-    minHeight: 74,
+  journeyButton: {
+    minHeight: 75,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginTop: 9,
-    borderRadius: 37,
+    borderRadius: 38,
     backgroundColor: LIGHT_GREEN,
     borderWidth: 1,
     borderColor: "#CBE6D2",
   },
   journeyIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 43,
+    height: 43,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: FOREST,
@@ -893,7 +1083,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 12,
   },
-  journeyText: {
+  journeySubtitle: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 9,
@@ -909,6 +1099,49 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
 
+  miniActionRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 10,
+  },
+  miniAction: {
+    flex: 1,
+    minHeight: 73,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    borderRadius: 19,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5EEE6",
+  },
+  miniActionIcon: {
+    width: 35,
+    height: 35,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  miniActionCopy: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: 8,
+  },
+  miniActionTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: colors.text,
+    fontSize: 10,
+  },
+  miniActionSubtitle: {
+    fontFamily: "Poppins_400Regular",
+    color: colors.muted,
+    fontSize: 8,
+    marginTop: 1,
+  },
+
+  settingsHeader: {
+    marginTop: 24,
+  },
   settingsCard: {
     marginTop: 9,
     paddingHorizontal: 14,
@@ -917,12 +1150,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5EEE6",
   },
-  accountRow: {
-    minHeight: 60,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  settingRow: {
+  settingsRow: {
     minHeight: 60,
     flexDirection: "row",
     alignItems: "center",
@@ -935,17 +1163,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: LIGHT_GREEN,
   },
-  accountCopy: {
+  settingsCopy: {
     flex: 1,
     minWidth: 0,
     marginLeft: 10,
   },
-  accountTitle: {
+  settingsTitle: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 9,
   },
-  accountValue: {
+  settingsValue: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.text,
     fontSize: 10,
@@ -1029,7 +1257,7 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.55,
   },
-  footer: {
+  footerText: {
     maxWidth: 310,
     alignSelf: "center",
     fontFamily: "Poppins_400Regular",
