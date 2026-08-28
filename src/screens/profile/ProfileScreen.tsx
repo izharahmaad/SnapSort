@@ -30,16 +30,14 @@ type IconName = React.ComponentProps<
   typeof MaterialCommunityIcons
 >["name"];
 
-const FOREST = "#0D6035";
-const DEEP_FOREST = "#083F24";
-const MINT = "#E5F5E9";
+const FOREST = "#0B6035";
+const DEEP_FOREST = "#073E23";
+const GREEN = "#168047";
+const LIGHT_GREEN = "#E8F6EB";
 const CREAM = "#FFFDF7";
-const SUN = "#DF9A32";
-const SUN_LIGHT = "#FFF1D5";
-const BLUE = "#3D67C7";
-const BLUE_LIGHT = "#EAF0FF";
-const DANGER = "#B3261E";
-const DANGER_LIGHT = "#FFF1F0";
+const GOLD = "#D99A32";
+const LIGHT_RED = "#FFF1F0";
+const RED = "#B3261E";
 
 export default function ProfileScreen({
   navigation,
@@ -59,7 +57,7 @@ export default function ProfileScreen({
 
   const isTablet = width >= 700;
   const horizontalPadding = isTablet ? 38 : 20;
-  const contentMaxWidth = isTablet ? 760 : undefined;
+  const contentMaxWidth = isTablet ? 650 : undefined;
 
   const displayName =
     user?.displayName?.trim() || "SnapSort user";
@@ -67,10 +65,10 @@ export default function ProfileScreen({
   const email = user?.email || "No email available";
   const initials = getInitials(displayName);
 
-  const profilePhotoUri =
+  const photoUri =
     localPhotoUri || user?.photoURL || null;
 
-  const handlePickProfileImage = async () => {
+  const handleChoosePhoto = async () => {
     if (isPickingImage || !auth.currentUser) {
       return;
     }
@@ -83,8 +81,8 @@ export default function ProfileScreen({
 
       if (!permission.granted) {
         Alert.alert(
-          "Photo permission needed",
-          "Allow photo library access to choose a profile picture."
+          "Permission needed",
+          "Allow photo access to choose a profile picture."
         );
         return;
       }
@@ -105,22 +103,13 @@ export default function ProfileScreen({
 
       setLocalPhotoUri(selectedUri);
 
-      /*
-       * This preview works immediately.
-       * For permanent cross-device saving:
-       * 1. Upload selectedUri to Firebase Storage.
-       * 2. Get the download URL.
-       * 3. Call updateProfile(auth.currentUser, {
-       *      photoURL: downloadUrl,
-       *    });
-       */
       await updateProfile(auth.currentUser, {
         photoURL: selectedUri,
       });
     } catch {
       Alert.alert(
         "Photo update failed",
-        "We could not update your profile picture. Please try again."
+        "We could not update your profile picture."
       );
     } finally {
       setIsPickingImage(false);
@@ -179,23 +168,23 @@ export default function ProfileScreen({
           styles.scrollContent,
           {
             paddingBottom: Math.max(
-              insets.bottom + 30,
-              38
+              insets.bottom + 28,
+              36
             ),
           },
         ]}
         showsVerticalScrollIndicator={false}
       >
         <LinearGradient
-          colors={[DEEP_FOREST, FOREST, "#197847"]}
+          colors={[DEEP_FOREST, FOREST, GREEN]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[
             styles.header,
             {
               paddingTop: Math.max(
-                insets.top + 13,
-                23
+                insets.top + 10,
+                20
               ),
             },
           ]}
@@ -209,38 +198,20 @@ export default function ProfileScreen({
               },
             ]}
           >
-            <View style={styles.headerTop}>
-              <Pressable
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
-                accessibilityRole="button"
-                accessibilityLabel="Go back"
-              >
-                <MaterialCommunityIcons
-                  name="arrow-left"
-                  size={20}
-                  color="#FFFFFF"
-                />
-              </Pressable>
+            <Pressable
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={19}
+                color="#FFFFFF"
+              />
+            </Pressable>
 
-              <View style={styles.headerBrand}>
-                <View style={styles.headerBrandIcon}>
-                  <MaterialCommunityIcons
-                    name="leaf"
-                    size={14}
-                    color={FOREST}
-                  />
-                </View>
-
-                <Text style={styles.headerBrandText}>
-                  SnapSort AI
-                </Text>
-              </View>
-
-              <View style={styles.headerSpacer} />
-            </View>
-
-            <View style={styles.headerCopy}>
+            <View style={styles.headerText}>
               <Text style={styles.headerEyebrow}>
                 MY ACCOUNT
               </Text>
@@ -250,16 +221,32 @@ export default function ProfileScreen({
               </Text>
 
               <Text style={styles.headerSubtitle}>
-                Your choices, your impact, all in one place.
+                Manage your account and preferences.
               </Text>
             </View>
 
-            <View style={styles.headerEcoIcons}>
-              <EcoIcon icon="leaf" />
-              <EcoIcon icon="recycle" />
-              <EcoIcon icon="sprout" />
-              <EcoIcon icon="flower-outline" />
-              <EcoIcon icon="earth" />
+            <View style={styles.headerLeafOne}>
+              <MaterialCommunityIcons
+                name="leaf"
+                size={19}
+                color="rgba(255,255,255,0.30)"
+              />
+            </View>
+
+            <View style={styles.headerLeafTwo}>
+              <MaterialCommunityIcons
+                name="sprout"
+                size={16}
+                color="rgba(255,255,255,0.24)"
+              />
+            </View>
+
+            <View style={styles.headerLeafThree}>
+              <MaterialCommunityIcons
+                name="recycle"
+                size={14}
+                color="rgba(255,255,255,0.20)"
+              />
             </View>
           </View>
         </LinearGradient>
@@ -275,44 +262,40 @@ export default function ProfileScreen({
         >
           <View style={styles.profileCardShadow}>
             <View style={styles.profileCard}>
-              <View style={styles.profileImageArea}>
-                <Pressable
-                  style={styles.avatarOuter}
-                  onPress={handlePickProfileImage}
-                  disabled={isPickingImage}
-                  accessibilityRole="button"
-                  accessibilityLabel="Choose profile photo"
-                >
-                  {profilePhotoUri ? (
-                    <Image
-                      source={{
-                        uri: profilePhotoUri,
-                      }}
-                      style={styles.avatarImage}
-                    />
-                  ) : (
-                    <View style={styles.avatarFallback}>
-                      <Text style={styles.avatarText}>
-                        {initials}
-                      </Text>
-                    </View>
-                  )}
-
-                  <View style={styles.cameraBadge}>
-                    <MaterialCommunityIcons
-                      name={
-                        isPickingImage
-                          ? "loading"
-                          : "camera"
-                      }
-                      size={13}
-                      color="#FFFFFF"
-                    />
+              <Pressable
+                style={styles.avatarArea}
+                onPress={handleChoosePhoto}
+                disabled={isPickingImage}
+                accessibilityRole="button"
+                accessibilityLabel="Change profile picture"
+              >
+                {photoUri ? (
+                  <Image
+                    source={{ uri: photoUri }}
+                    style={styles.avatarImage}
+                  />
+                ) : (
+                  <View style={styles.avatarFallback}>
+                    <Text style={styles.avatarText}>
+                      {initials}
+                    </Text>
                   </View>
-                </Pressable>
-              </View>
+                )}
 
-              <View style={styles.profileCopy}>
+                <View style={styles.cameraBadge}>
+                  <MaterialCommunityIcons
+                    name={
+                      isPickingImage
+                        ? "loading"
+                        : "camera"
+                    }
+                    size={12}
+                    color="#FFFFFF"
+                  />
+                </View>
+              </Pressable>
+
+              <View style={styles.profileInfo}>
                 <Text
                   style={styles.profileName}
                   numberOfLines={1}
@@ -340,105 +323,68 @@ export default function ProfileScreen({
                 </View>
               </View>
 
-              <View style={styles.profileStatus}>
+              <View style={styles.accountVerified}>
                 <MaterialCommunityIcons
                   name="shield-check-outline"
-                  size={19}
+                  size={18}
                   color={FOREST}
                 />
               </View>
             </View>
           </View>
 
-          <View style={styles.statsRow}>
-            <StatCard
-              icon="camera-outline"
-              label="New scan"
-              color={FOREST}
-              background={MINT}
+          <View style={styles.journeySection}>
+            <Text style={styles.sectionLabel}>
+              YOUR JOURNEY
+            </Text>
+
+            <Text style={styles.sectionTitle}>
+              Continue your journey
+            </Text>
+
+            <Pressable
+              style={styles.journeyCard}
               onPress={() => navigation.navigate("Camera")}
-            />
+              accessibilityRole="button"
+              accessibilityLabel="Scan your next item"
+            >
+              <View style={styles.journeyIcon}>
+                <MaterialCommunityIcons
+                  name="camera-plus-outline"
+                  size={21}
+                  color="#FFFFFF"
+                />
+              </View>
 
-            <StatCard
-              icon="history"
-              label="History"
-              color={BLUE}
-              background={BLUE_LIGHT}
-              onPress={() => navigation.navigate("History")}
-            />
+              <View style={styles.journeyCopy}>
+                <Text style={styles.journeyTitle}>
+                  Scan your next item
+                </Text>
 
-            <StatCard
-              icon="sprout"
-              label="Impact"
-              color="#B96E0C"
-              background={SUN_LIGHT}
-              onPress={() => navigation.navigate("History")}
-            />
+                <Text style={styles.journeyText}>
+                  Get clear disposal guidance in seconds.
+                </Text>
+              </View>
+
+              <View style={styles.journeyArrow}>
+                <MaterialCommunityIcons
+                  name="arrow-right"
+                  size={17}
+                  color={FOREST}
+                />
+              </View>
+            </Pressable>
           </View>
 
-          <SectionHeader
-            label="YOUR JOURNEY"
-            title="Continue your journey"
-            compact
-          />
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>
+              SETTINGS
+            </Text>
 
-          <Pressable
-            style={styles.scanCard}
-            onPress={() => navigation.navigate("Camera")}
-            accessibilityRole="button"
-            accessibilityLabel="Start a new scan"
-          >
-            <View style={styles.scanIcon}>
-              <MaterialCommunityIcons
-                name="camera-plus-outline"
-                size={22}
-                color="#FFFFFF"
-              />
-            </View>
-
-            <View style={styles.scanCopy}>
-              <Text style={styles.scanTitle}>
-                Scan your next item
-              </Text>
-
-              <Text style={styles.scanText}>
-                Get clear disposal guidance in seconds.
-              </Text>
-            </View>
-
-            <View style={styles.scanArrow}>
-              <MaterialCommunityIcons
-                name="arrow-right"
-                size={18}
-                color={FOREST}
-              />
-            </View>
-          </Pressable>
-
-          <View style={styles.actionGrid}>
-            <DashboardCard
-              icon="history"
-              title="Scan history"
-              text="Review saved results"
-              accent={MINT}
-              color={FOREST}
-              onPress={() => navigation.navigate("History")}
-            />
-
-            <DashboardCard
-              icon="chart-timeline-variant-shimmer"
-              title="Your impact"
-              text="Build greener habits"
-              accent={SUN_LIGHT}
-              color="#B96E0C"
-              onPress={() => navigation.navigate("History")}
-            />
+            <Text style={styles.sectionTitle}>
+              Account details
+            </Text>
           </View>
-
-          <SectionHeader
-            label="SETTINGS"
-            title="Account details"
-          />
 
           <View style={styles.settingsCard}>
             <AccountRow
@@ -465,117 +411,45 @@ export default function ProfileScreen({
 
             <Divider />
 
-            <Pressable
-              style={styles.settingActionRow}
+            <SettingRow
+              icon="bell-outline"
+              title="Notifications"
+              subtitle="Manage scan reminders"
               onPress={() =>
                 Alert.alert(
                   "Notifications",
                   "Notification settings will be available here."
                 )
               }
-              accessibilityRole="button"
-              accessibilityLabel="Notification settings"
-            >
-              <View style={styles.accountIcon}>
-                <MaterialCommunityIcons
-                  name="bell-outline"
-                  size={19}
-                  color={FOREST}
-                />
-              </View>
-
-              <View style={styles.accountCopy}>
-                <Text style={styles.accountTitle}>
-                  Notifications
-                </Text>
-
-                <Text style={styles.accountValue}>
-                  Manage scan reminders
-                </Text>
-              </View>
-
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={19}
-                color={colors.muted}
-              />
-            </Pressable>
+            />
 
             <Divider />
 
-            <Pressable
-              style={styles.settingActionRow}
+            <SettingRow
+              icon="lock-outline"
+              title="Privacy and security"
+              subtitle="Manage your data preferences"
               onPress={() =>
                 Alert.alert(
-                  "Privacy",
+                  "Privacy and security",
                   "Privacy settings will be available here."
                 )
               }
-              accessibilityRole="button"
-              accessibilityLabel="Privacy settings"
-            >
-              <View style={styles.accountIcon}>
-                <MaterialCommunityIcons
-                  name="lock-outline"
-                  size={19}
-                  color={FOREST}
-                />
-              </View>
-
-              <View style={styles.accountCopy}>
-                <Text style={styles.accountTitle}>
-                  Privacy and security
-                </Text>
-
-                <Text style={styles.accountValue}>
-                  Manage your data preferences
-                </Text>
-              </View>
-
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={19}
-                color={colors.muted}
-              />
-            </Pressable>
+            />
 
             <Divider />
 
-            <Pressable
-              style={styles.settingActionRow}
+            <SettingRow
+              icon="information-outline"
+              title="About SnapSort AI"
+              subtitle="Version 1.0.0"
               onPress={() =>
                 Alert.alert(
                   "About SnapSort AI",
-                  "SnapSort AI helps you make better everyday disposal decisions. Version 1.0.0"
+                  "SnapSort AI helps you make better everyday disposal decisions."
                 )
               }
-              accessibilityRole="button"
-              accessibilityLabel="About SnapSort AI"
-            >
-              <View style={styles.accountIcon}>
-                <MaterialCommunityIcons
-                  name="information-outline"
-                  size={19}
-                  color={FOREST}
-                />
-              </View>
-
-              <View style={styles.accountCopy}>
-                <Text style={styles.accountTitle}>
-                  About SnapSort AI
-                </Text>
-
-                <Text style={styles.accountValue}>
-                  Version 1.0.0
-                </Text>
-              </View>
-
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={19}
-                color={colors.muted}
-              />
-            </Pressable>
+            />
           </View>
 
           <View style={styles.signOutSection}>
@@ -592,13 +466,13 @@ export default function ProfileScreen({
               onPress={handleSignOut}
               disabled={isSigningOut}
               accessibilityRole="button"
-              accessibilityLabel="Sign out of SnapSort AI"
+              accessibilityLabel="Sign out"
             >
               <View style={styles.signOutIcon}>
                 <MaterialCommunityIcons
                   name="logout"
-                  size={19}
-                  color={DANGER}
+                  size={18}
+                  color={RED}
                 />
               </View>
 
@@ -618,7 +492,7 @@ export default function ProfileScreen({
                 <MaterialCommunityIcons
                   name="chevron-right"
                   size={20}
-                  color={DANGER}
+                  color={RED}
                 />
               </View>
             </Pressable>
@@ -641,7 +515,7 @@ function SignedOutState({
 }) {
   return (
     <View style={styles.emptyScreen}>
-      <View style={styles.emptyLogoOuter}>
+      <View style={styles.emptyLogoRing}>
         <View style={styles.emptyLogo}>
           <MaterialCommunityIcons
             name="leaf"
@@ -656,7 +530,7 @@ function SignedOutState({
       </Text>
 
       <Text style={styles.emptyText}>
-        Sign in to access saved scans and your sustainability journey.
+        Sign in to access your saved scans and account preferences.
       </Text>
 
       <Pressable
@@ -679,147 +553,6 @@ function SignedOutState({
   );
 }
 
-function EcoIcon({
-  icon,
-}: {
-  icon: IconName;
-}) {
-  return (
-    <View style={styles.ecoIcon}>
-      <MaterialCommunityIcons
-        name={icon}
-        size={17}
-        color="rgba(255,255,255,0.72)"
-      />
-    </View>
-  );
-}
-
-function StatCard({
-  icon,
-  label,
-  color,
-  background,
-  onPress,
-}: {
-  icon: IconName;
-  label: string;
-  color: string;
-  background: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      style={styles.statCard}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-    >
-      <View
-        style={[
-          styles.statIcon,
-          {
-            backgroundColor: background,
-          },
-        ]}
-      >
-        <MaterialCommunityIcons
-          name={icon}
-          size={20}
-          color={color}
-        />
-      </View>
-
-      <Text style={styles.statLabel}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-function SectionHeader({
-  label,
-  title,
-  compact = false,
-}: {
-  label: string;
-  title: string;
-  compact?: boolean;
-}) {
-  return (
-    <View
-      style={[
-        styles.sectionHeader,
-        compact && styles.compactSectionHeader,
-      ]}
-    >
-      <Text style={styles.sectionLabel}>
-        {label}
-      </Text>
-
-      <Text style={styles.sectionTitle}>
-        {title}
-      </Text>
-    </View>
-  );
-}
-
-function DashboardCard({
-  icon,
-  title,
-  text,
-  accent,
-  color,
-  onPress,
-}: {
-  icon: IconName;
-  title: string;
-  text: string;
-  accent: string;
-  color: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      style={styles.dashboardCard}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={title}
-    >
-      <View
-        style={[
-          styles.dashboardIcon,
-          {
-            backgroundColor: accent,
-          },
-        ]}
-      >
-        <MaterialCommunityIcons
-          name={icon}
-          size={21}
-          color={color}
-        />
-      </View>
-
-      <Text style={styles.dashboardTitle}>
-        {title}
-      </Text>
-
-      <Text style={styles.dashboardText}>
-        {text}
-      </Text>
-
-      <View style={styles.dashboardArrow}>
-        <MaterialCommunityIcons
-          name="arrow-top-right"
-          size={16}
-          color={color}
-        />
-      </View>
-    </Pressable>
-  );
-}
-
 function AccountRow({
   icon,
   title,
@@ -834,7 +567,7 @@ function AccountRow({
       <View style={styles.accountIcon}>
         <MaterialCommunityIcons
           name={icon}
-          size={19}
+          size={18}
           color={FOREST}
         />
       </View>
@@ -852,6 +585,51 @@ function AccountRow({
         </Text>
       </View>
     </View>
+  );
+}
+
+function SettingRow({
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
+  icon: IconName;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={styles.settingRow}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+    >
+      <View style={styles.accountIcon}>
+        <MaterialCommunityIcons
+          name={icon}
+          size={18}
+          color={FOREST}
+        />
+      </View>
+
+      <View style={styles.accountCopy}>
+        <Text style={styles.accountTitle}>
+          {title}
+        </Text>
+
+        <Text style={styles.accountValue}>
+          {subtitle}
+        </Text>
+      </View>
+
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={19}
+        color={colors.muted}
+      />
+    </Pressable>
   );
 }
 
@@ -884,140 +662,126 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    minHeight: 230,
+    minHeight: 198,
     overflow: "hidden",
   },
   headerInner: {
+    position: "relative",
     width: "100%",
     alignSelf: "center",
   },
-  headerTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
   backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: "rgba(255,255,255,0.16)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.24)",
   },
-  headerBrand: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-  },
-  headerBrandIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-  },
-  headerBrandText: {
-    fontFamily: "Poppins_700Bold",
-    color: "#FFFFFF",
-    fontSize: 13,
-  },
-  headerSpacer: {
-    width: 42,
-    height: 42,
-  },
-  headerCopy: {
-    marginTop: 27,
-    maxWidth: 360,
+  headerText: {
+    marginTop: 16,
   },
   headerEyebrow: {
     fontFamily: "Poppins_600SemiBold",
-    color: "rgba(255,255,255,0.74)",
+    color: "rgba(255,255,255,0.75)",
     fontSize: 9,
     letterSpacing: 1.4,
   },
   headerTitle: {
     fontFamily: "Poppins_700Bold",
     color: "#FFFFFF",
-    fontSize: 31,
-    letterSpacing: -0.7,
-    marginTop: 3,
+    fontSize: 29,
+    lineHeight: 36,
+    marginTop: 1,
   },
   headerSubtitle: {
+    maxWidth: 295,
     fontFamily: "Poppins_400Regular",
-    color: "rgba(255,255,255,0.83)",
-    fontSize: 11,
-    lineHeight: 18,
-    marginTop: 4,
+    color: "rgba(255,255,255,0.82)",
+    fontSize: 10,
+    lineHeight: 16,
+    marginTop: 2,
   },
-  headerEcoIcons: {
+  headerLeafOne: {
     position: "absolute",
-    right: 0,
-    bottom: -14,
-    flexDirection: "row",
-    gap: 7,
-  },
-  ecoIcon: {
-    width: 37,
-    height: 37,
-    borderRadius: 19,
+    top: 68,
+    right: 24,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.11)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  headerLeafTwo: {
+    position: "absolute",
+    top: 119,
+    right: 77,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+  headerLeafThree: {
+    position: "absolute",
+    top: 136,
+    right: 28,
+    width: 27,
+    height: 27,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
   },
 
   content: {
     width: "100%",
     alignSelf: "center",
-    marginTop: -45,
+    marginTop: -24,
   },
   profileCardShadow: {
-    borderRadius: 23,
-    shadowColor: "#0A3C22",
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
+    borderRadius: 21,
+    shadowColor: "#123B22",
+    shadowOpacity: 0.13,
+    shadowRadius: 13,
     shadowOffset: {
       width: 0,
-      height: 8,
+      height: 6,
     },
-    elevation: 7,
+    elevation: 5,
   },
   profileCard: {
-    minHeight: 98,
+    minHeight: 86,
     flexDirection: "row",
     alignItems: "center",
-    padding: 13,
-    borderRadius: 23,
+    padding: 11,
+    borderRadius: 21,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#E2EFE5",
+    borderColor: "#E1EDE3",
   },
-  profileImageArea: {
-    width: 68,
-    height: 68,
-  },
-  avatarOuter: {
+  avatarArea: {
     position: "relative",
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 61,
+    height: 61,
+    borderRadius: 31,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: MINT,
+    backgroundColor: LIGHT_GREEN,
   },
   avatarImage: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+    width: 55,
+    height: 55,
+    borderRadius: 28,
   },
   avatarFallback: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+    width: 55,
+    height: 55,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: FOREST,
@@ -1025,36 +789,36 @@ const styles = StyleSheet.create({
   avatarText: {
     fontFamily: "Poppins_700Bold",
     color: "#FFFFFF",
-    fontSize: 20,
+    fontSize: 18,
   },
   cameraBadge: {
     position: "absolute",
     right: -2,
     bottom: -1,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: SUN,
+    backgroundColor: GOLD,
     borderWidth: 3,
     borderColor: "#FFFFFF",
   },
-  profileCopy: {
+  profileInfo: {
     flex: 1,
     minWidth: 0,
-    marginLeft: 11,
+    marginLeft: 10,
   },
   profileName: {
     fontFamily: "Poppins_700Bold",
     color: colors.text,
-    fontSize: 16,
+    fontSize: 15,
   },
   profileEmail: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 9,
-    marginTop: 2,
+    marginTop: 1,
   },
   memberPill: {
     flexDirection: "row",
@@ -1063,59 +827,29 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 7,
     paddingVertical: 3,
-    marginTop: 6,
+    marginTop: 5,
     borderRadius: 12,
-    backgroundColor: MINT,
+    backgroundColor: LIGHT_GREEN,
   },
   memberText: {
     fontFamily: "Poppins_600SemiBold",
     color: FOREST,
     fontSize: 8,
   },
-  profileStatus: {
-    width: 33,
-    height: 33,
-    borderRadius: 17,
+  accountVerified: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: MINT,
+    backgroundColor: LIGHT_GREEN,
   },
 
-  statsRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 14,
-  },
-  statCard: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 11,
-    borderRadius: 18,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5EEE6",
-  },
-  statIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  statLabel: {
-    fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
-    fontSize: 10,
-    marginTop: 6,
-  },
-
-  sectionHeader: {
-    marginTop: 25,
-    marginBottom: 9,
-    marginLeft: 2,
-  },
-  compactSectionHeader: {
+  journeySection: {
     marginTop: 20,
+  },
+  sectionHeader: {
+    marginTop: 24,
   },
   sectionLabel: {
     fontFamily: "Poppins_600SemiBold",
@@ -1129,107 +863,54 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 2,
   },
-
-  scanCard: {
+  journeyCard: {
+    minHeight: 74,
     flexDirection: "row",
     alignItems: "center",
-    padding: 13,
-    borderRadius: 21,
-    backgroundColor: "#EAF8ED",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 9,
+    borderRadius: 37,
+    backgroundColor: LIGHT_GREEN,
     borderWidth: 1,
-    borderColor: "#CFE9D5",
+    borderColor: "#CBE6D2",
   },
-  scanIcon: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
+  journeyIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: FOREST,
   },
-  scanCopy: {
+  journeyCopy: {
     flex: 1,
     minWidth: 0,
     marginLeft: 10,
   },
-  scanTitle: {
+  journeyTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: colors.text,
     fontSize: 12,
   },
-  scanText: {
+  journeyText: {
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 9,
-    lineHeight: 14,
     marginTop: 2,
   },
-  scanArrow: {
+  journeyArrow: {
     width: 33,
     height: 33,
     borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
+    marginLeft: 8,
     backgroundColor: "#FFFFFF",
-    shadowColor: "#173B25",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    elevation: 3,
-  },
-
-  actionGrid: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 11,
-  },
-  dashboardCard: {
-    position: "relative",
-    flex: 1,
-    minHeight: 128,
-    padding: 13,
-    borderRadius: 21,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5EEE6",
-  },
-  dashboardIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dashboardTitle: {
-    fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
-    fontSize: 11,
-    marginTop: 10,
-  },
-  dashboardText: {
-    maxWidth: "82%",
-    fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 8,
-    lineHeight: 13,
-    marginTop: 2,
-  },
-  dashboardArrow: {
-    position: "absolute",
-    right: 11,
-    bottom: 11,
-    width: 27,
-    height: 27,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F3F7F3",
   },
 
   settingsCard: {
+    marginTop: 9,
     paddingHorizontal: 14,
     borderRadius: 22,
     backgroundColor: "#FFFFFF",
@@ -1237,22 +918,22 @@ const styles = StyleSheet.create({
     borderColor: "#E5EEE6",
   },
   accountRow: {
-    minHeight: 61,
+    minHeight: 60,
     flexDirection: "row",
     alignItems: "center",
   },
-  settingActionRow: {
-    minHeight: 61,
+  settingRow: {
+    minHeight: 60,
     flexDirection: "row",
     alignItems: "center",
   },
   accountIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: MINT,
+    backgroundColor: LIGHT_GREEN,
   },
   accountCopy: {
     flex: 1,
@@ -1288,17 +969,17 @@ const styles = StyleSheet.create({
     marginLeft: 3,
   },
   signOutButton: {
-    minHeight: 64,
+    minHeight: 62,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 13,
-    borderRadius: 32,
-    backgroundColor: DANGER_LIGHT,
+    paddingHorizontal: 12,
+    borderRadius: 31,
+    backgroundColor: LIGHT_RED,
     borderWidth: 1,
-    borderColor: "#F1CCC8",
+    borderColor: "#F0C9C6",
     shadowColor: "#7A1D18",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowOpacity: 0.07,
+    shadowRadius: 7,
     shadowOffset: {
       width: 0,
       height: 3,
@@ -1314,23 +995,21 @@ const styles = StyleSheet.create({
     ],
   },
   signOutIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#F6D8D5",
   },
   signOutCopy: {
     flex: 1,
     minWidth: 0,
-    marginLeft: 11,
+    marginLeft: 10,
   },
   signOutTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: DANGER,
+    color: RED,
     fontSize: 12,
   },
   signOutSubtitle: {
@@ -1340,8 +1019,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   signOutArrow: {
-    width: 32,
-    height: 32,
+    width: 31,
+    height: 31,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
@@ -1358,7 +1037,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     lineHeight: 14,
     textAlign: "center",
-    marginTop: 18,
+    marginTop: 17,
   },
 
   emptyScreen: {
@@ -1368,7 +1047,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: CREAM,
   },
-  emptyLogoOuter: {
+  emptyLogoRing: {
     width: 84,
     height: 84,
     borderRadius: 42,
@@ -1387,12 +1066,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontFamily: "Poppins_700Bold",
     color: colors.text,
-    fontSize: 22,
+    fontSize: 21,
     textAlign: "center",
-    marginTop: 20,
+    marginTop: 19,
   },
   emptyText: {
-    maxWidth: 300,
+    maxWidth: 290,
     fontFamily: "Poppins_400Regular",
     color: colors.muted,
     fontSize: 12,
