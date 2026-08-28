@@ -39,7 +39,6 @@ const MUTED = "#6D7B72";
 const LIGHT_GREEN = "#EAF7EE";
 const SOFT_GREEN = "#D9F1E0";
 const GOLD = "#C98718";
-const LIGHT_GOLD = "#FFF3DB";
 const RED = "#B3261E";
 const LIGHT_RED = "#FFF1F0";
 
@@ -62,7 +61,9 @@ export default function ProfileScreen({
   >(null);
 
   const isTablet = width >= 700;
+
   const horizontalPadding = isTablet ? 38 : 20;
+
   const contentMaxWidth = isTablet ? 660 : undefined;
 
   const displayName =
@@ -142,6 +143,7 @@ export default function ProfileScreen({
           onPress: async () => {
             try {
               setIsSigningOut(true);
+
               await signOut(auth);
             } catch {
               Alert.alert(
@@ -193,10 +195,6 @@ export default function ProfileScreen({
             },
           ]}
         >
-          <View style={styles.heroGlowTop} />
-          <View style={styles.heroGlowRight} />
-          <View style={styles.heroGlowBottom} />
-
           <View
             style={[
               styles.heroInner,
@@ -317,29 +315,26 @@ export default function ProfileScreen({
             </View>
 
             <View style={styles.heroArt}>
-              <View style={styles.artLargeLeaf}>
-                <MaterialCommunityIcons
-                  name="leaf"
-                  size={40}
-                  color="rgba(255,255,255,0.16)"
-                />
-              </View>
+              <MaterialCommunityIcons
+                name="leaf"
+                size={33}
+                color="rgba(255,255,255,0.20)"
+                style={styles.headerLeafIcon}
+              />
 
-              <View style={styles.artSprout}>
-                <MaterialCommunityIcons
-                  name="sprout"
-                  size={22}
-                  color="rgba(255,255,255,0.15)"
-                />
-              </View>
+              <MaterialCommunityIcons
+                name="sprout"
+                size={24}
+                color="rgba(255,255,255,0.18)"
+                style={styles.headerSproutIcon}
+              />
 
-              <View style={styles.artRecycle}>
-                <MaterialCommunityIcons
-                  name="recycle"
-                  size={16}
-                  color="rgba(255,255,255,0.14)"
-                />
-              </View>
+              <MaterialCommunityIcons
+                name="recycle"
+                size={18}
+                color="rgba(255,255,255,0.17)"
+                style={styles.headerRecycleIcon}
+              />
 
               <View style={styles.artDotOne} />
               <View style={styles.artDotTwo} />
@@ -417,30 +412,6 @@ export default function ProfileScreen({
             </View>
           </Pressable>
 
-          <View style={styles.quickActionRow}>
-            <View style={styles.quickActionLeft}>
-              <QuickAction
-                icon="history"
-                title="Scan history"
-                subtitle="Review saved results"
-                iconColor={FOREST}
-                iconBackground={LIGHT_GREEN}
-                onPress={() => navigation.navigate("History")}
-              />
-            </View>
-
-            <View style={styles.quickActionRight}>
-              <QuickAction
-                icon="chart-line"
-                title="Your impact"
-                subtitle="Build better habits"
-                iconColor={GOLD}
-                iconBackground={LIGHT_GOLD}
-                onPress={() => navigation.navigate("History")}
-              />
-            </View>
-          </View>
-
           <SectionHeader
             label="SETTINGS"
             title="Account details"
@@ -476,24 +447,18 @@ export default function ProfileScreen({
               title="Notifications"
               subtitle="Manage scan reminders"
               onPress={() =>
-                Alert.alert(
-                  "Notifications",
-                  "Notification preferences will be available here."
-                )
+                navigation.navigate("Notifications")
               }
             />
 
             <Divider />
 
             <SettingRow
-              icon="lock-outline"
-              title="Privacy and security"
-              subtitle="Manage data preferences"
+              icon="shield-lock-outline"
+              title="Privacy policy"
+              subtitle="How we handle your information"
               onPress={() =>
-                Alert.alert(
-                  "Privacy and security",
-                  "Privacy settings will be available here."
-                )
+                navigation.navigate("PrivacyPolicy")
               }
             />
 
@@ -503,12 +468,7 @@ export default function ProfileScreen({
               icon="information-outline"
               title="About SnapSort AI"
               subtitle="Version 1.0.0"
-              onPress={() =>
-                Alert.alert(
-                  "About SnapSort AI",
-                  "SnapSort AI helps you make better everyday disposal decisions."
-                )
-              }
+              onPress={() => navigation.navigate("About")}
             />
           </View>
 
@@ -585,68 +545,6 @@ function SectionHeader({
         {title}
       </Text>
     </View>
-  );
-}
-
-function QuickAction({
-  icon,
-  title,
-  subtitle,
-  iconColor,
-  iconBackground,
-  onPress,
-}: {
-  icon: IconName;
-  title: string;
-  subtitle: string;
-  iconColor: string;
-  iconBackground: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      style={styles.quickAction}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={title}
-    >
-      <View
-        style={[
-          styles.quickActionIcon,
-          {
-            backgroundColor: iconBackground,
-          },
-        ]}
-      >
-        <MaterialCommunityIcons
-          name={icon}
-          size={19}
-          color={iconColor}
-        />
-      </View>
-
-      <Text
-        style={styles.quickActionTitle}
-        numberOfLines={1}
-      >
-        {title}
-      </Text>
-
-      <Text
-        style={styles.quickActionSubtitle}
-        numberOfLines={1}
-      >
-        {subtitle}
-      </Text>
-
-      <View style={styles.quickActionArrow}>
-        <MaterialCommunityIcons
-          name="arrow-top-right"
-          size={14}
-          color={iconColor}
-        />
-      </View>
-    </Pressable>
   );
 }
 
@@ -818,36 +716,6 @@ const styles = StyleSheet.create({
     width: "100%",
     flex: 1,
     alignSelf: "center",
-  },
-
-  heroGlowTop: {
-    position: "absolute",
-    top: -115,
-    left: -95,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: "rgba(255,255,255,0.07)",
-  },
-
-  heroGlowRight: {
-    position: "absolute",
-    top: 115,
-    right: -95,
-    width: 230,
-    height: 230,
-    borderRadius: 115,
-    backgroundColor: "rgba(255,255,255,0.05)",
-  },
-
-  heroGlowBottom: {
-    position: "absolute",
-    bottom: -135,
-    left: "16%",
-    width: 300,
-    height: 190,
-    borderRadius: 150,
-    backgroundColor: "rgba(0,0,0,0.07)",
   },
 
   topBar: {
@@ -1024,51 +892,38 @@ const styles = StyleSheet.create({
 
   heroArt: {
     position: "absolute",
-    right: -9,
-    bottom: 26,
-    width: 137,
-    height: 115,
+    right: 2,
+    bottom: 31,
+    width: 118,
+    height: 105,
   },
 
-  artLargeLeaf: {
+  headerLeafIcon: {
     position: "absolute",
-    top: 0,
-    right: 9,
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    top: 2,
+    right: 7,
     transform: [
       {
-        rotate: "-17deg",
+        rotate: "-18deg",
       },
     ],
   },
 
-  artSprout: {
+  headerSproutIcon: {
     position: "absolute",
-    left: 0,
-    bottom: 5,
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    left: 4,
+    bottom: 16,
+    transform: [
+      {
+        rotate: "-8deg",
+      },
+    ],
   },
 
-  artRecycle: {
+  headerRecycleIcon: {
     position: "absolute",
-    right: 3,
-    bottom: 1,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    right: 11,
+    bottom: 7,
   },
 
   artDotOne: {
@@ -1226,65 +1081,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginLeft: 8,
     backgroundColor: WHITE,
-  },
-
-  quickActionRow: {
-    flexDirection: "row",
-    marginTop: 10,
-  },
-
-  quickActionLeft: {
-    flex: 1,
-    marginRight: 5,
-  },
-
-  quickActionRight: {
-    flex: 1,
-    marginLeft: 5,
-  },
-
-  quickAction: {
-    position: "relative",
-    minHeight: 125,
-    padding: 12,
-    borderRadius: 21,
-    backgroundColor: WHITE,
-    borderWidth: 1,
-    borderColor: "#E3ECE5",
-  },
-
-  quickActionIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  quickActionTitle: {
-    fontFamily: "Poppins_600SemiBold",
-    color: TEXT,
-    fontSize: 10,
-    marginTop: 10,
-  },
-
-  quickActionSubtitle: {
-    fontFamily: "Poppins_400Regular",
-    color: MUTED,
-    fontSize: 8,
-    marginTop: 2,
-  },
-
-  quickActionArrow: {
-    position: "absolute",
-    right: 11,
-    bottom: 11,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F4F8F4",
   },
 
   settingsCard: {

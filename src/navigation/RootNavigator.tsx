@@ -14,11 +14,17 @@ import RegisterScreen from "../screens/auth/RegisterScreen";
 import ForgotPasswordScreen from "../screens/auth/ForgotPasswordScreen";
 
 import HomeScreen from "../screens/home/HomeScreen";
+
 import CameraScreen from "../screens/scan/CameraScreen";
 import PreviewScreen from "../screens/scan/PreviewScreen";
 import ResultScreen from "../screens/scan/ResultScreen";
+
 import HistoryScreen from "../screens/history/HistoryScreen";
+
 import ProfileScreen from "../screens/profile/ProfileScreen";
+import NotificationsScreen from "../screens/profile/NotificationsScreen";
+import PrivacyPolicyScreen from "../screens/profile/PrivacyPolicyScreen";
+import AboutScreen from "../screens/profile/AboutScreen";
 
 import { colors } from "../constants/theme";
 import { useAuthStore } from "../stores/auth.store";
@@ -63,9 +69,7 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={defaultScreenOptions}
-      >
+      <Stack.Navigator screenOptions={defaultScreenOptions}>
         {!user ? (
           <>
             <Stack.Screen
@@ -144,6 +148,30 @@ export default function RootNavigator() {
                 animation: "slide_from_right",
               }}
             />
+
+            <Stack.Screen
+              name="Notifications"
+              component={NotificationsScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+
+            <Stack.Screen
+              name="PrivacyPolicy"
+              component={PrivacyPolicyScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+
+            <Stack.Screen
+              name="About"
+              component={AboutScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
           </>
         )}
       </Stack.Navigator>
@@ -176,11 +204,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.background,
   },
+
   loadingCard: {
-    alignItems: "center",
-    justifyContent: "center",
     width: 150,
     minHeight: 150,
+    alignItems: "center",
+    justifyContent: "center",
     padding: 22,
     borderRadius: 28,
     backgroundColor: colors.surface,
@@ -195,6 +224,7 @@ const styles = StyleSheet.create({
     },
     elevation: 4,
   },
+
   loadingLogo: {
     width: 54,
     height: 54,
@@ -204,11 +234,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: colors.primary,
   },
+
   leafIcon: {
     position: "relative",
     width: 27,
     height: 30,
   },
+
   leafStem: {
     position: "absolute",
     left: 13,
@@ -223,6 +255,7 @@ const styles = StyleSheet.create({
       },
     ],
   },
+
   leafShape: {
     position: "absolute",
     top: 2,
@@ -240,16 +273,19 @@ const styles = StyleSheet.create({
       },
     ],
   },
+
   loadingText: {
     alignItems: "center",
     marginTop: 12,
   },
+
   loadingLineLarge: {
     width: 78,
     height: 7,
     borderRadius: 4,
     backgroundColor: colors.primaryLight,
   },
+
   loadingLineSmall: {
     width: 51,
     height: 5,
