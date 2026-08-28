@@ -8,6 +8,7 @@ import {
   Switch,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,6 +27,8 @@ type IconName = React.ComponentProps<
 const WHITE = "#FFFFFF";
 const BACKGROUND = "#FFFEFA";
 const FOREST = "#075C34";
+const DEEP_FOREST = "#04331D";
+const EMERALD = "#16824B";
 const TEXT = "#17271D";
 const MUTED = "#6D7B72";
 const LIGHT_GREEN = "#EAF7EE";
@@ -58,13 +61,16 @@ export default function NotificationsScreen({
   const handleQuietHours = () => {
     Alert.alert(
       "Quiet hours",
-      "Quiet hours are currently disabled. You can add time selection here later."
+      "Quiet hours are currently disabled. You can connect a time selector here later."
     );
   };
 
   return (
     <View style={styles.screen}>
-      <View
+      <LinearGradient
+        colors={[DEEP_FOREST, FOREST, EMERALD]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={[
           styles.header,
           {
@@ -75,25 +81,44 @@ export default function NotificationsScreen({
           },
         ]}
       >
-        <Pressable
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <MaterialCommunityIcons
-            name="arrow-left"
-            size={22}
-            color={TEXT}
-          />
-        </Pressable>
+        <View style={styles.headerTopRow}>
+          <Pressable
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={21}
+              color={WHITE}
+            />
+          </Pressable>
 
-        <Text style={styles.headerTitle}>
-          Notifications
-        </Text>
+          <Text style={styles.headerTitle}>
+            Notifications
+          </Text>
 
-        <View style={styles.headerSpace} />
-      </View>
+          <View style={styles.headerSpace} />
+        </View>
+
+        <View style={styles.headerContent}>
+          <Text style={styles.headerEyebrow}>
+            PREFERENCES
+          </Text>
+
+          <Text style={styles.headerDescription}>
+            Manage reminders, app updates, and helpful activity alerts.
+          </Text>
+        </View>
+
+        <MaterialCommunityIcons
+          name="bell-outline"
+          size={72}
+          color="rgba(255,255,255,0.10)"
+          style={styles.headerIcon}
+        />
+      </LinearGradient>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -101,24 +126,36 @@ export default function NotificationsScreen({
           styles.content,
           {
             paddingBottom: Math.max(
-              insets.bottom + 28,
-              36
+              insets.bottom + 30,
+              40
             ),
           },
         ]}
       >
-        <Text style={styles.pageTitle}>
-          Stay in control
-        </Text>
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryIcon}>
+            <MaterialCommunityIcons
+              name="bell-ring-outline"
+              size={20}
+              color={FOREST}
+            />
+          </View>
 
-        <Text style={styles.pageDescription}>
-          Choose the updates and reminders you would like
-          to receive from SnapSort AI.
-        </Text>
+          <View style={styles.summaryCopy}>
+            <Text style={styles.summaryTitle}>
+              Notification preferences
+            </Text>
 
-        <Text style={styles.sectionLabel}>
-          REMINDERS
-        </Text>
+            <Text style={styles.summaryText}>
+              Choose which updates are helpful for you.
+            </Text>
+          </View>
+        </View>
+
+        <SectionHeader
+          label="REMINDERS"
+          title="Stay mindful"
+        />
 
         <View style={styles.card}>
           <ToggleRow
@@ -184,15 +221,16 @@ export default function NotificationsScreen({
           </Pressable>
         </View>
 
-        <Text style={styles.sectionLabel}>
-          ACTIVITY
-        </Text>
+        <SectionHeader
+          label="ACTIVITY"
+          title="SnapSort updates"
+        />
 
         <View style={styles.card}>
           <ToggleRow
             icon="chart-line"
             title="Weekly impact summary"
-            subtitle="See a weekly summary of your activity"
+            subtitle="Receive a summary of your activity"
             value={weeklySummary}
             onChange={setWeeklySummary}
           />
@@ -212,15 +250,16 @@ export default function NotificationsScreen({
           <ToggleRow
             icon="update"
             title="App updates"
-            subtitle="Important updates and improvements"
+            subtitle="Important product improvements"
             value={productUpdates}
             onChange={setProductUpdates}
           />
         </View>
 
-        <Text style={styles.sectionLabel}>
-          PREFERENCES
-        </Text>
+        <SectionHeader
+          label="PREFERENCES"
+          title="Control interruptions"
+        />
 
         <View style={styles.card}>
           <Pressable
@@ -257,12 +296,31 @@ export default function NotificationsScreen({
           />
 
           <Text style={styles.infoText}>
-            You can update these preferences anytime.
-            Device notification permissions are managed
-            in your phone settings.
+            Device notification permissions can be managed
+            from your phone settings at any time.
           </Text>
         </View>
       </ScrollView>
+    </View>
+  );
+}
+
+function SectionHeader({
+  label,
+  title,
+}: {
+  label: string;
+  title: string;
+}) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionLabel}>
+        {label}
+      </Text>
+
+      <Text style={styles.sectionTitle}>
+        {title}
+      </Text>
     </View>
   );
 }
@@ -342,14 +400,15 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    minHeight: 70,
+    minHeight: 165,
+    overflow: "hidden",
+    paddingHorizontal: 20,
+  },
+
+  headerTopRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    backgroundColor: WHITE,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
   },
 
   backButton: {
@@ -358,12 +417,14 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: LIGHT_GREEN,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.22)",
   },
 
   headerTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: TEXT,
+    color: WHITE,
     fontSize: 15,
   },
 
@@ -372,24 +433,78 @@ const styles = StyleSheet.create({
     height: 42,
   },
 
+  headerContent: {
+    maxWidth: 270,
+    marginTop: 20,
+  },
+
+  headerEyebrow: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#D7F8E1",
+    fontSize: 8,
+    letterSpacing: 1.2,
+  },
+
+  headerDescription: {
+    fontFamily: "Poppins_400Regular",
+    color: "rgba(255,255,255,0.82)",
+    fontSize: 11,
+    lineHeight: 17,
+    marginTop: 5,
+  },
+
+  headerIcon: {
+    position: "absolute",
+    right: -8,
+    bottom: -12,
+  },
+
   content: {
     paddingHorizontal: 20,
-    paddingTop: 26,
+    paddingTop: 22,
   },
 
-  pageTitle: {
-    fontFamily: "Poppins_700Bold",
+  summaryCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 20,
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+
+  summaryIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: LIGHT_GREEN,
+  },
+
+  summaryCopy: {
+    flex: 1,
+    marginLeft: 10,
+  },
+
+  summaryTitle: {
+    fontFamily: "Poppins_600SemiBold",
     color: TEXT,
-    fontSize: 24,
+    fontSize: 11,
   },
 
-  pageDescription: {
-    maxWidth: 330,
+  summaryText: {
     fontFamily: "Poppins_400Regular",
     color: MUTED,
-    fontSize: 11,
-    lineHeight: 18,
-    marginTop: 5,
+    fontSize: 9,
+    marginTop: 2,
+  },
+
+  sectionHeader: {
+    marginTop: 25,
+    marginBottom: 9,
+    marginLeft: 2,
   },
 
   sectionLabel: {
@@ -397,9 +512,13 @@ const styles = StyleSheet.create({
     color: FOREST,
     fontSize: 9,
     letterSpacing: 1.2,
-    marginTop: 26,
-    marginBottom: 9,
-    marginLeft: 2,
+  },
+
+  sectionTitle: {
+    fontFamily: "Poppins_700Bold",
+    color: TEXT,
+    fontSize: 16,
+    marginTop: 2,
   },
 
   card: {
