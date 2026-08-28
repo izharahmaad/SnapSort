@@ -35,10 +35,12 @@ const DEEP_FOREST = "#073E23";
 const EMERALD = "#168047";
 const CREAM = "#FFFDF7";
 const LIGHT_GREEN = "#E8F6EB";
-const MID_GREEN = "#D3EDDA";
-const GOLD = "#D99A32";
-const LIGHT_RED = "#FFF1F0";
+const LIGHT_GOLD = "#FFF0D4";
+const LIGHT_BLUE = "#EAF0FF";
+const BLUE = "#426AC7";
+const GOLD = "#B56B0D";
 const RED = "#B3261E";
+const LIGHT_RED = "#FFF1F0";
 
 export default function ProfileScreen({
   navigation,
@@ -58,7 +60,7 @@ export default function ProfileScreen({
 
   const isTablet = width >= 700;
   const horizontalPadding = isTablet ? 38 : 20;
-  const maxContentWidth = isTablet ? 660 : undefined;
+  const contentMaxWidth = isTablet ? 660 : undefined;
 
   const displayName =
     user?.displayName?.trim() || "SnapSort user";
@@ -83,7 +85,7 @@ export default function ProfileScreen({
       if (!permission.granted) {
         Alert.alert(
           "Photo permission needed",
-          "Allow photo library access to choose a profile picture."
+          "Allow photo access to choose a profile picture."
         );
         return;
       }
@@ -124,7 +126,7 @@ export default function ProfileScreen({
 
     Alert.alert(
       "Sign out of SnapSort AI?",
-      "Your saved scans will remain connected to your account. You can sign in again anytime.",
+      "Your saved scans will remain linked to your account. You can sign in again anytime.",
       [
         {
           text: "Keep me signed in",
@@ -169,8 +171,8 @@ export default function ProfileScreen({
           styles.scrollContent,
           {
             paddingBottom: Math.max(
-              insets.bottom + 30,
-              38
+              insets.bottom + 28,
+              36
             ),
           },
         ]}
@@ -194,7 +196,7 @@ export default function ProfileScreen({
             style={[
               styles.headerInner,
               {
-                maxWidth: maxContentWidth,
+                maxWidth: contentMaxWidth,
                 paddingHorizontal: horizontalPadding,
               },
             ]}
@@ -213,72 +215,53 @@ export default function ProfileScreen({
                 />
               </Pressable>
 
-              <View style={styles.accountStatus}>
-                <View style={styles.statusDot} />
+              <View style={styles.headerLine} />
 
-                <Text style={styles.statusText}>
-                  Account active
-                </Text>
+              <View style={styles.headerLeaf}>
+                <MaterialCommunityIcons
+                  name="leaf"
+                  size={16}
+                  color="#FFFFFF"
+                />
               </View>
             </View>
 
             <View style={styles.headerCopy}>
-              <View style={styles.headerLabelRow}>
-                <MaterialCommunityIcons
-                  name="account-circle-outline"
-                  size={15}
-                  color="rgba(255,255,255,0.72)"
-                />
-
-                <Text style={styles.headerEyebrow}>
-                  MY ACCOUNT
-                </Text>
-              </View>
+              <Text style={styles.headerEyebrow}>
+                MY ACCOUNT
+              </Text>
 
               <Text style={styles.headerTitle}>
                 Profile
               </Text>
 
               <Text style={styles.headerSubtitle}>
-                Keep your account and sustainable habits in one place.
+                Manage your profile and account preferences.
               </Text>
             </View>
 
-            <View style={styles.headerIllustration}>
-              <View style={styles.artLeafLarge}>
-                <MaterialCommunityIcons
-                  name="leaf"
-                  size={30}
-                  color="rgba(255,255,255,0.18)"
-                />
-              </View>
+            <View style={styles.headerDecorOne}>
+              <MaterialCommunityIcons
+                name="leaf"
+                size={32}
+                color="rgba(255,255,255,0.14)"
+              />
+            </View>
 
-              <View style={styles.artSprout}>
-                <MaterialCommunityIcons
-                  name="sprout"
-                  size={22}
-                  color="rgba(255,255,255,0.16)"
-                />
-              </View>
+            <View style={styles.headerDecorTwo}>
+              <MaterialCommunityIcons
+                name="sprout"
+                size={21}
+                color="rgba(255,255,255,0.13)"
+              />
+            </View>
 
-              <View style={styles.artFlower}>
-                <MaterialCommunityIcons
-                  name="flower-outline"
-                  size={18}
-                  color="rgba(255,255,255,0.15)"
-                />
-              </View>
-
-              <View style={styles.artRecycle}>
-                <MaterialCommunityIcons
-                  name="recycle"
-                  size={16}
-                  color="rgba(255,255,255,0.14)"
-                />
-              </View>
-
-              <View style={styles.artDotOne} />
-              <View style={styles.artDotTwo} />
+            <View style={styles.headerDecorThree}>
+              <MaterialCommunityIcons
+                name="recycle"
+                size={15}
+                color="rgba(255,255,255,0.12)"
+              />
             </View>
           </View>
         </LinearGradient>
@@ -287,7 +270,7 @@ export default function ProfileScreen({
           style={[
             styles.content,
             {
-              maxWidth: maxContentWidth,
+              maxWidth: contentMaxWidth,
               paddingHorizontal: horizontalPadding,
             },
           ]}
@@ -367,48 +350,43 @@ export default function ProfileScreen({
             </View>
           </View>
 
-          <View style={styles.journeySection}>
-            <Text style={styles.sectionLabel}>
-              YOUR JOURNEY
-            </Text>
+          <SectionHeader
+            label="YOUR JOURNEY"
+            title="Continue your journey"
+          />
 
-            <Text style={styles.sectionTitle}>
-              Continue your journey
-            </Text>
+          <Pressable
+            style={styles.journeyButton}
+            onPress={() => navigation.navigate("Camera")}
+            accessibilityRole="button"
+            accessibilityLabel="Scan your next item"
+          >
+            <View style={styles.journeyIcon}>
+              <MaterialCommunityIcons
+                name="camera-plus-outline"
+                size={21}
+                color="#FFFFFF"
+              />
+            </View>
 
-            <Pressable
-              style={styles.journeyButton}
-              onPress={() => navigation.navigate("Camera")}
-              accessibilityRole="button"
-              accessibilityLabel="Scan your next item"
-            >
-              <View style={styles.journeyIcon}>
-                <MaterialCommunityIcons
-                  name="camera-plus-outline"
-                  size={21}
-                  color="#FFFFFF"
-                />
-              </View>
+            <View style={styles.journeyCopy}>
+              <Text style={styles.journeyTitle}>
+                Scan your next item
+              </Text>
 
-              <View style={styles.journeyCopy}>
-                <Text style={styles.journeyTitle}>
-                  Scan your next item
-                </Text>
+              <Text style={styles.journeySubtitle}>
+                Get clear disposal guidance in seconds.
+              </Text>
+            </View>
 
-                <Text style={styles.journeySubtitle}>
-                  Get clear disposal guidance in seconds.
-                </Text>
-              </View>
-
-              <View style={styles.journeyArrow}>
-                <MaterialCommunityIcons
-                  name="arrow-right"
-                  size={17}
-                  color={FOREST}
-                />
-              </View>
-            </Pressable>
-          </View>
+            <View style={styles.journeyArrow}>
+              <MaterialCommunityIcons
+                name="arrow-right"
+                size={17}
+                color={FOREST}
+              />
+            </View>
+          </Pressable>
 
           <View style={styles.miniActionRow}>
             <MiniAction
@@ -424,21 +402,16 @@ export default function ProfileScreen({
               icon="sprout"
               title="Impact"
               subtitle="Your habits"
-              color="#A8640C"
-              background="#FFF0D5"
+              color={GOLD}
+              background={LIGHT_GOLD}
               onPress={() => navigation.navigate("History")}
             />
           </View>
 
-          <View style={styles.settingsHeader}>
-            <Text style={styles.sectionLabel}>
-              SETTINGS
-            </Text>
-
-            <Text style={styles.sectionTitle}>
-              Account details
-            </Text>
-          </View>
+          <SectionHeader
+            label="SETTINGS"
+            title="Account details"
+          />
 
           <View style={styles.settingsCard}>
             <InfoRow
@@ -584,7 +557,7 @@ function SignedOutState({
       </Text>
 
       <Text style={styles.emptyText}>
-        Sign in to access saved scans and your account preferences.
+        Sign in to access saved scans and account preferences.
       </Text>
 
       <Pressable
@@ -603,6 +576,26 @@ function SignedOutState({
           color="#FFFFFF"
         />
       </Pressable>
+    </View>
+  );
+}
+
+function SectionHeader({
+  label,
+  title,
+}: {
+  label: string;
+  title: string;
+}) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionLabel}>
+        {label}
+      </Text>
+
+      <Text style={styles.sectionTitle}>
+        {title}
+      </Text>
     </View>
   );
 }
@@ -795,36 +788,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.24)",
   },
-  accountStatus: {
-    flexDirection: "row",
+  headerLine: {
+    flex: 1,
+    height: 1,
+    marginHorizontal: 13,
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+  headerLeaf: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.13)",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.14)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#B8F3C6",
-  },
-  statusText: {
-    fontFamily: "Poppins_600SemiBold",
-    color: "#FFFFFF",
-    fontSize: 9,
+    borderColor: "rgba(255,255,255,0.20)",
   },
   headerCopy: {
-    maxWidth: 335,
+    maxWidth: 330,
     marginTop: 22,
-  },
-  headerLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
   },
   headerEyebrow: {
     fontFamily: "Poppins_600SemiBold",
@@ -838,7 +820,7 @@ const styles = StyleSheet.create({
     fontSize: 31,
     lineHeight: 38,
     letterSpacing: -0.7,
-    marginTop: 5,
+    marginTop: 4,
   },
   headerSubtitle: {
     maxWidth: 290,
@@ -848,49 +830,21 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     marginTop: 3,
   },
-  headerIllustration: {
+  headerDecorOne: {
     position: "absolute",
-    right: -10,
-    bottom: -10,
-    width: 170,
-    height: 135,
-  },
-  artLeafLarge: {
-    position: "absolute",
-    right: 9,
-    top: 13,
-    width: 66,
-    height: 66,
-    borderRadius: 33,
+    top: 76,
+    right: 23,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.06)",
-    transform: [
-      {
-        rotate: "-16deg",
-      },
-    ],
   },
-  artSprout: {
+  headerDecorTwo: {
     position: "absolute",
-    left: 33,
-    bottom: 27,
-    width: 47,
-    height: 47,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
-    transform: [
-      {
-        rotate: "13deg",
-      },
-    ],
-  },
-  artFlower: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
+    right: 79,
+    bottom: 25,
     width: 42,
     height: 42,
     borderRadius: 21,
@@ -898,34 +852,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.05)",
   },
-  artRecycle: {
+  headerDecorThree: {
     position: "absolute",
-    left: 4,
-    top: 28,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    right: 25,
+    bottom: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.05)",
-  },
-  artDotOne: {
-    position: "absolute",
-    top: 20,
-    left: 54,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "rgba(255,255,255,0.26)",
-  },
-  artDotTwo: {
-    position: "absolute",
-    bottom: 11,
-    left: 89,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.30)",
   },
 
   content: {
@@ -1035,11 +971,10 @@ const styles = StyleSheet.create({
     backgroundColor: LIGHT_GREEN,
   },
 
-  journeySection: {
-    marginTop: 20,
-  },
   sectionHeader: {
-    marginTop: 24,
+    marginTop: 22,
+    marginBottom: 9,
+    marginLeft: 2,
   },
   sectionLabel: {
     fontFamily: "Poppins_600SemiBold",
@@ -1059,7 +994,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginTop: 9,
     borderRadius: 38,
     backgroundColor: LIGHT_GREEN,
     borderWidth: 1,
@@ -1139,11 +1073,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
-  settingsHeader: {
-    marginTop: 24,
-  },
   settingsCard: {
-    marginTop: 9,
     paddingHorizontal: 14,
     borderRadius: 22,
     backgroundColor: "#FFFFFF",
@@ -1155,7 +1085,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  accountIcon: {
+  settingsIcon: {
     width: 38,
     height: 38,
     borderRadius: 19,
@@ -1205,14 +1135,6 @@ const styles = StyleSheet.create({
     backgroundColor: LIGHT_RED,
     borderWidth: 1,
     borderColor: "#F0C9C6",
-    shadowColor: "#7A1D18",
-    shadowOpacity: 0.07,
-    shadowRadius: 7,
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    elevation: 2,
   },
   signOutPressed: {
     opacity: 0.78,
