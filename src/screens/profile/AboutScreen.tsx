@@ -1,12 +1,13 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
   Alert,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import Constants from "expo-constants";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -25,33 +26,50 @@ type IconName = React.ComponentProps<
 const WHITE = "#FFFFFF";
 const BACKGROUND = "#FFFEFA";
 const FOREST = "#075C34";
-const DEEP_FOREST = "#04331D";
-const EMERALD = "#16824B";
 const TEXT = "#17271D";
 const MUTED = "#6D7B72";
 const LIGHT_GREEN = "#EAF7EE";
 const LIGHT_GOLD = "#FFF3DB";
 const GOLD = "#C98718";
 const BORDER = "#E2ECE4";
+const SUPPORT_EMAIL = "support@snapsort.ai";
 
 export default function AboutScreen({
   navigation,
 }: Props) {
   const insets = useSafeAreaInsets();
 
-  const handleSupport = () => {
+  const appVersion =
+    Constants.expoConfig?.version || "1.0.0";
+
+  const handleContactSupport = async () => {
+    const subject = encodeURIComponent(
+      "SnapSort AI support request"
+    );
+
+    const body = encodeURIComponent(
+      `Hello SnapSort AI Support,\n\nI need help with the app.\n\nApp version: ${appVersion}\n\n`
+    );
+
+    const emailUrl =
+      `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+
+    const canOpen = await Linking.canOpenURL(emailUrl);
+
+    if (canOpen) {
+      await Linking.openURL(emailUrl);
+      return;
+    }
+
     Alert.alert(
-      "Contact support",
-      "Add your real support email address or support link here before publishing the app."
+      "Email app unavailable",
+      `Please contact us at ${SUPPORT_EMAIL}.`
     );
   };
 
   return (
     <View style={styles.screen}>
-      <LinearGradient
-        colors={[DEEP_FOREST, FOREST, EMERALD]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <View
         style={[
           styles.header,
           {
@@ -62,44 +80,35 @@ export default function AboutScreen({
           },
         ]}
       >
-        <View style={styles.headerTopRow}>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
+        <Pressable
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <MaterialCommunityIcons
+            name="arrow-left"
+            size={21}
+            color={TEXT}
+          />
+        </Pressable>
+
+        <View style={styles.headerTitleRow}>
+          <View style={styles.headerIcon}>
             <MaterialCommunityIcons
-              name="arrow-left"
-              size={21}
-              color={WHITE}
+              name="information-outline"
+              size={16}
+              color={FOREST}
             />
-          </Pressable>
+          </View>
 
           <Text style={styles.headerTitle}>
             About
           </Text>
-
-          <View style={styles.headerSpace} />
         </View>
 
-        <View style={styles.headerContent}>
-          <Text style={styles.headerEyebrow}>
-            SNAPSort AI
-          </Text>
-
-          <Text style={styles.headerDescription}>
-            A simpler way to make smarter everyday disposal choices.
-          </Text>
-        </View>
-
-        <MaterialCommunityIcons
-          name="leaf"
-          size={78}
-          color="rgba(255,255,255,0.10)"
-          style={styles.headerIcon}
-        />
-      </LinearGradient>
+        <View style={styles.headerSpace} />
+      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -107,8 +116,8 @@ export default function AboutScreen({
           styles.content,
           {
             paddingBottom: Math.max(
-              insets.bottom + 28,
-              36
+              insets.bottom + 30,
+              40
             ),
           },
         ]}
@@ -117,7 +126,7 @@ export default function AboutScreen({
           <View style={styles.appIcon}>
             <MaterialCommunityIcons
               name="leaf"
-              size={26}
+              size={25}
               color={FOREST}
             />
           </View>
@@ -128,26 +137,29 @@ export default function AboutScreen({
             </Text>
 
             <Text style={styles.appVersion}>
-              Version 1.0.0
+              Version {appVersion}
             </Text>
           </View>
         </View>
 
-        <Text style={styles.description}>
-          SnapSort AI helps you understand what to do with
-          everyday items. Scan an item, review disposal
-          guidance, and make more sustainable choices over time.
+        <Text style={styles.pageTitle}>
+          Better disposal starts here.
+        </Text>
+
+        <Text style={styles.pageDescription}>
+          SnapSort AI helps you identify everyday items and
+          make clearer, more responsible disposal decisions.
         </Text>
 
         <Text style={styles.sectionLabel}>
-          WHAT WE HELP WITH
+          APP FEATURES
         </Text>
 
         <View style={styles.card}>
           <FeatureRow
             icon="camera-outline"
-            title="Smart item scans"
-            subtitle="Identify everyday items with your camera."
+            title="Scan everyday items"
+            subtitle="Use your camera to identify items quickly."
             iconColor={FOREST}
             iconBackground={LIGHT_GREEN}
           />
@@ -156,8 +168,8 @@ export default function AboutScreen({
 
           <FeatureRow
             icon="recycle"
-            title="Disposal guidance"
-            subtitle="Receive simple suggestions for responsible disposal."
+            title="Get disposal guidance"
+            subtitle="Understand practical next steps for an item."
             iconColor={FOREST}
             iconBackground={LIGHT_GREEN}
           />
@@ -165,9 +177,9 @@ export default function AboutScreen({
           <Divider />
 
           <FeatureRow
-            icon="sprout"
-            title="Better daily habits"
-            subtitle="Build practical sustainable habits one action at a time."
+            icon="history"
+            title="Review scan history"
+            subtitle="Return to previous scan results when needed."
             iconColor={GOLD}
             iconBackground={LIGHT_GOLD}
           />
@@ -180,25 +192,29 @@ export default function AboutScreen({
         <View style={styles.card}>
           <InfoRow
             icon="information-outline"
-            title="App version"
-            value="1.0.0"
+            title="Version"
+            value={appVersion}
           />
 
           <Divider />
 
           <InfoRow
-            icon="shield-check-outline"
-            title="Authentication"
-            value="Firebase connected"
+            icon="cellphone"
+            title="Platform"
+            value={Constants.platform?.ios
+              ? "iOS"
+              : Constants.platform?.android
+              ? "Android"
+              : "Expo"}
           />
 
           <Divider />
 
           <Pressable
             style={styles.supportRow}
-            onPress={handleSupport}
+            onPress={handleContactSupport}
             accessibilityRole="button"
-            accessibilityLabel="Contact support"
+            accessibilityLabel="Contact SnapSort AI support"
           >
             <View style={styles.supportIcon}>
               <MaterialCommunityIcons
@@ -214,7 +230,7 @@ export default function AboutScreen({
               </Text>
 
               <Text style={styles.supportSubtitle}>
-                Questions, feedback, or account help
+                Questions, feedback, or technical help
               </Text>
             </View>
 
@@ -229,7 +245,7 @@ export default function AboutScreen({
         <View style={styles.missionCard}>
           <MaterialCommunityIcons
             name="earth"
-            size={21}
+            size={20}
             color={FOREST}
           />
 
@@ -333,15 +349,14 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    minHeight: 165,
-    overflow: "hidden",
-    paddingHorizontal: 20,
-  },
-
-  headerTopRow: {
+    minHeight: 75,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 20,
+    backgroundColor: WHITE,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
   },
 
   backButton: {
@@ -350,14 +365,27 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.22)",
+    backgroundColor: LIGHT_GREEN,
+  },
+
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  headerIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+    backgroundColor: LIGHT_GREEN,
   },
 
   headerTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: WHITE,
+    color: TEXT,
     fontSize: 15,
   },
 
@@ -366,35 +394,9 @@ const styles = StyleSheet.create({
     height: 42,
   },
 
-  headerContent: {
-    maxWidth: 275,
-    marginTop: 20,
-  },
-
-  headerEyebrow: {
-    fontFamily: "Poppins_600SemiBold",
-    color: "#D7F8E1",
-    fontSize: 8,
-    letterSpacing: 1.2,
-  },
-
-  headerDescription: {
-    fontFamily: "Poppins_400Regular",
-    color: "rgba(255,255,255,0.82)",
-    fontSize: 11,
-    lineHeight: 17,
-    marginTop: 5,
-  },
-
-  headerIcon: {
-    position: "absolute",
-    right: -9,
-    bottom: -14,
-  },
-
   content: {
     paddingHorizontal: 20,
-    paddingTop: 22,
+    paddingTop: 26,
   },
 
   appCard: {
@@ -433,12 +435,20 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  description: {
+  pageTitle: {
+    fontFamily: "Poppins_700Bold",
+    color: TEXT,
+    fontSize: 23,
+    marginTop: 22,
+  },
+
+  pageDescription: {
+    maxWidth: 335,
     fontFamily: "Poppins_400Regular",
     color: MUTED,
     fontSize: 11,
     lineHeight: 18,
-    marginTop: 20,
+    marginTop: 5,
   },
 
   sectionLabel: {
@@ -446,7 +456,7 @@ const styles = StyleSheet.create({
     color: FOREST,
     fontSize: 9,
     letterSpacing: 1.2,
-    marginTop: 26,
+    marginTop: 27,
     marginBottom: 9,
     marginLeft: 2,
   },
