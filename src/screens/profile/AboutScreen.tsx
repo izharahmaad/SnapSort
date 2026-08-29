@@ -2,6 +2,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
   Alert,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,15 +25,19 @@ type IconName = React.ComponentProps<
 >["name"];
 
 const WHITE = "#FFFFFF";
-const BACKGROUND = "#FFFEFA";
+const BACKGROUND = "#F8FBF8";
 const FOREST = "#075C34";
+const DARK_FOREST = "#053D23";
 const TEXT = "#17271D";
 const MUTED = "#6D7B72";
 const LIGHT_GREEN = "#EAF7EE";
+const PALE_GREEN = "#F1FAF3";
 const LIGHT_GOLD = "#FFF3DB";
-const GOLD = "#C98718";
-const BORDER = "#E2ECE4";
+const GOLD = "#B97812";
+const BORDER = "#E1EBE3";
+
 const SUPPORT_EMAIL = "support@snapsort.ai";
+const WEBSITE_URL = "https://snapsort.ai";
 
 export default function AboutScreen({
   navigation,
@@ -42,36 +47,85 @@ export default function AboutScreen({
   const appVersion =
     Constants.expoConfig?.version || "1.0.0";
 
+  const platformName =
+    Platform.OS === "android"
+      ? "Android"
+      : Platform.OS === "ios"
+      ? "iOS"
+      : "Web";
+
+  const buildNumber = getBuildNumber();
+
   const handleContactSupport = async () => {
     const subject = encodeURIComponent(
       "SnapSort AI support request"
     );
 
     const body = encodeURIComponent(
-      `Hello SnapSort AI Support,\n\nI need help with the app.\n\nApp version: ${appVersion}\n\n`
+      [
+        "Hello SnapSort AI Support,",
+        "",
+        "I need help with the app.",
+        "",
+        `App version: ${appVersion}`,
+        `Build: ${buildNumber}`,
+        `Platform: ${platformName}`,
+        "",
+        "Please describe your issue below:",
+        "",
+      ].join("\n")
     );
 
     const emailUrl =
       `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
 
-    const canOpen = await Linking.canOpenURL(emailUrl);
+    try {
+      const canOpen = await Linking.canOpenURL(emailUrl);
 
-    if (canOpen) {
+      if (!canOpen) {
+        Alert.alert(
+          "Email app unavailable",
+          `Please contact us at ${SUPPORT_EMAIL}.`
+        );
+        return;
+      }
+
       await Linking.openURL(emailUrl);
-      return;
+    } catch {
+      Alert.alert(
+        "Could not open email",
+        `Please contact us at ${SUPPORT_EMAIL}.`
+      );
     }
+  };
 
-    Alert.alert(
-      "Email app unavailable",
-      `Please contact us at ${SUPPORT_EMAIL}.`
-    );
+  const handleOpenWebsite = async () => {
+    try {
+      const canOpen =
+        await Linking.canOpenURL(WEBSITE_URL);
+
+      if (!canOpen) {
+        Alert.alert(
+          "Website unavailable",
+          "Please try again later."
+        );
+        return;
+      }
+
+      await Linking.openURL(WEBSITE_URL);
+    } catch {
+      Alert.alert(
+        "Website unavailable",
+        "Please try again later."
+      );
+    }
   };
 
   return (
     <View style={styles.screen}>
       <View
         style={[
-          styles.header,
+          styles.topNavigation,
           {
             paddingTop: Math.max(
               insets.top + 10,
@@ -89,25 +143,15 @@ export default function AboutScreen({
           <MaterialCommunityIcons
             name="arrow-left"
             size={21}
-            color={TEXT}
+            color={DARK_FOREST}
           />
         </Pressable>
 
-        <View style={styles.headerTitleRow}>
-          <View style={styles.headerIcon}>
-            <MaterialCommunityIcons
-              name="information-outline"
-              size={16}
-              color={FOREST}
-            />
-          </View>
+        <Text style={styles.navigationTitle}>
+          About SnapSort AI
+        </Text>
 
-          <Text style={styles.headerTitle}>
-            About
-          </Text>
-        </View>
-
-        <View style={styles.headerSpace} />
+        <View style={styles.navigationSpace} />
       </View>
 
       <ScrollView
@@ -122,37 +166,58 @@ export default function AboutScreen({
           },
         ]}
       >
-        <View style={styles.appCard}>
-          <View style={styles.appIcon}>
+        <View style={styles.introSection}>
+          <View style={styles.brandMark}>
             <MaterialCommunityIcons
               name="leaf"
-              size={25}
-              color={FOREST}
+              size={29}
+              color={WHITE}
             />
           </View>
 
-          <View style={styles.appCopy}>
-            <Text style={styles.appName}>
-              SnapSort AI
-            </Text>
+          <Text style={styles.appName}>
+            SnapSort AI
+          </Text>
 
-            <Text style={styles.appVersion}>
+          <Text style={styles.tagline}>
+            Clearer choices for everyday items.
+          </Text>
+
+          <View style={styles.versionBadge}>
+            <MaterialCommunityIcons
+              name="check-circle-outline"
+              size={13}
+              color={FOREST}
+            />
+
+            <Text style={styles.versionText}>
               Version {appVersion}
             </Text>
           </View>
         </View>
 
-        <Text style={styles.pageTitle}>
-          Better disposal starts here.
-        </Text>
+        <View style={styles.overviewCard}>
+          <View style={styles.overviewAccent} />
 
-        <Text style={styles.pageDescription}>
-          SnapSort AI helps you identify everyday items and
-          make clearer, more responsible disposal decisions.
-        </Text>
+          <View style={styles.overviewContent}>
+            <Text style={styles.overviewLabel}>
+              OUR PURPOSE
+            </Text>
+
+            <Text style={styles.overviewTitle}>
+              Better disposal starts with understanding.
+            </Text>
+
+            <Text style={styles.overviewText}>
+              SnapSort AI helps you identify everyday items,
+              understand useful disposal guidance, and build
+              more sustainable habits over time.
+            </Text>
+          </View>
+        </View>
 
         <Text style={styles.sectionLabel}>
-          APP FEATURES
+          WHAT YOU CAN DO
         </Text>
 
         <View style={styles.card}>
@@ -168,8 +233,8 @@ export default function AboutScreen({
 
           <FeatureRow
             icon="recycle"
-            title="Get disposal guidance"
-            subtitle="Understand practical next steps for an item."
+            title="Understand disposal guidance"
+            subtitle="See practical next steps for the item you scanned."
             iconColor={FOREST}
             iconBackground={LIGHT_GREEN}
           />
@@ -179,58 +244,69 @@ export default function AboutScreen({
           <FeatureRow
             icon="history"
             title="Review scan history"
-            subtitle="Return to previous scan results when needed."
+            subtitle="Return to saved scan results when you need them."
             iconColor={GOLD}
             iconBackground={LIGHT_GOLD}
           />
         </View>
 
         <Text style={styles.sectionLabel}>
-          APP INFORMATION
+          APPLICATION DETAILS
         </Text>
 
         <View style={styles.card}>
-          <InfoRow
+          <DetailRow
             icon="information-outline"
-            title="Version"
+            title="App version"
             value={appVersion}
           />
 
           <Divider />
 
-          <InfoRow
+          <DetailRow
             icon="cellphone"
-            title="Platform"
-            value={Constants.platform?.ios
-              ? "iOS"
-              : Constants.platform?.android
-              ? "Android"
-              : "Expo"}
+            title="Current platform"
+            value={platformName}
           />
 
           <Divider />
 
+          <DetailRow
+            icon="source-branch"
+            title="Build"
+            value={buildNumber}
+          />
+        </View>
+
+        <Text style={styles.sectionLabel}>
+          HELP AND SUPPORT
+        </Text>
+
+        <View style={styles.card}>
           <Pressable
-            style={styles.supportRow}
+            style={({ pressed }) => [
+              styles.actionRow,
+              pressed && styles.pressedRow,
+            ]}
             onPress={handleContactSupport}
             accessibilityRole="button"
             accessibilityLabel="Contact SnapSort AI support"
           >
-            <View style={styles.supportIcon}>
+            <View style={styles.actionIcon}>
               <MaterialCommunityIcons
                 name="email-outline"
-                size={18}
+                size={19}
                 color={FOREST}
               />
             </View>
 
-            <View style={styles.supportCopy}>
-              <Text style={styles.supportTitle}>
+            <View style={styles.actionCopy}>
+              <Text style={styles.actionTitle}>
                 Contact support
               </Text>
 
-              <Text style={styles.supportSubtitle}>
-                Questions, feedback, or technical help
+              <Text style={styles.actionSubtitle}>
+                Get help, report an issue, or send feedback.
               </Text>
             </View>
 
@@ -240,19 +316,63 @@ export default function AboutScreen({
               color={MUTED}
             />
           </Pressable>
+
+          <Divider />
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionRow,
+              pressed && styles.pressedRow,
+            ]}
+            onPress={handleOpenWebsite}
+            accessibilityRole="button"
+            accessibilityLabel="Visit SnapSort AI website"
+          >
+            <View style={styles.actionIcon}>
+              <MaterialCommunityIcons
+                name="web"
+                size={19}
+                color={FOREST}
+              />
+            </View>
+
+            <View style={styles.actionCopy}>
+              <Text style={styles.actionTitle}>
+                Visit our website
+              </Text>
+
+              <Text style={styles.actionSubtitle}>
+                Learn more about SnapSort AI.
+              </Text>
+            </View>
+
+            <MaterialCommunityIcons
+              name="open-in-new"
+              size={18}
+              color={MUTED}
+            />
+          </Pressable>
         </View>
 
         <View style={styles.missionCard}>
-          <MaterialCommunityIcons
-            name="earth"
-            size={20}
-            color={FOREST}
-          />
+          <View style={styles.missionIcon}>
+            <MaterialCommunityIcons
+              name="earth"
+              size={20}
+              color={FOREST}
+            />
+          </View>
 
-          <Text style={styles.missionText}>
-            Our goal is to make sustainable disposal easier
-            to understand and easier to do.
-          </Text>
+          <View style={styles.missionCopy}>
+            <Text style={styles.missionLabel}>
+              OUR MISSION
+            </Text>
+
+            <Text style={styles.missionText}>
+              Make sustainable disposal easier to understand,
+              easier to access, and easier to do.
+            </Text>
+          </View>
         </View>
 
         <Text style={styles.footerText}>
@@ -306,7 +426,7 @@ function FeatureRow({
   );
 }
 
-function InfoRow({
+function DetailRow({
   icon,
   title,
   value,
@@ -316,8 +436,8 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <View style={styles.infoRow}>
-      <View style={styles.infoIcon}>
+    <View style={styles.detailRow}>
+      <View style={styles.detailIcon}>
         <MaterialCommunityIcons
           name={icon}
           size={18}
@@ -325,12 +445,12 @@ function InfoRow({
         />
       </View>
 
-      <View style={styles.infoCopy}>
-        <Text style={styles.infoTitle}>
+      <View style={styles.detailCopy}>
+        <Text style={styles.detailTitle}>
           {title}
         </Text>
 
-        <Text style={styles.infoValue}>
+        <Text style={styles.detailValue}>
           {value}
         </Text>
       </View>
@@ -342,21 +462,37 @@ function Divider() {
   return <View style={styles.divider} />;
 }
 
+function getBuildNumber() {
+  const androidBuild =
+    Constants.expoConfig?.android?.versionCode;
+
+  const iosBuild =
+    Constants.expoConfig?.ios?.buildNumber;
+
+  if (Platform.OS === "android" && androidBuild) {
+    return String(androidBuild);
+  }
+
+  if (Platform.OS === "ios" && iosBuild) {
+    return iosBuild;
+  }
+
+  return "Development";
+}
+
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: BACKGROUND,
   },
 
-  header: {
+  topNavigation: {
     minHeight: 75,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    backgroundColor: WHITE,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
+    backgroundColor: BACKGROUND,
   },
 
   backButton: {
@@ -368,86 +504,121 @@ const styles = StyleSheet.create({
     backgroundColor: LIGHT_GREEN,
   },
 
-  headerTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  headerIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 8,
-    backgroundColor: LIGHT_GREEN,
-  },
-
-  headerTitle: {
+  navigationTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: TEXT,
-    fontSize: 15,
+    fontSize: 14,
   },
 
-  headerSpace: {
+  navigationSpace: {
     width: 42,
     height: 42,
   },
 
   content: {
     paddingHorizontal: 20,
-    paddingTop: 26,
+    paddingTop: 8,
   },
 
-  appCard: {
-    flexDirection: "row",
+  introSection: {
     alignItems: "center",
-    padding: 14,
-    borderRadius: 20,
-    backgroundColor: WHITE,
-    borderWidth: 1,
-    borderColor: BORDER,
+    paddingTop: 16,
+    paddingBottom: 25,
   },
 
-  appIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+  brandMark: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: LIGHT_GREEN,
-  },
-
-  appCopy: {
-    marginLeft: 11,
+    backgroundColor: FOREST,
+    shadowColor: FOREST,
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    elevation: 3,
   },
 
   appName: {
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: "Poppins_700Bold",
     color: TEXT,
-    fontSize: 13,
+    fontSize: 22,
+    marginTop: 11,
   },
 
-  appVersion: {
+  tagline: {
     fontFamily: "Poppins_400Regular",
     color: MUTED,
-    fontSize: 9,
+    fontSize: 10,
+    textAlign: "center",
     marginTop: 2,
   },
 
-  pageTitle: {
-    fontFamily: "Poppins_700Bold",
-    color: TEXT,
-    fontSize: 23,
-    marginTop: 22,
+  versionBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    marginTop: 11,
+    borderRadius: 13,
+    backgroundColor: LIGHT_GREEN,
   },
 
-  pageDescription: {
-    maxWidth: 335,
+  versionText: {
+    fontFamily: "Poppins_600SemiBold",
+    color: FOREST,
+    fontSize: 8,
+    marginLeft: 4,
+  },
+
+  overviewCard: {
+    position: "relative",
+    overflow: "hidden",
+    minHeight: 145,
+    borderRadius: 23,
+    backgroundColor: PALE_GREEN,
+    borderWidth: 1,
+    borderColor: "#D8ECDD",
+  },
+
+  overviewAccent: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: 5,
+    backgroundColor: FOREST,
+  },
+
+  overviewContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 19,
+  },
+
+  overviewLabel: {
+    fontFamily: "Poppins_600SemiBold",
+    color: FOREST,
+    fontSize: 8,
+    letterSpacing: 1.2,
+  },
+
+  overviewTitle: {
+    fontFamily: "Poppins_700Bold",
+    color: TEXT,
+    fontSize: 16,
+    lineHeight: 22,
+    marginTop: 6,
+  },
+
+  overviewText: {
     fontFamily: "Poppins_400Regular",
     color: MUTED,
-    fontSize: 11,
-    lineHeight: 18,
+    fontSize: 10,
+    lineHeight: 16,
     marginTop: 5,
   },
 
@@ -463,22 +634,22 @@ const styles = StyleSheet.create({
 
   card: {
     paddingHorizontal: 14,
-    borderRadius: 20,
+    borderRadius: 21,
     backgroundColor: WHITE,
     borderWidth: 1,
     borderColor: BORDER,
   },
 
   featureRow: {
-    minHeight: 72,
+    minHeight: 73,
     flexDirection: "row",
     alignItems: "center",
   },
 
   featureIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 41,
+    height: 41,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -503,13 +674,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  infoRow: {
-    minHeight: 63,
+  detailRow: {
+    minHeight: 64,
     flexDirection: "row",
     alignItems: "center",
   },
 
-  infoIcon: {
+  detailIcon: {
     width: 39,
     height: 39,
     borderRadius: 20,
@@ -518,51 +689,56 @@ const styles = StyleSheet.create({
     backgroundColor: LIGHT_GREEN,
   },
 
-  infoCopy: {
+  detailCopy: {
     flex: 1,
     marginLeft: 10,
   },
 
-  infoTitle: {
+  detailTitle: {
     fontFamily: "Poppins_400Regular",
     color: MUTED,
     fontSize: 9,
   },
 
-  infoValue: {
+  detailValue: {
     fontFamily: "Poppins_600SemiBold",
     color: TEXT,
     fontSize: 10,
     marginTop: 2,
   },
 
-  supportRow: {
-    minHeight: 68,
+  actionRow: {
+    minHeight: 70,
     flexDirection: "row",
     alignItems: "center",
   },
 
-  supportIcon: {
-    width: 39,
-    height: 39,
+  pressedRow: {
+    opacity: 0.65,
+  },
+
+  actionIcon: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: LIGHT_GREEN,
   },
 
-  supportCopy: {
+  actionCopy: {
     flex: 1,
+    minWidth: 0,
     marginLeft: 10,
   },
 
-  supportTitle: {
+  actionTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: TEXT,
     fontSize: 10,
   },
 
-  supportSubtitle: {
+  actionSubtitle: {
     fontFamily: "Poppins_400Regular",
     color: MUTED,
     fontSize: 9,
@@ -571,7 +747,7 @@ const styles = StyleSheet.create({
 
   divider: {
     height: 1,
-    marginLeft: 49,
+    marginLeft: 51,
     backgroundColor: "#E7EEE8",
   },
 
@@ -580,19 +756,39 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 14,
     marginTop: 24,
-    borderRadius: 19,
+    borderRadius: 21,
     backgroundColor: LIGHT_GREEN,
     borderWidth: 1,
     borderColor: "#CBE8D3",
   },
 
-  missionText: {
+  missionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: WHITE,
+  },
+
+  missionCopy: {
     flex: 1,
+    marginLeft: 10,
+  },
+
+  missionLabel: {
+    fontFamily: "Poppins_600SemiBold",
+    color: FOREST,
+    fontSize: 8,
+    letterSpacing: 1.1,
+  },
+
+  missionText: {
     fontFamily: "Poppins_500Medium",
     color: FOREST,
     fontSize: 10,
     lineHeight: 16,
-    marginLeft: 9,
+    marginTop: 3,
   },
 
   footerText: {
@@ -600,6 +796,6 @@ const styles = StyleSheet.create({
     color: MUTED,
     fontSize: 9,
     textAlign: "center",
-    marginTop: 20,
+    marginTop: 21,
   },
 });
