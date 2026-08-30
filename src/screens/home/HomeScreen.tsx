@@ -934,7 +934,9 @@ export default function HomeScreen({
               icon="chart-line"
               title="Waste Journal"
               subtitle="Review your progress"
-              onPress={() => openScreen("WasteJournal")}
+              onPress={() =>
+                openScreen("WasteJournal")
+              }
             />
 
             <MenuItem
@@ -1177,7 +1179,7 @@ function BottomItem({
       >
         <MaterialCommunityIcons
           name={icon}
-          size={center ? 21 : 17}
+          size={center ? 19 : 17}
           color={WHITE}
         />
       </View>
@@ -1843,12 +1845,13 @@ const styles = StyleSheet.create({
   },
 
   centerBottomIcon: {
-    width: 41,
-    height: 41,
-    borderRadius: 21,
-    marginTop: -14,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginTop: -4,
     borderWidth: 2,
     borderColor: WHITE,
+    backgroundColor: FOREST,
   },
 
   bottomLabel: {
