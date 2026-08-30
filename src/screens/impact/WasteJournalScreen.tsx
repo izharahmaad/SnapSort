@@ -8,6 +8,7 @@ import {
 import {
   ActivityIndicator,
   Alert,
+  ImageBackground,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -59,7 +60,7 @@ type CategoryStat = CategoryMeta & {
 };
 
 const WHITE = "#FFFFFF";
-const BACKGROUND = "#F8FBF8";
+const BACKGROUND = "#F7FAF7";
 const FOREST = "#075C34";
 const DARK_FOREST = "#04351E";
 const EMERALD = "#16824B";
@@ -72,6 +73,10 @@ const GOLD = "#B97812";
 const BORDER = "#E1EBE3";
 
 const WEEKLY_GOAL = 3;
+
+const journalHeroImage = require(
+  "../../../assets/images/waste-journal-hero.png"
+);
 
 const fallbackCategoryMeta: CategoryMeta = {
   label: "Dispose",
@@ -381,8 +386,6 @@ export default function WasteJournalScreen({
     )[0];
   }, [categoryStats]);
 
-  const activePathways = categoryStats.length;
-
   const journalMessage = useMemo(
     () =>
       getJournalMessage({
@@ -392,13 +395,6 @@ export default function WasteJournalScreen({
       }),
     [totalScans, averageScore, topCategory]
   );
-
-  const weeklyGoalText =
-    scansThisWeek >= WEEKLY_GOAL
-      ? "Weekly goal completed"
-      : `${WEEKLY_GOAL - scansThisWeek} more scan${
-          WEEKLY_GOAL - scansThisWeek === 1 ? "" : "s"
-        } to reach your goal`;
 
   if (!user) {
     return (
@@ -422,7 +418,6 @@ export default function WasteJournalScreen({
         <Button
           mode="contained"
           buttonColor={FOREST}
-          contentStyle={styles.authButtonContent}
           onPress={() => navigation.navigate("Login")}
         >
           Sign in
@@ -434,19 +429,13 @@ export default function WasteJournalScreen({
   if (isLoading) {
     return (
       <View style={styles.centerScreen}>
-        <View style={styles.loadingIcon}>
-          <ActivityIndicator
-            size="large"
-            color={FOREST}
-          />
-        </View>
-
-        <Text style={styles.centerTitle}>
-          Loading your journal
-        </Text>
+        <ActivityIndicator
+          size="large"
+          color={FOREST}
+        />
 
         <Text style={styles.centerText}>
-          Bringing together your saved scan activity.
+          Loading your waste journal...
         </Text>
       </View>
     );
@@ -524,66 +513,77 @@ export default function WasteJournalScreen({
           </Pressable>
         </View>
 
-        <LinearGradient
-          colors={[DARK_FOREST, FOREST, EMERALD]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroCard}
+        <ImageBackground
+          source={journalHeroImage}
+          style={styles.imageHero}
+          imageStyle={styles.imageHeroStyle}
         >
-          <View style={styles.heroDecorationOne} />
-          <View style={styles.heroDecorationTwo} />
+          <LinearGradient
+            colors={[
+              "rgba(3,32,24,0.10)",
+              "rgba(3,32,24,0.35)",
+              "rgba(3,32,24,0.92)",
+            ]}
+            locations={[0, 0.42, 1]}
+            style={styles.imageHeroOverlay}
+          >
+            <View style={styles.imageHeroTop}>
+              <View style={styles.heroBadge}>
+                <MaterialCommunityIcons
+                  name="notebook-outline"
+                  size={14}
+                  color="#D9F8E2"
+                />
 
-          <View style={styles.heroTop}>
-            <View style={styles.heroBadge}>
-              <MaterialCommunityIcons
-                name="notebook-outline"
-                size={15}
-                color="#D9F8E2"
-              />
+                <Text style={styles.heroBadgeText}>
+                  PERSONAL JOURNAL
+                </Text>
+              </View>
 
-              <Text style={styles.heroBadgeText}>
-                PERSONAL JOURNAL
+              <View style={styles.heroSmallIcon}>
+                <MaterialCommunityIcons
+                  name="sprout"
+                  size={20}
+                  color={WHITE}
+                />
+              </View>
+            </View>
+
+            <View>
+              <Text style={styles.imageHeroTitle}>
+                Small choices,
+                {"\n"}
+                visible progress.
               </Text>
+
+              <Text style={styles.imageHeroText}>
+                Your saved scans turn everyday disposal decisions
+                into a clearer personal journal.
+              </Text>
+
+              <View style={styles.heroStats}>
+                <HeroStat
+                  value={String(totalScans)}
+                  label="Scans"
+                />
+
+                <View style={styles.heroStatsDivider} />
+
+                <HeroStat
+                  value={averageScore.toFixed(1)}
+                  label="Eco score"
+                />
+
+                <View style={styles.heroStatsDivider} />
+
+                <HeroStat
+                  value={String(categoryStats.length)}
+                  label="Pathways"
+                />
+              </View>
             </View>
-
-            <View style={styles.heroIcon}>
-              <MaterialCommunityIcons
-                name="sprout"
-                size={22}
-                color={WHITE}
-              />
-            </View>
-          </View>
-
-          <Text style={styles.heroTitle}>
-            Your everyday progress
-          </Text>
-
-          <Text style={styles.heroText}>
-            Every saved scan helps you understand your disposal habits.
-          </Text>
-
-          <View style={styles.heroStats}>
-            <HeroStat
-              value={String(totalScans)}
-              label="Saved scans"
-            />
-
-            <View style={styles.heroStatsDivider} />
-
-            <HeroStat
-              value={averageScore.toFixed(1)}
-              label="Eco score"
-            />
-
-            <View style={styles.heroStatsDivider} />
-
-            <HeroStat
-              value={String(activePathways)}
-              label="Pathways"
-            />
-          </View>
-        </LinearGradient>
+          </LinearGradient>
+        </ImageBackground>
 
         <View style={styles.weekCard}>
           <View style={styles.weekIcon}>
@@ -610,7 +610,13 @@ export default function WasteJournalScreen({
             </View>
 
             <Text style={styles.weekSubtitle}>
-              {weeklyGoalText}
+              {scansThisWeek >= WEEKLY_GOAL
+                ? "Weekly goal completed"
+                : `${WEEKLY_GOAL - scansThisWeek} more scan${
+                    WEEKLY_GOAL - scansThisWeek === 1
+                      ? ""
+                      : "s"
+                  } to reach your goal`}
             </Text>
 
             <View style={styles.progressTrack}>
@@ -688,7 +694,7 @@ export default function WasteJournalScreen({
         ) : (
           <EmptyJournalCard
             title="Your disposal mix is empty"
-            text="Scan an item to begin tracking the pathways you use."
+            text="Scan an item to begin tracking your pathways."
           />
         )}
 
@@ -979,36 +985,25 @@ const styles = StyleSheet.create({
     backgroundColor: LIGHT_GREEN,
   },
 
-  heroCard: {
-    position: "relative",
-    minHeight: 224,
+  imageHero: {
+    height: 285,
     overflow: "hidden",
-    padding: 18,
-    marginTop: 21,
-    borderRadius: 26,
+    marginTop: 20,
+    borderRadius: 25,
+    backgroundColor: DARK_FOREST,
   },
 
-  heroDecorationOne: {
-    position: "absolute",
-    top: -65,
-    right: -38,
-    width: 170,
-    height: 170,
-    borderRadius: 85,
-    backgroundColor: "rgba(255,255,255,0.07)",
+  imageHeroStyle: {
+    resizeMode: "cover",
   },
 
-  heroDecorationTwo: {
-    position: "absolute",
-    bottom: -55,
-    left: 36,
-    width: 145,
-    height: 145,
-    borderRadius: 73,
-    backgroundColor: "rgba(255,255,255,0.05)",
+  imageHeroOverlay: {
+    flex: 1,
+    justifyContent: "space-between",
+    padding: 17,
   },
 
-  heroTop: {
+  imageHeroTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -1020,9 +1015,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 13,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(0,0,0,0.27)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
+    borderColor: "rgba(255,255,255,0.22)",
   },
 
   heroBadgeText: {
@@ -1033,31 +1028,29 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
 
-  heroIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  heroSmallIcon: {
+    width: 39,
+    height: 39,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor: "rgba(255,255,255,0.15)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.20)",
+    borderColor: "rgba(255,255,255,0.22)",
   },
 
-  heroTitle: {
-    maxWidth: 255,
+  imageHeroTitle: {
     fontFamily: "Poppins_700Bold",
     color: WHITE,
-    fontSize: 23,
+    fontSize: 24,
     lineHeight: 30,
     letterSpacing: -0.4,
-    marginTop: 22,
   },
 
-  heroText: {
-    maxWidth: 275,
+  imageHeroText: {
+    maxWidth: 310,
     fontFamily: "Poppins_400Regular",
-    color: "rgba(255,255,255,0.82)",
+    color: "rgba(255,255,255,0.86)",
     fontSize: 10,
     lineHeight: 16,
     marginTop: 5,
@@ -1066,11 +1059,10 @@ const styles = StyleSheet.create({
   heroStats: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingTop: 15,
-    marginTop: 15,
+    marginTop: 14,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.16)",
+    borderTopColor: "rgba(255,255,255,0.20)",
   },
 
   heroStat: {
@@ -1086,7 +1078,7 @@ const styles = StyleSheet.create({
 
   heroStatLabel: {
     fontFamily: "Poppins_400Regular",
-    color: "rgba(255,255,255,0.72)",
+    color: "rgba(255,255,255,0.75)",
     fontSize: 8,
     marginTop: 1,
   },
@@ -1094,7 +1086,7 @@ const styles = StyleSheet.create({
   heroStatsDivider: {
     width: 1,
     height: 28,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(255,255,255,0.20)",
   },
 
   weekCard: {
@@ -1502,16 +1494,6 @@ const styles = StyleSheet.create({
     backgroundColor: LIGHT_GREEN,
   },
 
-  loadingIcon: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 14,
-    backgroundColor: LIGHT_GREEN,
-  },
-
   centerTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: TEXT,
@@ -1528,10 +1510,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 5,
     marginBottom: 16,
-  },
-
-  authButtonContent: {
-    height: 46,
-    paddingHorizontal: 12,
   },
 });
