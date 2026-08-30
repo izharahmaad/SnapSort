@@ -13,4 +13,6 @@ export type RootStackParamList = {
   Notifications: undefined;
   PrivacyPolicy: undefined;
   About: undefined;
+
+  WasteJournal: undefined;
 };

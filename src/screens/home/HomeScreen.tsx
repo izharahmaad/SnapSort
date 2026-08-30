@@ -1,7 +1,13 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   ImageBackground,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -15,10 +21,14 @@ import { Button, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors } from "../../constants/theme";
-import { RootStackParamList } from "../../navigation/types";
+import type { RootStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/auth.store";
+import { getUserScans } from "../../services/firebase/scans.service";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Home">;
+type Props = NativeStackScreenProps<
+  RootStackParamList,
+  "Home"
+>;
 
 type IconName = React.ComponentProps<
   typeof MaterialCommunityIcons
@@ -41,7 +51,21 @@ type PathwayItem = {
   image: number;
 };
 
-const heroImage = require("../../../assets/images/hero-leaf.png");
+const WHITE = "#FFFFFF";
+const BACKGROUND = "#F8FBF8";
+const FOREST = "#075C34";
+const DARK_FOREST = "#053D23";
+const TEXT = "#17271D";
+const MUTED = "#6D7B72";
+const LIGHT_GREEN = "#EAF7EE";
+const PALE_GREEN = "#F1FAF3";
+const GOLD = "#C98718";
+const LIGHT_GOLD = "#FFF3DB";
+const BORDER = "#E1EBE3";
+
+const heroImage = require(
+  "../../../assets/images/hero-leaf.png"
+);
 
 const pathways: PathwayItem[] = [
   {
@@ -80,8 +104,14 @@ const pathways: PathwayItem[] = [
 
 function getFirstName(
   displayName: string | null | undefined
-): string {
-  return displayName?.trim().split(/\s+/)[0] || "there";
+) {
+  const name = displayName?.trim();
+
+  if (!name) {
+    return "there";
+  }
+
+  return name.split(/\s+/)[0];
 }
 
 function getScanTitle(scan: any): string {
@@ -99,7 +129,7 @@ function getScanCategory(scan: any): string {
     scan.disposalMethod ||
       scan.category ||
       scan.recommendation ||
-      "REVIEW"
+      "Review"
   ).toUpperCase();
 }
 
@@ -111,7 +141,9 @@ function getScanScore(scan: any): number {
       0
   );
 
-  return Number.isFinite(score) ? score : 0;
+  return Number.isFinite(score)
+    ? Math.max(0, Math.min(10, score))
+    : 0;
 }
 
 function getScanDate(value: any): Date | null {
@@ -120,7 +152,9 @@ function getScanDate(value: any): Date | null {
     typeof value === "object" &&
     typeof value.toDate === "function"
   ) {
-    return value.toDate();
+    const date = value.toDate();
+
+    return date instanceof Date ? date : null;
   }
 
   if (!value) {
@@ -129,7 +163,9 @@ function getScanDate(value: any): Date | null {
 
   const date = new Date(value);
 
-  return Number.isNaN(date.getTime()) ? null : date;
+  return Number.isNaN(date.getTime())
+    ? null
+    : date;
 }
 
 function getTimeLabel(date: Date | null): string {
@@ -137,18 +173,20 @@ function getTimeLabel(date: Date | null): string {
     return "RECENTLY";
   }
 
-  const today = new Date();
+  const now = new Date();
 
   const isToday =
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear();
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear();
 
   if (isToday) {
-    return `TODAY, ${date.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    })}`;
+    return `TODAY, ${date
+      .toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+      .toUpperCase()}`;
   }
 
   return date
@@ -160,7 +198,9 @@ function getTimeLabel(date: Date | null): string {
     .toUpperCase();
 }
 
-function getScanIcon(category: string): IconName {
+function getScanIcon(
+  category: string
+): IconName {
   const value = category.toLowerCase();
 
   if (value.includes("recycl")) {
@@ -175,19 +215,24 @@ function getScanIcon(category: string): IconName {
     return "refresh";
   }
 
+  if (value.includes("hazard")) {
+    return "alert-outline";
+  }
+
   if (value.includes("donat")) {
     return "gift-outline";
   }
 
-  return "package-variant-closed";
+  return "delete-outline";
 }
 
-function getWeekStart(): Date {
+function getStartOfWeek(): Date {
   const today = new Date();
   const day = today.getDay();
   const offset = day === 0 ? -6 : 1 - day;
 
   const start = new Date(today);
+
   start.setDate(today.getDate() + offset);
   start.setHours(0, 0, 0, 0);
 
@@ -198,14 +243,23 @@ export default function HomeScreen({
   navigation,
 }: Props) {
   const insets = useSafeAreaInsets();
+
   const user = useAuthStore((state) => state.user);
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] =
+    useState(false);
+
+  const [isMenuOpen, setIsMenuOpen] =
+    useState(false);
+
+  const [isGuideOpen, setIsGuideOpen] =
+    useState(false);
+
   const [activePathway, setActivePathway] =
     useState("Recycle");
-  const [allScans, setAllScans] = useState<ScanItem[]>([]);
+
+  const [allScans, setAllScans] =
+    useState<ScanItem[]>([]);
 
   const firstName = getFirstName(user?.displayName);
 
@@ -216,17 +270,12 @@ export default function HomeScreen({
     }
 
     try {
-      const scansService = await import(
-        "../../services/firebase/scans.service"
-      );
-
-      const scans = await scansService.getUserScans(
-        user.uid
-      );
+      const scans = await getUserScans(user.uid);
 
       const formattedScans: ScanItem[] = scans.map(
         (scan: any) => {
           const category = getScanCategory(scan);
+
           const date = getScanDate(
             scan.createdAt ||
               scan.timestamp ||
@@ -245,11 +294,14 @@ export default function HomeScreen({
         }
       );
 
-      formattedScans.sort((a, b) => {
-        return (
-          (b.date?.getTime() || 0) -
-          (a.date?.getTime() || 0)
-        );
+      formattedScans.sort((first, second) => {
+        const firstTime =
+          first.date?.getTime() || 0;
+
+        const secondTime =
+          second.date?.getTime() || 0;
+
+        return secondTime - firstTime;
       });
 
       setAllScans(formattedScans);
@@ -259,13 +311,16 @@ export default function HomeScreen({
   }, [user]);
 
   useEffect(() => {
-    loadScans();
+    void loadScans();
   }, [loadScans]);
 
-  const recentScans = allScans.slice(0, 3);
+  const recentScans = useMemo(
+    () => allScans.slice(0, 3),
+    [allScans]
+  );
 
   const weeklyScans = useMemo(() => {
-    const weekStart = getWeekStart();
+    const weekStart = getStartOfWeek();
 
     return allScans.filter((scan) => {
       return scan.date !== null && scan.date >= weekStart;
@@ -294,7 +349,9 @@ export default function HomeScreen({
 
   const refreshDashboard = async () => {
     setIsRefreshing(true);
+
     await loadScans();
+
     setIsRefreshing(false);
   };
 
@@ -302,6 +359,7 @@ export default function HomeScreen({
     screen: keyof RootStackParamList
   ) => {
     setIsMenuOpen(false);
+
     navigation.navigate(screen as never);
   };
 
@@ -312,7 +370,7 @@ export default function HomeScreen({
           <MaterialCommunityIcons
             name="account-lock-outline"
             size={42}
-            color={colors.primary}
+            color={FOREST}
           />
         </View>
 
@@ -326,6 +384,7 @@ export default function HomeScreen({
 
         <Button
           mode="contained"
+          buttonColor={FOREST}
           icon="login"
           onPress={() => navigation.navigate("Login")}
         >
@@ -339,21 +398,21 @@ export default function HomeScreen({
     <View style={styles.root}>
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingBottom: insets.bottom + 105,
-          },
-        ]}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={refreshDashboard}
-            tintColor="#FFFFFF"
-            colors={["#FFFFFF"]}
+            tintColor={WHITE}
+            colors={[FOREST]}
           />
         }
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom: insets.bottom + 106,
+          },
+        ]}
       >
         <ImageBackground
           source={heroImage}
@@ -362,9 +421,9 @@ export default function HomeScreen({
         >
           <LinearGradient
             colors={[
-              "rgba(3,32,24,0.25)",
-              "rgba(3,32,24,0.02)",
-              "rgba(3,32,24,0.88)",
+              "rgba(3,32,24,0.30)",
+              "rgba(3,32,24,0.04)",
+              "rgba(3,32,24,0.90)",
             ]}
             locations={[0, 0.42, 1]}
             style={styles.heroOverlay}
@@ -373,18 +432,23 @@ export default function HomeScreen({
               style={[
                 styles.topBar,
                 {
-                  paddingTop: Math.max(insets.top, 10),
+                  paddingTop: Math.max(
+                    insets.top,
+                    10
+                  ),
                 },
               ]}
             >
               <Pressable
                 style={styles.headerButton}
                 onPress={() => setIsMenuOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Open menu"
               >
                 <MaterialCommunityIcons
                   name="menu"
                   size={25}
-                  color="#FFFFFF"
+                  color={WHITE}
                 />
               </Pressable>
 
@@ -394,12 +458,16 @@ export default function HomeScreen({
 
               <Pressable
                 style={styles.headerButton}
-                onPress={() => navigation.navigate("Profile")}
+                onPress={() =>
+                  navigation.navigate("Profile")
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Open profile"
               >
                 <MaterialCommunityIcons
                   name="account-circle-outline"
                   size={25}
-                  color="#FFFFFF"
+                  color={WHITE}
                 />
               </Pressable>
             </View>
@@ -410,23 +478,26 @@ export default function HomeScreen({
               </Text>
 
               <Text style={styles.heroTitle}>
-                Your footprint,{"\n"}evolved.
+                Your footprint,
+                {"\n"}
+                evolved.
               </Text>
 
               <Text style={styles.heroDescription}>
-                Every scan is a step towards a regenerative
-                future. Discover the hidden lifecycle of your
-                everyday items.
+                Every scan is a step toward a more thoughtful
+                future. Discover better choices for everyday items.
               </Text>
 
               <Pressable
                 style={styles.scanButton}
                 onPress={() => navigation.navigate("Camera")}
+                accessibilityRole="button"
+                accessibilityLabel="Scan an item"
               >
                 <MaterialCommunityIcons
                   name="camera-outline"
-                  size={22}
-                  color="#FFFFFF"
+                  size={21}
+                  color={WHITE}
                 />
 
                 <Text style={styles.scanButtonText}>
@@ -444,6 +515,8 @@ export default function HomeScreen({
               label="ITEMS SCANNED"
             />
 
+            <View style={styles.metricsDivider} />
+
             <Metric
               value={averageScore}
               label="ECO SCORE AVG"
@@ -457,7 +530,7 @@ export default function HomeScreen({
                   <MaterialCommunityIcons
                     name="calendar-check-outline"
                     size={18}
-                    color="#0B4E3E"
+                    color={FOREST}
                   />
                 </View>
 
@@ -467,7 +540,7 @@ export default function HomeScreen({
                   </Text>
 
                   <Text style={styles.weeklySubtitle}>
-                    {weeklyScans} of {weeklyGoal} scans
+                    {weeklyScans} of {weeklyGoal} scans completed
                   </Text>
                 </View>
               </View>
@@ -496,9 +569,11 @@ export default function HomeScreen({
 
             <Pressable
               onPress={() => navigation.navigate("History")}
+              accessibilityRole="button"
+              accessibilityLabel="View scan history"
             >
               <Text style={styles.sectionAction}>
-                VIEW ALL
+                VIEW HISTORY
               </Text>
             </Pressable>
           </View>
@@ -512,7 +587,9 @@ export default function HomeScreen({
               <PathwayCard
                 key={pathway.title}
                 pathway={pathway}
-                active={activePathway === pathway.title}
+                active={
+                  activePathway === pathway.title
+                }
                 onPress={() => {
                   setActivePathway(pathway.title);
                   navigation.navigate("Camera");
@@ -537,12 +614,14 @@ export default function HomeScreen({
           <Pressable
             style={styles.streakCard}
             onPress={() => navigation.navigate("Camera")}
+            accessibilityRole="button"
+            accessibilityLabel="Scan an item and build your streak"
           >
             <View style={styles.streakIcon}>
               <MaterialCommunityIcons
                 name="fire"
                 size={20}
-                color="#C66D17"
+                color={GOLD}
               />
             </View>
 
@@ -560,21 +639,23 @@ export default function HomeScreen({
               <MaterialCommunityIcons
                 name="arrow-right"
                 size={16}
-                color="#FFFFFF"
+                color={WHITE}
               />
             </View>
           </Pressable>
 
           <Pressable
             style={styles.guideCard}
-            onPress={() => setIsGuideOpen(!isGuideOpen)}
+            onPress={() => setIsGuideOpen((value) => !value)}
+            accessibilityRole="button"
+            accessibilityLabel="Open quick disposal guide"
           >
             <View style={styles.guideHeader}>
               <View style={styles.guideIcon}>
                 <MaterialCommunityIcons
                   name="book-open-variant"
                   size={19}
-                  color="#0B4E3E"
+                  color={FOREST}
                 />
               </View>
 
@@ -596,25 +677,25 @@ export default function HomeScreen({
                       : "chevron-down"
                   }
                   size={20}
-                  color="#0B4E3E"
+                  color={FOREST}
                 />
               </View>
             </View>
 
-            {isGuideOpen && (
+            {isGuideOpen ? (
               <View style={styles.guideDetails}>
                 <GuideRow
                   icon="recycle"
                   title="Recycle"
                   text="Clean and sort accepted materials."
-                  color="#E2F4E8"
+                  color={LIGHT_GREEN}
                 />
 
                 <GuideRow
                   icon="refresh"
                   title="Reuse"
                   text="Repair, donate, refill, or repurpose."
-                  color="#FFF0D5"
+                  color={LIGHT_GOLD}
                 />
 
                 <GuideRow
@@ -624,7 +705,7 @@ export default function HomeScreen({
                   color="#EEF0D9"
                 />
               </View>
-            )}
+            ) : null}
           </Pressable>
 
           <View style={styles.recentHeader}>
@@ -634,20 +715,25 @@ export default function HomeScreen({
 
             <Pressable
               onPress={() => navigation.navigate("History")}
+              accessibilityRole="button"
+              accessibilityLabel="Open scan history"
             >
               <Text style={styles.sectionAction}>
-                VIEW HISTORY
+                VIEW ALL
               </Text>
             </Pressable>
           </View>
 
           {recentScans.length > 0 ? (
-            <View>
-              {recentScans.map((scan) => (
-                <RecentScanRow
-                  key={scan.id}
-                  scan={scan}
-                />
+            <View style={styles.recentCard}>
+              {recentScans.map((scan, index) => (
+                <View key={scan.id}>
+                  <RecentScanRow scan={scan} />
+
+                  {index < recentScans.length - 1 ? (
+                    <View style={styles.recentDivider} />
+                  ) : null}
+                </View>
               ))}
             </View>
           ) : (
@@ -656,7 +742,7 @@ export default function HomeScreen({
                 <MaterialCommunityIcons
                   name="camera-outline"
                   size={20}
-                  color="#0B4E3E"
+                  color={FOREST}
                 />
               </View>
 
@@ -672,12 +758,16 @@ export default function HomeScreen({
 
               <Pressable
                 style={styles.arrowButton}
-                onPress={() => navigation.navigate("Camera")}
+                onPress={() =>
+                  navigation.navigate("Camera")
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Scan your first item"
               >
                 <MaterialCommunityIcons
                   name="arrow-right"
                   size={17}
-                  color="#FFFFFF"
+                  color={WHITE}
                 />
               </Pressable>
             </View>
@@ -689,7 +779,10 @@ export default function HomeScreen({
         style={[
           styles.footerWrapper,
           {
-            bottom: Math.max(insets.bottom + 7, 13),
+            bottom: Math.max(
+              insets.bottom + 8,
+              14
+            ),
           },
         ]}
       >
@@ -701,7 +794,6 @@ export default function HomeScreen({
           <BottomItem
             icon="home-variant"
             label="Home"
-            onPress={() => undefined}
           />
 
           <BottomItem
@@ -720,7 +812,9 @@ export default function HomeScreen({
           <BottomItem
             icon="chart-line"
             label="Impact"
-            onPress={() => setIsGuideOpen(true)}
+            onPress={() =>
+              navigation.navigate("WasteJournal")
+            }
           />
 
           <BottomItem
@@ -731,7 +825,12 @@ export default function HomeScreen({
         </BlurView>
       </View>
 
-      {isMenuOpen && (
+      <Modal
+        visible={isMenuOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setIsMenuOpen(false)}
+      >
         <View style={styles.menuLayer}>
           <Pressable
             style={styles.menuBackdrop}
@@ -742,8 +841,14 @@ export default function HomeScreen({
             style={[
               styles.sideMenu,
               {
-                paddingTop: Math.max(insets.top, 20),
-                paddingBottom: Math.max(insets.bottom, 20),
+                paddingTop: Math.max(
+                  insets.top + 16,
+                  30
+                ),
+                paddingBottom: Math.max(
+                  insets.bottom + 18,
+                  28
+                ),
               },
             ]}
           >
@@ -761,11 +866,13 @@ export default function HomeScreen({
               <Pressable
                 style={styles.closeButton}
                 onPress={() => setIsMenuOpen(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Close menu"
               >
                 <MaterialCommunityIcons
                   name="close"
                   size={20}
-                  color="#FFFFFF"
+                  color={WHITE}
                 />
               </Pressable>
             </View>
@@ -773,6 +880,8 @@ export default function HomeScreen({
             <Pressable
               style={styles.menuProfile}
               onPress={() => openScreen("Profile")}
+              accessibilityRole="button"
+              accessibilityLabel="Open profile"
             >
               <View style={styles.menuAvatar}>
                 <Text style={styles.menuAvatarText}>
@@ -781,11 +890,17 @@ export default function HomeScreen({
               </View>
 
               <View style={styles.menuProfileCopy}>
-                <Text style={styles.menuName}>
+                <Text
+                  style={styles.menuName}
+                  numberOfLines={1}
+                >
                   {user.displayName || "SnapSort user"}
                 </Text>
 
-                <Text style={styles.menuEmail}>
+                <Text
+                  style={styles.menuEmail}
+                  numberOfLines={1}
+                >
                   {user.email || "Personal account"}
                 </Text>
               </View>
@@ -811,8 +926,15 @@ export default function HomeScreen({
             <MenuItem
               icon="history"
               title="Scan history"
-              subtitle="Review your previous results"
+              subtitle="Review saved results"
               onPress={() => openScreen("History")}
+            />
+
+            <MenuItem
+              icon="chart-line"
+              title="Waste Journal"
+              subtitle="Review your progress"
+              onPress={() => openScreen("WasteJournal")}
             />
 
             <MenuItem
@@ -828,11 +950,13 @@ export default function HomeScreen({
                 setIsMenuOpen(false);
                 await refreshDashboard();
               }}
+              accessibilityRole="button"
+              accessibilityLabel="Refresh dashboard"
             >
               <MaterialCommunityIcons
                 name="refresh"
                 size={18}
-                color="#FFFFFF"
+                color={WHITE}
               />
 
               <Text style={styles.syncButtonText}>
@@ -846,7 +970,7 @@ export default function HomeScreen({
             </Text>
           </View>
         </View>
-      )}
+      </Modal>
     </View>
   );
 }
@@ -889,6 +1013,8 @@ function PathwayCard({
         active && styles.activePathwayCard,
       ]}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Scan an item to ${pathway.title.toLowerCase()}`}
     >
       <ImageBackground
         source={pathway.image}
@@ -897,9 +1023,9 @@ function PathwayCard({
       >
         <LinearGradient
           colors={[
-            "rgba(0,0,0,0.03)",
-            "rgba(0,0,0,0.15)",
-            "rgba(0,0,0,0.85)",
+            "rgba(0,0,0,0.04)",
+            "rgba(0,0,0,0.18)",
+            "rgba(0,0,0,0.84)",
           ]}
           style={styles.pathwayOverlay}
         >
@@ -908,14 +1034,14 @@ function PathwayCard({
               <MaterialCommunityIcons
                 name={pathway.icon}
                 size={18}
-                color="#0B4E3E"
+                color={FOREST}
               />
             </View>
 
             <MaterialCommunityIcons
               name="arrow-top-right"
               size={17}
-              color="#FFFFFF"
+              color={WHITE}
             />
           </View>
 
@@ -958,7 +1084,7 @@ function GuideRow({
         <MaterialCommunityIcons
           name={icon}
           size={17}
-          color="#0B4E3E"
+          color={FOREST}
         />
       </View>
 
@@ -992,26 +1118,32 @@ function RecentScanRow({
         <MaterialCommunityIcons
           name={scan.icon}
           size={19}
-          color="#0B4E3E"
+          color={FOREST}
         />
       </View>
 
       <View style={styles.recentCopy}>
-        <Text style={styles.recentTitle}>
+        <Text
+          style={styles.recentTitle}
+          numberOfLines={1}
+        >
           {scan.title}
         </Text>
 
-        <Text style={styles.recentTime}>
+        <Text
+          style={styles.recentTime}
+          numberOfLines={1}
+        >
           {scan.timeLabel}
         </Text>
       </View>
 
       <View style={styles.recentScore}>
-        <Text style={styles.scoreValue}>
+        <Text style={styles.recentScoreValue}>
           {scan.score.toFixed(1)}
         </Text>
 
-        <Text style={styles.scoreCategory}>
+        <Text style={styles.recentScoreLabel}>
           {scan.category}
         </Text>
       </View>
@@ -1028,7 +1160,7 @@ function BottomItem({
   icon: IconName;
   label: string;
   center?: boolean;
-  onPress: () => void;
+  onPress?: () => void;
 }) {
   return (
     <Pressable
@@ -1046,7 +1178,7 @@ function BottomItem({
         <MaterialCommunityIcons
           name={icon}
           size={center ? 21 : 17}
-          color="#FFFFFF"
+          color={WHITE}
         />
       </View>
 
@@ -1072,6 +1204,8 @@ function MenuItem({
     <Pressable
       style={styles.menuItem}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
     >
       <View style={styles.menuItemIcon}>
         <MaterialCommunityIcons
@@ -1103,354 +1237,412 @@ function MenuItem({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#F8F7F3",
+    backgroundColor: BACKGROUND,
   },
+
   screen: {
     flex: 1,
-    backgroundColor: "#F8F7F3",
+    backgroundColor: BACKGROUND,
   },
+
   scrollContent: {
-    backgroundColor: "#F8F7F3",
+    backgroundColor: BACKGROUND,
   },
+
   hero: {
-    height: 555,
+    height: 525,
     overflow: "hidden",
   },
+
   heroImage: {
     resizeMode: "cover",
   },
+
   heroOverlay: {
     flex: 1,
     justifyContent: "space-between",
-    paddingBottom: 28,
+    paddingBottom: 31,
   },
+
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 22,
-    paddingBottom: 8,
   },
+
   headerButton: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.14)",
   },
+
   brand: {
     fontFamily: "Poppins_700Bold",
-    color: "#FFFFFF",
-    fontSize: 24,
-    letterSpacing: -0.8,
+    color: WHITE,
+    fontSize: 21,
+    letterSpacing: -0.5,
   },
+
   heroCopy: {
-    paddingHorizontal: 24,
     maxWidth: 350,
+    paddingHorizontal: 24,
   },
+
   heroKicker: {
     fontFamily: "Poppins_600SemiBold",
     color: "#D7F7E2",
     fontSize: 9,
     letterSpacing: 1.3,
-    marginBottom: 11,
+    marginBottom: 10,
   },
+
   heroTitle: {
     fontFamily: "Poppins_700Bold",
-    color: "#FFFFFF",
-    fontSize: 38,
+    color: WHITE,
+    fontSize: 37,
     lineHeight: 44,
     letterSpacing: -1.1,
   },
+
   heroDescription: {
+    maxWidth: 320,
     fontFamily: "Poppins_400Regular",
     color: "#F2FFF6",
-    fontSize: 14,
-    lineHeight: 22,
-    maxWidth: 335,
-    marginTop: 13,
+    fontSize: 13,
+    lineHeight: 21,
+    marginTop: 12,
   },
+
   scanButton: {
+    height: 48,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
     alignSelf: "flex-start",
-    minWidth: 138,
-    height: 48,
     paddingHorizontal: 17,
-    borderRadius: 26,
-    backgroundColor: "#0B4E3E",
     marginTop: 18,
+    borderRadius: 25,
+    backgroundColor: FOREST,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.35)",
+    borderColor: "rgba(255,255,255,0.34)",
   },
+
   scanButtonText: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#FFFFFF",
+    color: WHITE,
     fontSize: 10,
     letterSpacing: 1,
+    marginLeft: 8,
   },
+
   body: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 22,
     paddingTop: 24,
   },
+
   metricsRow: {
     flexDirection: "row",
-    gap: 37,
+    alignItems: "center",
     marginBottom: 18,
   },
+
   metric: {
-    minWidth: 102,
+    flex: 1,
   },
+
+  metricsDivider: {
+    width: 1,
+    height: 48,
+    marginHorizontal: 22,
+    backgroundColor: "#D9E5DB",
+  },
+
   metricValue: {
     fontFamily: "Poppins_700Bold",
-    color: "#064B3D",
-    fontSize: 37,
-    lineHeight: 41,
+    color: DARK_FOREST,
+    fontSize: 32,
+    lineHeight: 37,
     letterSpacing: -1,
   },
+
   metricLabel: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#7B817C",
+    color: MUTED,
     fontSize: 8,
-    letterSpacing: 1.8,
-    marginTop: 7,
+    letterSpacing: 1.25,
+    marginTop: 3,
   },
+
   metricLine: {
-    width: 45,
+    width: 38,
     height: 4,
-    backgroundColor: "#F2D34D",
-    marginTop: 15,
+    borderRadius: 2,
+    marginTop: 10,
+    backgroundColor: GOLD,
   },
+
   weeklyCard: {
-    width: "100%",
-    padding: 12,
-    marginBottom: 29,
-    borderRadius: 15,
-    backgroundColor: "#EEF7F0",
+    padding: 13,
+    marginBottom: 28,
+    borderRadius: 19,
+    backgroundColor: PALE_GREEN,
     borderWidth: 1,
     borderColor: "#D8EBDC",
   },
+
   weeklyTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
+
   weeklyLeft: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    flex: 1,
   },
+
   weeklyIcon: {
-    width: 35,
-    height: 35,
-    borderRadius: 18,
+    width: 39,
+    height: 39,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: WHITE,
   },
+
   weeklyTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#1E2824",
+    color: TEXT,
     fontSize: 12,
-    marginLeft: 9,
+    marginLeft: 10,
   },
+
   weeklySubtitle: {
     fontFamily: "Poppins_400Regular",
-    color: "#748078",
+    color: MUTED,
     fontSize: 9,
     marginTop: 1,
-    marginLeft: 9,
+    marginLeft: 10,
   },
+
   weeklyPercent: {
     fontFamily: "Poppins_700Bold",
-    color: "#0B4E3E",
+    color: FOREST,
     fontSize: 13,
   },
+
   weeklyTrack: {
     height: 5,
-    borderRadius: 4,
     overflow: "hidden",
-    marginTop: 10,
+    borderRadius: 4,
+    marginTop: 11,
     backgroundColor: "#CEE3D3",
   },
+
   weeklyValue: {
     height: "100%",
     borderRadius: 4,
-    backgroundColor: "#0B4E3E",
+    backgroundColor: FOREST,
   },
+
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 13,
   },
+
   sectionTitle: {
-    fontFamily: "Poppins_600SemiBold",
-    color: "#1D2421",
-    fontSize: 24,
-    letterSpacing: -0.5,
+    fontFamily: "Poppins_700Bold",
+    color: TEXT,
+    fontSize: 20,
+    letterSpacing: -0.4,
   },
+
   sectionAction: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#0B4E3E",
+    color: FOREST,
     fontSize: 9,
-    letterSpacing: 1.25,
+    letterSpacing: 1.1,
   },
+
   pathwayList: {
-    gap: 10,
-    paddingRight: 24,
+    paddingRight: 22,
   },
+
   pathwayCard: {
-    width: 195,
-    height: 215,
+    width: 194,
+    height: 214,
     overflow: "hidden",
-    borderRadius: 15,
+    marginRight: 10,
+    borderRadius: 18,
     backgroundColor: "#DDE3E0",
   },
+
   activePathwayCard: {
-    shadowColor: "transparent",
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    shadowOffset: {
-      width: 0,
-      height: 0,
-      },
-    elevation: 0,
+    borderWidth: 2,
+    borderColor: FOREST,
   },
+
   pathwayImage: {
     flex: 1,
   },
+
   pathwayImageStyle: {
     resizeMode: "cover",
   },
+
   pathwayOverlay: {
     flex: 1,
     justifyContent: "space-between",
-    padding: 12,
+    padding: 13,
   },
+
   pathwayTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
+
   pathwayIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(224,245,231,0.97)",
+    backgroundColor: "rgba(239,255,244,0.97)",
   },
+
   pathwayTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#FFFFFF",
+    color: WHITE,
     fontSize: 21,
   },
+
   pathwaySubtitle: {
+    maxWidth: 170,
     fontFamily: "Poppins_400Regular",
     color: "#F5FFF7",
     fontSize: 9,
     lineHeight: 14,
     marginTop: 2,
-    maxWidth: 175,
   },
+
   indicators: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
-    marginTop: 10,
+    marginTop: 11,
   },
+
   indicator: {
     width: 5,
     height: 5,
     borderRadius: 3,
+    marginHorizontal: 3,
     backgroundColor: "#C5CCC8",
   },
+
   activeIndicator: {
     width: 20,
-    backgroundColor: "#0B4E3E",
+    backgroundColor: FOREST,
   },
+
   streakCard: {
+    minHeight: 75,
     flexDirection: "row",
     alignItems: "center",
-    width: "100%",
     padding: 12,
     marginTop: 24,
-    borderRadius: 17,
-    backgroundColor: "#F5EFE3",
+    borderRadius: 19,
+    backgroundColor: "#FFF7E9",
     borderWidth: 1,
-    borderColor: "#E8DCC5",
+    borderColor: "#F0E0BF",
   },
+
   streakIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 41,
+    height: 41,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFE1B0",
+    backgroundColor: LIGHT_GOLD,
   },
+
   streakCopy: {
     flex: 1,
     marginLeft: 10,
   },
+
   streakTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: "#3F3524",
-    fontSize: 13,
+    fontSize: 12,
   },
+
   streakText: {
     fontFamily: "Poppins_400Regular",
     color: "#7B6B50",
-    fontSize: 10,
-    lineHeight: 15,
+    fontSize: 9,
+    lineHeight: 14,
     marginTop: 2,
   },
+
   streakArrow: {
-    width: 31,
-    height: 31,
+    width: 32,
+    height: 32,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#B86B17",
+    backgroundColor: GOLD,
   },
+
   guideCard: {
-    width: "100%",
     marginTop: 13,
-    padding: 12,
-    borderRadius: 17,
-    backgroundColor: "#FFFFFF",
+    padding: 13,
+    borderRadius: 19,
+    backgroundColor: WHITE,
     borderWidth: 1,
-    borderColor: "#E2E7E2",
+    borderColor: BORDER,
   },
+
   guideHeader: {
     flexDirection: "row",
     alignItems: "center",
   },
+
   guideIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#E5F4E8",
+    backgroundColor: LIGHT_GREEN,
   },
+
   guideCopy: {
     flex: 1,
     marginLeft: 10,
   },
+
   guideTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#1E2824",
-    fontSize: 13,
+    color: TEXT,
+    fontSize: 12,
   },
+
   guideSubtitle: {
     fontFamily: "Poppins_400Regular",
-    color: "#7A847E",
-    fontSize: 10,
+    color: MUTED,
+    fontSize: 9,
     marginTop: 2,
   },
+
   guideChevron: {
     width: 31,
     height: 31,
@@ -1459,19 +1651,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#F1F5F1",
   },
+
   guideDetails: {
     marginTop: 12,
-    paddingTop: 2,
+    paddingTop: 3,
     borderTopWidth: 1,
     borderTopColor: "#EDF0ED",
   },
+
   guideRow: {
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 9,
     borderBottomWidth: 1,
     borderBottomColor: "#EEF0EE",
   },
+
   guideRowIcon: {
     width: 35,
     height: 35,
@@ -1479,164 +1674,202 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   guideRowCopy: {
     flex: 1,
     marginLeft: 9,
   },
+
   guideRowTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#24302A",
-    fontSize: 11,
+    color: TEXT,
+    fontSize: 10,
   },
+
   guideRowText: {
     fontFamily: "Poppins_400Regular",
-    color: "#78827C",
-    fontSize: 9,
-    lineHeight: 14,
-    marginTop: 2,
+    color: MUTED,
+    fontSize: 8,
+    lineHeight: 13,
+    marginTop: 1,
   },
+
   recentHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 34,
-    marginBottom: 10,
+    marginTop: 31,
+    marginBottom: 11,
   },
+
+  recentCard: {
+    paddingHorizontal: 13,
+    borderRadius: 19,
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+
   recentRow: {
+    minHeight: 68,
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 69,
-    paddingVertical: 9,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E4E5E1",
   },
+
   recentIcon: {
     width: 41,
     height: 41,
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#EEF0ED",
+    backgroundColor: "#EEF5EF",
   },
+
   recentCopy: {
     flex: 1,
-    marginLeft: 12,
+    minWidth: 0,
+    marginLeft: 10,
   },
+
   recentTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#1E2824",
-    fontSize: 14,
+    color: TEXT,
+    fontSize: 12,
   },
+
   recentTime: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#858B86",
-    fontSize: 8,
-    letterSpacing: 1,
+    color: MUTED,
+    fontSize: 7,
+    letterSpacing: 0.9,
     marginTop: 3,
   },
+
   recentScore: {
     alignItems: "flex-end",
   },
-  scoreValue: {
+
+  recentScoreValue: {
     fontFamily: "Poppins_700Bold",
-    color: "#07513F",
-    fontSize: 20,
+    color: FOREST,
+    fontSize: 18,
   },
-  scoreCategory: {
+
+  recentScoreLabel: {
+    maxWidth: 68,
     fontFamily: "Poppins_600SemiBold",
-    color: "#8C7732",
+    color: GOLD,
     fontSize: 7,
-    letterSpacing: 1,
-    marginTop: 1,
+    letterSpacing: 0.8,
+    textAlign: "right",
+    marginTop: -1,
   },
+
+  recentDivider: {
+    height: 1,
+    marginLeft: 51,
+    backgroundColor: "#E7EEE8",
+  },
+
   emptyRecent: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 11,
-    borderRadius: 16,
-    backgroundColor: "#FFFFFF",
+    padding: 12,
+    borderRadius: 19,
+    backgroundColor: WHITE,
     borderWidth: 1,
-    borderColor: "#E4E5E1",
+    borderColor: BORDER,
   },
+
   emptyRecentCopy: {
     flex: 1,
     marginLeft: 10,
   },
+
   emptyRecentTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#1E2824",
-    fontSize: 13,
+    color: TEXT,
+    fontSize: 12,
   },
+
   emptyRecentText: {
     fontFamily: "Poppins_400Regular",
-    color: "#7B817C",
-    fontSize: 10,
+    color: MUTED,
+    fontSize: 9,
     marginTop: 2,
   },
+
   arrowButton: {
     width: 33,
     height: 33,
     borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0B4E3E",
+    backgroundColor: FOREST,
   },
+
   footerWrapper: {
     position: "absolute",
-    left: 27,
-    right: 27,
+    left: 20,
+    right: 20,
   },
+
   footer: {
+    height: 62,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
-    height: 58,
-    paddingHorizontal: 2,
+    paddingHorizontal: 3,
     overflow: "hidden",
     borderRadius: 31,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.82)",
-    backgroundColor: "rgba(255,255,255,0.22)",
+    borderColor: "rgba(255,255,255,0.86)",
+    backgroundColor: "rgba(255,255,255,0.48)",
   },
+
   bottomItem: {
+    minWidth: 44,
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 42,
   },
+
   bottomIcon: {
     width: 29,
     height: 29,
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0B4E3E",
-    borderWidth: 1,
-    borderColor: "rgba(222,248,231,0.65)",
+    backgroundColor: FOREST,
   },
+
   centerBottomIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 20,
-    backgroundColor: "#0B4E3E",
+    width: 41,
+    height: 41,
+    borderRadius: 21,
+    marginTop: -14,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.85)",
+    borderColor: WHITE,
   },
+
   bottomLabel: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#0B4E3E",
+    color: FOREST,
     fontSize: 7,
-    letterSpacing: 0.25,
-    marginTop: 2,
+    letterSpacing: 0.2,
+    marginTop: 3,
   },
+
   menuLayer: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 20,
     elevation: 20,
   },
+
   menuBackdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.42)",
   },
+
   sideMenu: {
     position: "absolute",
     top: 0,
@@ -1646,22 +1879,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: "#083D31",
   },
+
   menuHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
   },
+
   menuBrand: {
     fontFamily: "Poppins_700Bold",
-    color: "#FFFFFF",
+    color: WHITE,
     fontSize: 22,
   },
+
   menuSubtitle: {
     fontFamily: "Poppins_400Regular",
     color: "#B9D8C6",
     fontSize: 9,
     marginTop: 2,
   },
+
   closeButton: {
     width: 35,
     height: 35,
@@ -1670,133 +1907,157 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.12)",
   },
+
   menuProfile: {
     flexDirection: "row",
     alignItems: "center",
     padding: 11,
     marginTop: 24,
-    borderRadius: 15,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.10)",
   },
+
   menuAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#CBECD6",
   },
+
   menuAvatarText: {
     fontFamily: "Poppins_700Bold",
-    color: "#0B4E3E",
-    fontSize: 17,
+    color: FOREST,
+    fontSize: 15,
   },
+
   menuProfileCopy: {
     flex: 1,
+    minWidth: 0,
     marginLeft: 10,
   },
+
   menuName: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#FFFFFF",
-    fontSize: 12,
+    color: WHITE,
+    fontSize: 11,
   },
+
   menuEmail: {
     fontFamily: "Poppins_400Regular",
     color: "#B9D8C6",
-    fontSize: 9,
+    fontSize: 8,
     marginTop: 2,
   },
+
   menuLabel: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#8CBDA0",
+    color: "#92C4A6",
     fontSize: 8,
-    letterSpacing: 1.5,
-    marginTop: 26,
-    marginBottom: 5,
+    letterSpacing: 1.2,
+    marginTop: 27,
+    marginBottom: 8,
   },
+
   menuItem: {
+    minHeight: 62,
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 60,
-    paddingVertical: 7,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.08)",
+    paddingHorizontal: 10,
+    marginBottom: 8,
+    borderRadius: 15,
+    backgroundColor: "rgba(255,255,255,0.07)",
   },
+
   menuItemIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: 37,
+    height: 37,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(255,255,255,0.10)",
   },
+
   menuItemCopy: {
     flex: 1,
     marginLeft: 10,
   },
+
   menuItemTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#FFFFFF",
-    fontSize: 12,
+    color: WHITE,
+    fontSize: 10,
   },
+
   menuItemSubtitle: {
     fontFamily: "Poppins_400Regular",
-    color: "#A8C9B5",
-    fontSize: 9,
+    color: "#B9D8C6",
+    fontSize: 8,
     marginTop: 2,
   },
+
   syncButton: {
+    height: 47,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    height: 44,
-    borderRadius: 13,
-    marginTop: 24,
-    backgroundColor: "#0F624D",
+    marginTop: 17,
+    borderRadius: 24,
+    backgroundColor: FOREST,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.22)",
   },
+
   syncButtonText: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#FFFFFF",
-    fontSize: 11,
+    color: WHITE,
+    fontSize: 10,
+    marginLeft: 7,
   },
+
   menuFooterText: {
-    marginTop: "auto",
     fontFamily: "Poppins_400Regular",
-    color: "#9BC7AD",
-    fontSize: 9,
-    lineHeight: 14,
-    maxWidth: 220,
+    color: "#A4C8B0",
+    fontSize: 8,
+    lineHeight: 13,
+    textAlign: "center",
+    marginTop: 17,
   },
+
   emptyContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 25,
-    backgroundColor: "#F8F7F3",
+    paddingHorizontal: 24,
+    backgroundColor: BACKGROUND,
   },
+
   emptyIcon: {
     width: 86,
     height: 86,
-    borderRadius: 28,
+    borderRadius: 43,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primaryLight,
-    marginBottom: 14,
+    marginBottom: 12,
+    backgroundColor: LIGHT_GREEN,
   },
+
   emptyTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
-    fontSize: 20,
+    color: TEXT,
+    fontSize: 18,
+    textAlign: "center",
   },
+
   emptyText: {
     maxWidth: 290,
     fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 13,
-    lineHeight: 20,
+    color: MUTED,
+    fontSize: 11,
+    lineHeight: 18,
     textAlign: "center",
-    marginTop: 7,
-    marginBottom: 17,
+    marginTop: 5,
+    marginBottom: 16,
   },
 });

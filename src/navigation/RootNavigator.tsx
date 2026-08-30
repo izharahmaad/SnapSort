@@ -26,6 +26,8 @@ import NotificationsScreen from "../screens/profile/NotificationsScreen";
 import PrivacyPolicyScreen from "../screens/profile/PrivacyPolicyScreen";
 import AboutScreen from "../screens/profile/AboutScreen";
 
+import WasteJournalScreen from "../screens/impact/WasteJournalScreen";
+
 import { colors } from "../constants/theme";
 import { useAuthStore } from "../stores/auth.store";
 import type { RootStackParamList } from "./types";
@@ -69,7 +71,9 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={defaultScreenOptions}>
+      <Stack.Navigator
+        screenOptions={defaultScreenOptions}
+      >
         {!user ? (
           <>
             <Stack.Screen
@@ -136,6 +140,14 @@ export default function RootNavigator() {
             <Stack.Screen
               name="History"
               component={HistoryScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+
+            <Stack.Screen
+              name="WasteJournal"
+              component={WasteJournalScreen}
               options={{
                 animation: "slide_from_right",
               }}
