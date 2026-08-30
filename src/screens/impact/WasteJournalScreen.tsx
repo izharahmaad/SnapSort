@@ -373,7 +373,8 @@ export default function WasteJournalScreen({
             : 0,
         };
       })
-      .filter((item) => item.count > 0);
+      .filter((item) => item.count > 0)
+      .sort((first, second) => second.count - first.count);
   }, [scans, totalScans]);
 
   const topCategory = useMemo(() => {
@@ -381,9 +382,7 @@ export default function WasteJournalScreen({
       return null;
     }
 
-    return [...categoryStats].sort(
-      (first, second) => second.count - first.count
-    )[0];
+    return categoryStats[0];
   }, [categoryStats]);
 
   const journalMessage = useMemo(
@@ -418,6 +417,7 @@ export default function WasteJournalScreen({
         <Button
           mode="contained"
           buttonColor={FOREST}
+          contentStyle={styles.authButtonContent}
           onPress={() => navigation.navigate("Login")}
         >
           Sign in
@@ -429,13 +429,19 @@ export default function WasteJournalScreen({
   if (isLoading) {
     return (
       <View style={styles.centerScreen}>
-        <ActivityIndicator
-          size="large"
-          color={FOREST}
-        />
+        <View style={styles.loadingIcon}>
+          <ActivityIndicator
+            size="large"
+            color={FOREST}
+          />
+        </View>
+
+        <Text style={styles.centerTitle}>
+          Loading your journal
+        </Text>
 
         <Text style={styles.centerText}>
-          Loading your waste journal...
+          Bringing together your saved scan activity.
         </Text>
       </View>
     );
@@ -520,33 +526,23 @@ export default function WasteJournalScreen({
         >
           <LinearGradient
             colors={[
-              "rgba(3,32,24,0.10)",
-              "rgba(3,32,24,0.35)",
-              "rgba(3,32,24,0.92)",
+              "rgba(3,32,24,0.06)",
+              "rgba(3,32,24,0.30)",
+              "rgba(3,32,24,0.93)",
             ]}
-            locations={[0, 0.42, 1]}
+            locations={[0, 0.43, 1]}
             style={styles.imageHeroOverlay}
           >
-            <View style={styles.imageHeroTop}>
-              <View style={styles.heroBadge}>
-                <MaterialCommunityIcons
-                  name="notebook-outline"
-                  size={14}
-                  color="#D9F8E2"
-                />
+            <View style={styles.heroBadge}>
+              <MaterialCommunityIcons
+                name="notebook-outline"
+                size={14}
+                color="#D9F8E2"
+              />
 
-                <Text style={styles.heroBadgeText}>
-                  PERSONAL JOURNAL
-                </Text>
-              </View>
-
-              <View style={styles.heroSmallIcon}>
-                <MaterialCommunityIcons
-                  name="sprout"
-                  size={20}
-                  color={WHITE}
-                />
-              </View>
+              <Text style={styles.heroBadgeText}>
+                PERSONAL JOURNAL
+              </Text>
             </View>
 
             <View>
@@ -605,7 +601,10 @@ export default function WasteJournalScreen({
               </Text>
 
               <Text style={styles.weekProgressText}>
-                {scansThisWeek}/{WEEKLY_GOAL}
+                <Text style={styles.weekProgressNumber}>
+                  {scansThisWeek}
+                </Text>
+                /{WEEKLY_GOAL}
               </Text>
             </View>
 
@@ -632,64 +631,122 @@ export default function WasteJournalScreen({
           </View>
         </View>
 
-        <Text style={styles.sectionLabel}>
-          DISPOSAL BREAKDOWN
-        </Text>
+        <View style={styles.metricsRow}>
+          <MetricCard
+            icon="barcode-scan"
+            value={String(totalScans)}
+            label="Saved scans"
+          />
+
+          <MetricCard
+            icon="leaf"
+            value={averageScore.toFixed(1)}
+            label="Average score"
+          />
+
+          <MetricCard
+            icon="recycle"
+            value={String(categoryStats.length)}
+            label="Pathways"
+          />
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.sectionLabelInline}>
+              DISPOSAL BREAKDOWN
+            </Text>
+
+            <Text style={styles.sectionTitle}>
+              Your sorting mix
+            </Text>
+          </View>
+
+          {topCategory ? (
+            <View style={styles.topPathwayPill}>
+              <MaterialCommunityIcons
+                name={topCategory.icon}
+                size={13}
+                color={topCategory.color}
+              />
+
+              <Text
+                style={[
+                  styles.topPathwayText,
+                  {
+                    color: topCategory.color,
+                  },
+                ]}
+              >
+                Top: {topCategory.label}
+              </Text>
+            </View>
+          ) : null}
+        </View>
 
         {categoryStats.length > 0 ? (
-          <View style={styles.card}>
-            {categoryStats.map((item, index) => (
-              <View key={item.key}>
-                <View style={styles.categoryRow}>
+          <View style={styles.chartCard}>
+            <View style={styles.chartHeader}>
+              <Text style={styles.chartTitle}>
+                Distribution of saved scans
+              </Text>
+
+              <Text style={styles.chartTotal}>
+                {totalScans} total
+              </Text>
+            </View>
+
+            <View style={styles.distributionBar}>
+              {categoryStats.map((item) => (
+                <View
+                  key={item.key}
+                  style={[
+                    styles.distributionSegment,
+                    {
+                      flex: item.count,
+                      backgroundColor: item.color,
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+
+            <View style={styles.chartLegend}>
+              {categoryStats.map((item) => (
+                <View
+                  key={item.key}
+                  style={styles.legendRow}
+                >
                   <View
                     style={[
-                      styles.categoryIcon,
+                      styles.legendDot,
                       {
-                        backgroundColor: `${item.color}18`,
+                        backgroundColor: item.color,
                       },
                     ]}
-                  >
-                    <MaterialCommunityIcons
-                      name={item.icon}
-                      size={18}
-                      color={item.color}
-                    />
-                  </View>
+                  />
 
-                  <View style={styles.categoryCopy}>
-                    <View style={styles.categoryTitleRow}>
-                      <Text style={styles.categoryTitle}>
-                        {item.label}
-                      </Text>
+                  <Text style={styles.legendLabel}>
+                    {item.label}
+                  </Text>
 
-                      <Text style={styles.categoryPercentage}>
-                        {item.percentage}%
-                      </Text>
-                    </View>
-
-                    <View style={styles.categoryTrack}>
-                      <View
-                        style={[
-                          styles.categoryFill,
-                          {
-                            width: `${item.percentage}%`,
-                            backgroundColor: item.color,
-                          },
-                        ]}
-                      />
-                    </View>
-                  </View>
-
-                  <Text style={styles.categoryCount}>
-                    {item.count}
+                  <Text style={styles.legendValue}>
+                    <Text
+                      style={[
+                        styles.legendNumber,
+                        {
+                          color: item.color,
+                        },
+                      ]}
+                    >
+                      {item.count}
+                    </Text>
+                    {"  "}
+                    {item.percentage}%
                   </Text>
                 </View>
-
-                {index < categoryStats.length - 1 ? (
-                  <View style={styles.categoryDivider} />
-                ) : null}
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
         ) : (
           <EmptyJournalCard
@@ -732,7 +789,7 @@ export default function WasteJournalScreen({
               RECENT JOURNAL ENTRIES
             </Text>
 
-            <Text style={styles.entriesTitle}>
+            <Text style={styles.sectionTitle}>
               Your latest activity
             </Text>
           </View>
@@ -835,6 +892,36 @@ function HeroStat({
       </Text>
 
       <Text style={styles.heroStatLabel}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function MetricCard({
+  icon,
+  value,
+  label,
+}: {
+  icon: IconName;
+  value: string;
+  label: string;
+}) {
+  return (
+    <View style={styles.metricCard}>
+      <View style={styles.metricIcon}>
+        <MaterialCommunityIcons
+          name={icon}
+          size={16}
+          color={FOREST}
+        />
+      </View>
+
+      <Text style={styles.metricValue}>
+        {value}
+      </Text>
+
+      <Text style={styles.metricLabel}>
         {label}
       </Text>
     </View>
@@ -986,7 +1073,7 @@ const styles = StyleSheet.create({
   },
 
   imageHero: {
-    height: 285,
+    height: 278,
     overflow: "hidden",
     marginTop: 20,
     borderRadius: 25,
@@ -1003,19 +1090,14 @@ const styles = StyleSheet.create({
     padding: 17,
   },
 
-  imageHeroTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
   heroBadge: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "flex-start",
     paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 13,
-    backgroundColor: "rgba(0,0,0,0.27)",
+    backgroundColor: "rgba(0,0,0,0.26)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.22)",
   },
@@ -1028,17 +1110,6 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
 
-  heroSmallIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.22)",
-  },
-
   imageHeroTitle: {
     fontFamily: "Poppins_700Bold",
     color: WHITE,
@@ -1048,7 +1119,7 @@ const styles = StyleSheet.create({
   },
 
   imageHeroText: {
-    maxWidth: 310,
+    maxWidth: 305,
     fontFamily: "Poppins_400Regular",
     color: "rgba(255,255,255,0.86)",
     fontSize: 10,
@@ -1128,9 +1199,15 @@ const styles = StyleSheet.create({
   },
 
   weekProgressText: {
+    fontFamily: "Poppins_500Medium",
+    color: MUTED,
+    fontSize: 10,
+  },
+
+  weekProgressNumber: {
     fontFamily: "Poppins_700Bold",
     color: FOREST,
-    fontSize: 10,
+    fontSize: 11,
   },
 
   weekSubtitle: {
@@ -1154,6 +1231,56 @@ const styles = StyleSheet.create({
     backgroundColor: FOREST,
   },
 
+  metricsRow: {
+    flexDirection: "row",
+    marginTop: 12,
+    marginHorizontal: -4,
+  },
+
+  metricCard: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+    marginHorizontal: 4,
+    borderRadius: 18,
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+
+  metricIcon: {
+    width: 29,
+    height: 29,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: LIGHT_GREEN,
+  },
+
+  metricValue: {
+    fontFamily: "Poppins_700Bold",
+    color: FOREST,
+    fontSize: 18,
+    marginTop: 4,
+  },
+
+  metricLabel: {
+    fontFamily: "Poppins_400Regular",
+    color: MUTED,
+    fontSize: 7,
+    textAlign: "center",
+    marginTop: 1,
+  },
+
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    marginTop: 27,
+    marginBottom: 9,
+    marginLeft: 2,
+  },
+
   sectionLabel: {
     fontFamily: "Poppins_600SemiBold",
     color: FOREST,
@@ -1171,78 +1298,110 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
   },
 
+  sectionTitle: {
+    fontFamily: "Poppins_700Bold",
+    color: TEXT,
+    fontSize: 16,
+    marginTop: 2,
+  },
+
+  topPathwayPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 13,
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+
+  topPathwayText: {
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 8,
+    marginLeft: 4,
+  },
+
+  chartCard: {
+    padding: 14,
+    borderRadius: 22,
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+
+  chartHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  chartTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: TEXT,
+    fontSize: 10,
+  },
+
+  chartTotal: {
+    fontFamily: "Poppins_500Medium",
+    color: MUTED,
+    fontSize: 8,
+  },
+
+  distributionBar: {
+    height: 14,
+    flexDirection: "row",
+    overflow: "hidden",
+    marginTop: 14,
+    borderRadius: 7,
+    backgroundColor: "#EEF2EE",
+  },
+
+  distributionSegment: {
+    height: "100%",
+  },
+
+  chartLegend: {
+    marginTop: 13,
+  },
+
+  legendRow: {
+    minHeight: 31,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  legendDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+  },
+
+  legendLabel: {
+    flex: 1,
+    fontFamily: "Poppins_500Medium",
+    color: TEXT,
+    fontSize: 9,
+    marginLeft: 7,
+  },
+
+  legendValue: {
+    fontFamily: "Poppins_400Regular",
+    color: MUTED,
+    fontSize: 9,
+  },
+
+  legendNumber: {
+    fontFamily: "Poppins_700Bold",
+    fontSize: 10,
+  },
+
   card: {
     paddingHorizontal: 14,
     borderRadius: 21,
     backgroundColor: WHITE,
     borderWidth: 1,
     borderColor: BORDER,
-  },
-
-  categoryRow: {
-    minHeight: 64,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  categoryIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  categoryCopy: {
-    flex: 1,
-    minWidth: 0,
-    marginLeft: 10,
-  },
-
-  categoryTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  categoryTitle: {
-    fontFamily: "Poppins_600SemiBold",
-    color: TEXT,
-    fontSize: 10,
-  },
-
-  categoryPercentage: {
-    fontFamily: "Poppins_500Medium",
-    color: MUTED,
-    fontSize: 8,
-  },
-
-  categoryTrack: {
-    height: 4,
-    overflow: "hidden",
-    marginTop: 6,
-    borderRadius: 2,
-    backgroundColor: "#EDF2EE",
-  },
-
-  categoryFill: {
-    height: "100%",
-    borderRadius: 2,
-  },
-
-  categoryCount: {
-    width: 27,
-    fontFamily: "Poppins_700Bold",
-    color: TEXT,
-    fontSize: 13,
-    textAlign: "right",
-    marginLeft: 10,
-  },
-
-  categoryDivider: {
-    height: 1,
-    marginLeft: 48,
-    backgroundColor: "#E7EEE8",
   },
 
   insightCard: {
@@ -1299,13 +1458,6 @@ const styles = StyleSheet.create({
     marginTop: 27,
     marginBottom: 9,
     marginLeft: 2,
-  },
-
-  entriesTitle: {
-    fontFamily: "Poppins_700Bold",
-    color: TEXT,
-    fontSize: 16,
-    marginTop: 2,
   },
 
   historyLink: {
@@ -1494,6 +1646,16 @@ const styles = StyleSheet.create({
     backgroundColor: LIGHT_GREEN,
   },
 
+  loadingIcon: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+    backgroundColor: LIGHT_GREEN,
+  },
+
   centerTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: TEXT,
@@ -1510,5 +1672,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 5,
     marginBottom: 16,
+  },
+
+  authButtonContent: {
+    height: 46,
+    paddingHorizontal: 12,
   },
 });
