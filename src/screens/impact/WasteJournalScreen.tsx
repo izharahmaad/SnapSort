@@ -21,9 +21,7 @@ import { Button, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { categoryMeta } from "../../constants/categories";
-import {
-  getUserScans,
-} from "../../services/firebase/scans.service";
+import { getUserScans } from "../../services/firebase/scans.service";
 import { useAuthStore } from "../../stores/auth.store";
 import type { RootStackParamList } from "../../navigation/types";
 import type {
@@ -63,7 +61,6 @@ const WHITE = "#FFFFFF";
 const BACKGROUND = "#F7FAF7";
 const FOREST = "#075C34";
 const DARK_FOREST = "#04351E";
-const EMERALD = "#16824B";
 const TEXT = "#17271D";
 const MUTED = "#6D7B72";
 const LIGHT_GREEN = "#EAF7EE";
@@ -169,28 +166,18 @@ function getDateLabel(value: unknown): string {
 
   const now = new Date();
 
-  const isToday =
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear();
-
-  if (isToday) {
+  if (date.toDateString() === now.toDateString()) {
     return `Today, ${date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     })}`;
   }
 
-  const yesterday = new Date();
+  const yesterday = new Date(now);
 
   yesterday.setDate(now.getDate() - 1);
 
-  const isYesterday =
-    date.getDate() === yesterday.getDate() &&
-    date.getMonth() === yesterday.getMonth() &&
-    date.getFullYear() === yesterday.getFullYear();
-
-  if (isYesterday) {
+  if (date.toDateString() === yesterday.toDateString()) {
     return "Yesterday";
   }
 
@@ -212,30 +199,6 @@ function getStartOfWeek(): Date {
   start.setHours(0, 0, 0, 0);
 
   return start;
-}
-
-function getJournalMessage({
-  totalScans,
-  averageScore,
-  topCategory,
-}: {
-  totalScans: number;
-  averageScore: number;
-  topCategory: CategoryStat | null;
-}) {
-  if (!totalScans) {
-    return "Start with one scan. Your journal will show a clearer picture of the habits you build over time.";
-  }
-
-  if (averageScore >= 8) {
-    return "Your average eco score is strong. Keep using each scan to make clear and thoughtful decisions.";
-  }
-
-  if (topCategory) {
-    return `${topCategory.label} is your most used pathway so far. Every saved scan helps you understand your habits better.`;
-  }
-
-  return "Every saved scan helps you build a clearer picture of your disposal habits.";
 }
 
 export default function WasteJournalScreen({
@@ -307,12 +270,12 @@ export default function WasteJournalScreen({
       return 0;
     }
 
-    const total = scans.reduce(
+    const scoreTotal = scans.reduce(
       (sum, scan) => sum + getScore(scan),
       0
     );
 
-    return total / totalScans;
+    return scoreTotal / totalScans;
   }, [scans, totalScans]);
 
   const scansThisWeek = useMemo(() => {
@@ -329,6 +292,8 @@ export default function WasteJournalScreen({
     scansThisWeek / WEEKLY_GOAL,
     1
   );
+
+  const weeklyStreak = scansThisWeek > 0 ? 1 : 0;
 
   const categoryStats = useMemo(() => {
     const keys: CategoryKey[] = [
@@ -364,9 +329,7 @@ export default function WasteJournalScreen({
 
         return {
           key,
-          label: meta.label,
-          icon: meta.icon,
-          color: meta.color,
+          ...meta,
           count: counts[key],
           percentage: totalScans
             ? Math.round(
@@ -379,33 +342,21 @@ export default function WasteJournalScreen({
       .sort((first, second) => second.count - first.count);
   }, [scans, totalScans]);
 
-  const topCategory = useMemo(() => {
-    if (!categoryStats.length) {
-      return null;
-    }
-
-    return categoryStats[0];
-  }, [categoryStats]);
-
-  const journalMessage = useMemo(
-    () =>
-      getJournalMessage({
-        totalScans,
-        averageScore,
-        topCategory,
-      }),
-    [totalScans, averageScore, topCategory]
-  );
+  const topCategory: CategoryStat | null =
+    categoryStats[0] || null;
 
   const remainingWeeklyScans = Math.max(
     WEEKLY_GOAL - scansThisWeek,
     0
   );
 
-  const weeklyStreak = useMemo(() => {
-    // Simple mock streak: 1 if any scans this week, else 0
-    return scansThisWeek > 0 ? 1 : 0;
-  }, [scansThisWeek]);
+  const journalMessage = !totalScans
+    ? "Start with one scan. Your journal will show a clearer picture of the habits you build over time."
+    : averageScore >= 8
+      ? "Your average eco score is strong. Keep using each scan to make clear and thoughtful decisions."
+      : topCategory
+        ? `${topCategory.label} is your most used pathway so far. Every saved scan helps you understand your habits better.`
+        : "Every saved scan helps you build a clearer picture of your disposal habits.";
 
   if (!user) {
     return (
@@ -441,12 +392,10 @@ export default function WasteJournalScreen({
   if (isLoading) {
     return (
       <View style={styles.centerScreen}>
-        <View style={styles.loadingIcon}>
-          <ActivityIndicator
-            size="large"
-            color={FOREST}
-          />
-        </View>
+        <ActivityIndicator
+          size="large"
+          color={FOREST}
+        />
 
         <Text style={styles.centerTitle}>
           Loading your journal
@@ -493,11 +442,11 @@ export default function WasteJournalScreen({
         >
           <LinearGradient
             colors={[
-              "rgba(2,28,16,0.28)",
-              "rgba(3,40,23,0.22)",
-              "rgba(3,43,25,0.96)",
+              "rgba(2,28,16,0.68)",
+              "rgba(3,40,23,0.74)",
+              "rgba(3,43,25,0.97)",
             ]}
-            locations={[0, 0.35, 1]}
+            locations={[0, 0.42, 1]}
             style={styles.heroOverlay}
           >
             <View style={styles.heroNavigation}>
@@ -563,22 +512,27 @@ export default function WasteJournalScreen({
                   value={totalScans}
                   label="Total"
                 />
+
                 <HeroStatNumber
                   value={averageScore}
                   label="Avg score"
                 />
+
                 <HeroStatNumber
                   value={categoryStats.length}
                   label="Pathways"
                 />
+
                 <HeroStatNumber
                   value={scansThisWeek}
                   label="This week"
                 />
+
                 <HeroStatNumber
                   value={WEEKLY_GOAL}
                   label="Goal"
                 />
+
                 <HeroStatNumber
                   value={weeklyStreak}
                   label="Streak"
@@ -645,6 +599,7 @@ export default function WasteJournalScreen({
                       size={12}
                       color={ORANGE}
                     />
+
                     <Text style={styles.streakText}>
                       {weeklyStreak} week streak
                     </Text>
@@ -652,26 +607,6 @@ export default function WasteJournalScreen({
                 ) : null}
               </View>
             </View>
-          </View>
-
-          <View style={styles.metricsRow}>
-            <MetricCard
-              icon="barcode-scan"
-              value={String(totalScans)}
-              label="Saved scans"
-            />
-
-            <MetricCard
-              icon="leaf"
-              value={averageScore.toFixed(1)}
-              label="Average score"
-            />
-
-            <MetricCard
-              icon="recycle"
-              value={String(categoryStats.length)}
-              label="Pathways"
-            />
           </View>
 
           <View style={styles.sectionHeader}>
@@ -785,6 +720,40 @@ export default function WasteJournalScreen({
             />
           )}
 
+          <View style={styles.featureCard}>
+            <View style={styles.featureIcon}>
+              <MaterialCommunityIcons
+                name="target"
+                size={22}
+                color={FOREST}
+              />
+            </View>
+
+            <View style={styles.featureCopy}>
+              <Text style={styles.featureLabel}>
+                NEW FEATURE
+              </Text>
+
+              <Text style={styles.featureTitle}>
+                Your weekly eco target
+              </Text>
+
+              <Text style={styles.featureText}>
+                {scansThisWeek >= WEEKLY_GOAL
+                  ? "You reached this week's target. Keep the momentum going."
+                  : `Complete ${remainingWeeklyScans} more scan${
+                      remainingWeeklyScans === 1
+                        ? ""
+                        : "s"
+                    } this week to reach your target.`}
+              </Text>
+            </View>
+
+            <Text style={styles.featureValue}>
+              {Math.round(weeklyProgress * 100)}%
+            </Text>
+          </View>
+
           <View style={styles.journalInsightSection}>
             <Text style={styles.sectionLabel}>
               JOURNAL INSIGHT
@@ -830,8 +799,6 @@ export default function WasteJournalScreen({
               <Pressable
                 style={styles.historyButton}
                 onPress={() => navigation.navigate("History")}
-                accessibilityRole="button"
-                accessibilityLabel="View full scan history"
               >
                 <Text style={styles.historyButtonText}>
                   History
@@ -872,8 +839,6 @@ export default function WasteJournalScreen({
               pressed && styles.scanButtonPressed,
             ]}
             onPress={() => navigation.navigate("Camera")}
-            accessibilityRole="button"
-            accessibilityLabel="Scan a new item"
           >
             <View style={styles.scanButtonIcon}>
               <MaterialCommunityIcons
@@ -925,36 +890,6 @@ function HeroStatNumber({
       </Text>
 
       <Text style={styles.heroStatNumberLabel}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-function MetricCard({
-  icon,
-  value,
-  label,
-}: {
-  icon: IconName;
-  value: string;
-  label: string;
-}) {
-  return (
-    <View style={styles.metricCard}>
-      <View style={styles.metricIcon}>
-        <MaterialCommunityIcons
-          name={icon}
-          size={16}
-          color={FOREST}
-        />
-      </View>
-
-      <Text style={styles.metricValue}>
-        {value}
-      </Text>
-
-      <Text style={styles.metricLabel}>
         {label}
       </Text>
     </View>
@@ -1242,15 +1177,15 @@ const styles = StyleSheet.create({
 
   progressTrack: {
     flex: 1,
-    height: 5,
+    height: 7,
     overflow: "hidden",
-    borderRadius: 3,
+    borderRadius: 4,
     backgroundColor: "#D5E8D9",
   },
 
   progressFill: {
     height: "100%",
-    borderRadius: 3,
+    borderRadius: 4,
     backgroundColor: FOREST,
   },
 
@@ -1269,47 +1204,6 @@ const styles = StyleSheet.create({
     color: ORANGE,
     fontSize: 8,
     marginLeft: 4,
-  },
-
-  metricsRow: {
-    flexDirection: "row",
-    marginTop: 12,
-    marginHorizontal: -4,
-  },
-
-  metricCard: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 12,
-    marginHorizontal: 4,
-    borderRadius: 18,
-    backgroundColor: WHITE,
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-
-  metricIcon: {
-    width: 29,
-    height: 29,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: LIGHT_GREEN,
-  },
-
-  metricValue: {
-    fontFamily: "Poppins_700Bold",
-    color: FOREST,
-    fontSize: 18,
-    marginTop: 4,
-  },
-
-  metricLabel: {
-    fontFamily: "Poppins_400Regular",
-    color: MUTED,
-    fontSize: 7,
-    textAlign: "center",
-    marginTop: 1,
   },
 
   sectionHeader: {
@@ -1430,6 +1324,61 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
 
+  featureCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    marginTop: 22,
+    borderRadius: 21,
+    backgroundColor: LIGHT_GREEN,
+    borderWidth: 1,
+    borderColor: "#CBE8D3",
+  },
+
+  featureIcon: {
+    width: 43,
+    height: 43,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: WHITE,
+  },
+
+  featureCopy: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: 10,
+  },
+
+  featureLabel: {
+    fontFamily: "Poppins_600SemiBold",
+    color: FOREST,
+    fontSize: 8,
+    letterSpacing: 1,
+  },
+
+  featureTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: TEXT,
+    fontSize: 10,
+    marginTop: 2,
+  },
+
+  featureText: {
+    fontFamily: "Poppins_400Regular",
+    color: MUTED,
+    fontSize: 9,
+    lineHeight: 14,
+    marginTop: 3,
+  },
+
+  featureValue: {
+    fontFamily: "Poppins_700Bold",
+    color: ORANGE,
+    fontSize: 18,
+    marginLeft: 8,
+  },
+
   journalInsightSection: {
     marginTop: 22,
   },
@@ -1438,6 +1387,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     padding: 14,
+    marginTop: 7,
     borderRadius: 21,
     backgroundColor: LIGHT_GOLD,
     borderWidth: 1,
@@ -1684,21 +1634,12 @@ const styles = StyleSheet.create({
     backgroundColor: LIGHT_GREEN,
   },
 
-  loadingIcon: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 14,
-    backgroundColor: LIGHT_GREEN,
-  },
-
   centerTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: TEXT,
     fontSize: 18,
     textAlign: "center",
+    marginTop: 14,
   },
 
   centerText: {
