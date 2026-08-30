@@ -71,6 +71,8 @@ const PALE_GREEN = "#F1FAF3";
 const LIGHT_GOLD = "#FFF3DB";
 const GOLD = "#B97812";
 const BORDER = "#E1EBE3";
+const ORANGE = "#F57C22";
+const SOFT_ORANGE = "#FFF0E3";
 
 const WEEKLY_GOAL = 3;
 
@@ -400,6 +402,11 @@ export default function WasteJournalScreen({
     0
   );
 
+  const weeklyStreak = useMemo(() => {
+    // Simple mock streak: 1 if any scans this week, else 0
+    return scansThisWeek > 0 ? 1 : 0;
+  }, [scansThisWeek]);
+
   if (!user) {
     return (
       <View style={styles.centerScreen}>
@@ -486,16 +493,16 @@ export default function WasteJournalScreen({
         >
           <LinearGradient
             colors={[
-              "rgba(2,28,16,0.24)",
-              "rgba(3,40,23,0.18)",
-              "rgba(3,43,25,0.93)",
+              "rgba(2,28,16,0.28)",
+              "rgba(3,40,23,0.22)",
+              "rgba(3,43,25,0.96)",
             ]}
-            locations={[0, 0.38, 1]}
+            locations={[0, 0.35, 1]}
             style={styles.heroOverlay}
           >
             <View style={styles.heroNavigation}>
               <Pressable
-                style={styles.heroNavButton}
+                style={styles.heroNavButtonGreen}
                 onPress={() => navigation.goBack()}
                 accessibilityRole="button"
                 accessibilityLabel="Go back"
@@ -551,24 +558,30 @@ export default function WasteJournalScreen({
                 better disposal habits one scan at a time.
               </Text>
 
-              <View style={styles.heroStats}>
-                <HeroStat
-                  value={String(totalScans)}
-                  label="Saved scans"
+              <View style={styles.heroStatsGrid}>
+                <HeroStatNumber
+                  value={totalScans}
+                  label="Total"
                 />
-
-                <View style={styles.heroStatsDivider} />
-
-                <HeroStat
-                  value={averageScore.toFixed(1)}
-                  label="Eco score"
+                <HeroStatNumber
+                  value={averageScore}
+                  label="Avg score"
                 />
-
-                <View style={styles.heroStatsDivider} />
-
-                <HeroStat
-                  value={String(categoryStats.length)}
+                <HeroStatNumber
+                  value={categoryStats.length}
                   label="Pathways"
+                />
+                <HeroStatNumber
+                  value={scansThisWeek}
+                  label="This week"
+                />
+                <HeroStatNumber
+                  value={WEEKLY_GOAL}
+                  label="Goal"
+                />
+                <HeroStatNumber
+                  value={weeklyStreak}
+                  label="Streak"
                 />
               </View>
             </View>
@@ -613,15 +626,30 @@ export default function WasteJournalScreen({
                     } to reach your goal`}
               </Text>
 
-              <View style={styles.progressTrack}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: `${weeklyProgress * 100}%`,
-                    },
-                  ]}
-                />
+              <View style={styles.weekBottomRow}>
+                <View style={styles.progressTrack}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${weeklyProgress * 100}%`,
+                      },
+                    ]}
+                  />
+                </View>
+
+                {weeklyStreak > 0 ? (
+                  <View style={styles.streakBadge}>
+                    <MaterialCommunityIcons
+                      name="fire"
+                      size={12}
+                      color={ORANGE}
+                    />
+                    <Text style={styles.streakText}>
+                      {weeklyStreak} week streak
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             </View>
           </View>
@@ -757,31 +785,33 @@ export default function WasteJournalScreen({
             />
           )}
 
-          <Text style={styles.sectionLabel}>
-            JOURNAL INSIGHT
-          </Text>
+          <View style={styles.journalInsightSection}>
+            <Text style={styles.sectionLabel}>
+              JOURNAL INSIGHT
+            </Text>
 
-          <View style={styles.insightCard}>
-            <View style={styles.insightIcon}>
-              <MaterialCommunityIcons
-                name="lightbulb-outline"
-                size={22}
-                color={GOLD}
-              />
-            </View>
+            <View style={styles.insightCard}>
+              <View style={styles.insightIcon}>
+                <MaterialCommunityIcons
+                  name="lightbulb-outline"
+                  size={22}
+                  color={GOLD}
+                />
+              </View>
 
-            <View style={styles.insightCopy}>
-              <Text style={styles.insightLabel}>
-                BASED ON YOUR ACTIVITY
-              </Text>
+              <View style={styles.insightCopy}>
+                <Text style={styles.insightLabel}>
+                  BASED ON YOUR ACTIVITY
+                </Text>
 
-              <Text style={styles.insightTitle}>
-                Keep learning with every scan
-              </Text>
+                <Text style={styles.insightTitle}>
+                  Keep learning with every scan
+                </Text>
 
-              <Text style={styles.insightText}>
-                {journalMessage}
-              </Text>
+                <Text style={styles.insightText}>
+                  {journalMessage}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -881,20 +911,20 @@ export default function WasteJournalScreen({
   );
 }
 
-function HeroStat({
+function HeroStatNumber({
   value,
   label,
 }: {
-  value: string;
+  value: number;
   label: string;
 }) {
   return (
-    <View style={styles.heroStat}>
-      <Text style={styles.heroStatValue}>
+    <View style={styles.heroStatNumber}>
+      <Text style={styles.heroStatNumberValue}>
         {value}
       </Text>
 
-      <Text style={styles.heroStatLabel}>
+      <Text style={styles.heroStatNumberLabel}>
         {label}
       </Text>
     </View>
@@ -1029,7 +1059,7 @@ const styles = StyleSheet.create({
   },
 
   hero: {
-    height: 344,
+    height: 360,
     overflow: "hidden",
     backgroundColor: DARK_FOREST,
   },
@@ -1049,6 +1079,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
+  },
+
+  heroNavButtonGreen: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: FOREST,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.22)",
   },
 
   heroNavButton: {
@@ -1102,37 +1143,32 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  heroStats: {
+  heroStatsGrid: {
     flexDirection: "row",
-    alignItems: "center",
-    marginTop: 16,
-    paddingTop: 13,
+    flexWrap: "wrap",
+    marginTop: 14,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.24)",
   },
 
-  heroStat: {
-    flex: 1,
+  heroStatNumber: {
+    width: "33.33%",
     alignItems: "center",
+    paddingVertical: 8,
   },
 
-  heroStatValue: {
+  heroStatNumberValue: {
     fontFamily: "Poppins_700Bold",
-    color: WHITE,
-    fontSize: 18,
+    color: ORANGE,
+    fontSize: 22,
   },
 
-  heroStatLabel: {
+  heroStatNumberLabel: {
     fontFamily: "Poppins_400Regular",
-    color: "rgba(255,255,255,0.76)",
+    color: "rgba(255,255,255,0.78)",
     fontSize: 8,
     marginTop: 1,
-  },
-
-  heroStatsDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: "rgba(255,255,255,0.24)",
   },
 
   body: {
@@ -1141,7 +1177,7 @@ const styles = StyleSheet.create({
   },
 
   weekCard: {
-    minHeight: 81,
+    minHeight: 92,
     flexDirection: "row",
     alignItems: "center",
     padding: 14,
@@ -1197,10 +1233,17 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
+  weekBottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+
   progressTrack: {
+    flex: 1,
     height: 5,
     overflow: "hidden",
-    marginTop: 8,
     borderRadius: 3,
     backgroundColor: "#D5E8D9",
   },
@@ -1209,6 +1252,23 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 3,
     backgroundColor: FOREST,
+  },
+
+  streakBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: SOFT_ORANGE,
+    marginLeft: 8,
+  },
+
+  streakText: {
+    fontFamily: "Poppins_600SemiBold",
+    color: ORANGE,
+    fontSize: 8,
+    marginLeft: 4,
   },
 
   metricsRow: {
@@ -1368,6 +1428,10 @@ const styles = StyleSheet.create({
   legendNumber: {
     fontFamily: "Poppins_700Bold",
     fontSize: 10,
+  },
+
+  journalInsightSection: {
+    marginTop: 22,
   },
 
   insightCard: {
