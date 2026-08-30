@@ -1,12 +1,13 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   View,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -32,6 +33,9 @@ const MUTED = "#6D7B72";
 const LIGHT_GREEN = "#EAF7EE";
 const PALE_GREEN = "#F1FAF3";
 const BORDER = "#E1EBE3";
+const DISABLED = "#A5B1A8";
+const DISABLED_BACKGROUND = "#F0F3F0";
+const OVERLAY = "rgba(10, 25, 16, 0.44)";
 
 const REMINDER_NOTIFICATION_KEY =
   "snapsort-daily-reminder";
@@ -68,28 +72,23 @@ export default function NotificationsScreen({
   const [isSaving, setIsSaving] =
     useState(false);
 
-  const [showTimePicker, setShowTimePicker] =
+  const [showTimeSheet, setShowTimeSheet] =
     useState(false);
 
   const [reminderTime, setReminderTime] =
-    useState(() => {
-      const date = new Date();
+    useState(createDefaultReminderTime);
 
-      date.setHours(19);
-      date.setMinutes(0);
-      date.setSeconds(0);
-      date.setMilliseconds(0);
-
-      return date;
-    });
+  const [draftReminderTime, setDraftReminderTime] =
+    useState(createDefaultReminderTime);
 
   const formattedReminderTime = useMemo(
-    () =>
-      new Intl.DateTimeFormat(undefined, {
-        hour: "numeric",
-        minute: "2-digit",
-      }).format(reminderTime),
+    () => formatTime(reminderTime),
     [reminderTime]
+  );
+
+  const formattedDraftTime = useMemo(
+    () => formatTime(draftReminderTime),
+    [draftReminderTime]
   );
 
   useEffect(() => {
@@ -112,13 +111,18 @@ export default function NotificationsScreen({
         Notifications.getAllScheduledNotificationsAsync(),
       ]);
 
+      let restoredTime = createDefaultReminderTime();
+
       if (savedTime) {
         const parsedTime = new Date(savedTime);
 
         if (!Number.isNaN(parsedTime.getTime())) {
-          setReminderTime(parsedTime);
+          restoredTime = parsedTime;
         }
       }
+
+      setReminderTime(restoredTime);
+      setDraftReminderTime(restoredTime);
 
       const scheduledReminderExists =
         scheduledNotifications.some(
@@ -149,20 +153,20 @@ export default function NotificationsScreen({
     );
   };
 
-  const saveReminderTime = async (date: Date) => {
+  const saveReminderTime = async (time: Date) => {
     await AsyncStorage.setItem(
       REMINDER_TIME_STORAGE_KEY,
-      date.toISOString()
+      time.toISOString()
     );
   };
 
   const ensureNotificationPermission = async () => {
-    const permission =
+    const currentPermission =
       await Notifications.getPermissionsAsync();
 
     if (
-      permission.granted ||
-      permission.status === "granted"
+      currentPermission.granted ||
+      currentPermission.status === "granted"
     ) {
       return true;
     }
@@ -243,9 +247,7 @@ export default function NotificationsScreen({
     });
   };
 
-  const handleReminderToggle = async (
-    enabled: boolean
-  ) => {
+  const enableReminder = async () => {
     if (isLoading || isSaving) {
       return;
     }
@@ -253,88 +255,146 @@ export default function NotificationsScreen({
     try {
       setIsSaving(true);
 
-      if (enabled) {
-        const permissionGranted =
-          await ensureNotificationPermission();
+      const permissionGranted =
+        await ensureNotificationPermission();
 
-        if (!permissionGranted) {
-          Alert.alert(
-            "Notifications are disabled",
-            "Allow notifications in your phone settings to receive daily SnapSort reminders."
-          );
-
-          setDailyReminder(false);
-          await saveReminderEnabled(false);
-
-          return;
-        }
-
-        await scheduleReminder(reminderTime);
-
-        setDailyReminder(true);
-        await saveReminderEnabled(true);
-
+      if (!permissionGranted) {
         Alert.alert(
-          "Reminder enabled",
-          `SnapSort AI will remind you each day at ${formattedReminderTime}.`
+          "Notifications are disabled",
+          "Allow notifications in your device settings to receive daily SnapSort reminders."
         );
+
+        setDailyReminder(false);
+        await saveReminderEnabled(false);
 
         return;
       }
 
-      await cancelExistingReminder();
+      await scheduleReminder(reminderTime);
 
-      setDailyReminder(false);
-      await saveReminderEnabled(false);
+      setDailyReminder(true);
+      await saveReminderEnabled(true);
+
+      Alert.alert(
+        "Reminder enabled",
+        `SnapSort AI will remind you every day at ${formattedReminderTime}.`
+      );
     } catch {
       Alert.alert(
-        "Could not update reminder",
-        "Please try again and check that notification permissions are enabled."
+        "Could not enable reminder",
+        "Please try again and check notification permissions in device settings."
       );
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleTimeChange = async (
+  const disableReminder = () => {
+    if (isLoading || isSaving) {
+      return;
+    }
+
+    Alert.alert(
+      "Turn off reminder?",
+      "You will no longer receive your daily SnapSort reminder.",
+      [
+        {
+          text: "Keep reminder",
+          style: "cancel",
+        },
+        {
+          text: "Turn off",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setIsSaving(true);
+
+              await cancelExistingReminder();
+
+              setDailyReminder(false);
+              await saveReminderEnabled(false);
+            } catch {
+              Alert.alert(
+                "Could not update reminder",
+                "Please try again."
+              );
+            } finally {
+              setIsSaving(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const openTimeSheet = () => {
+    if (
+      !dailyReminder ||
+      isLoading ||
+      isSaving
+    ) {
+      return;
+    }
+
+    setDraftReminderTime(reminderTime);
+    setShowTimeSheet(true);
+  };
+
+  const closeTimeSheet = () => {
+    if (isSaving) {
+      return;
+    }
+
+    setShowTimeSheet(false);
+    setDraftReminderTime(reminderTime);
+  };
+
+  const handleTimeChange = (
     _event: unknown,
     selectedTime?: Date
   ) => {
-    if (Platform.OS === "android") {
-      setShowTimePicker(false);
-    }
-
     if (!selectedTime) {
       return;
     }
 
-    const updatedTime = new Date(reminderTime);
+    const nextTime = new Date(draftReminderTime);
 
-    updatedTime.setHours(selectedTime.getHours());
-    updatedTime.setMinutes(selectedTime.getMinutes());
-    updatedTime.setSeconds(0);
-    updatedTime.setMilliseconds(0);
+    nextTime.setHours(selectedTime.getHours());
+    nextTime.setMinutes(selectedTime.getMinutes());
+    nextTime.setSeconds(0);
+    nextTime.setMilliseconds(0);
+
+    setDraftReminderTime(nextTime);
+  };
+
+  const saveNewReminderTime = async () => {
+    if (isSaving) {
+      return;
+    }
 
     try {
       setIsSaving(true);
-      setReminderTime(updatedTime);
+
+      const updatedTime = new Date(draftReminderTime);
+
+      updatedTime.setSeconds(0);
+      updatedTime.setMilliseconds(0);
 
       await saveReminderTime(updatedTime);
 
       if (dailyReminder) {
         await scheduleReminder(updatedTime);
-
-        Alert.alert(
-          "Reminder time updated",
-          `Your daily reminder is now set for ${new Intl.DateTimeFormat(
-            undefined,
-            {
-              hour: "numeric",
-              minute: "2-digit",
-            }
-          ).format(updatedTime)}.`
-        );
       }
+
+      setReminderTime(updatedTime);
+      setShowTimeSheet(false);
+
+      Alert.alert(
+        "Reminder time updated",
+        `Your daily reminder is now set for ${formatTime(
+          updatedTime
+        )}.`
+      );
     } catch {
       Alert.alert(
         "Could not update time",
@@ -399,7 +459,7 @@ export default function NotificationsScreen({
                     ? "bell-ring-outline"
                     : "bell-outline"
                 }
-                size={25}
+                size={24}
                 color={WHITE}
               />
             </View>
@@ -410,8 +470,8 @@ export default function NotificationsScreen({
           </Text>
 
           <Text style={styles.pageDescription}>
-            Set one simple reminder to support mindful
-            disposal choices every day.
+            Set a daily reminder for thoughtful
+            disposal choices.
           </Text>
         </View>
 
@@ -433,9 +493,11 @@ export default function NotificationsScreen({
           >
             <MaterialCommunityIcons
               name={
-                dailyReminder
-                  ? "check-circle-outline"
-                  : "information-outline"
+                isLoading
+                  ? "clock-outline"
+                  : dailyReminder
+                  ? "check"
+                  : "bell-off-outline"
               }
               size={19}
               color={
@@ -452,13 +514,13 @@ export default function NotificationsScreen({
                 ? "Checking reminder settings..."
                 : dailyReminder
                 ? "Daily reminder is active"
-                : "No daily reminder is scheduled"}
+                : "Daily reminder is off"}
             </Text>
 
             <Text style={styles.statusText}>
               {dailyReminder
-                ? `You will receive a reminder every day at ${formattedReminderTime}.`
-                : "Turn on reminders whenever you want a gentle nudge."}
+                ? `Scheduled every day at ${formattedReminderTime}.`
+                : "Enable it whenever you want a helpful reminder."}
             </Text>
           </View>
         </View>
@@ -483,38 +545,79 @@ export default function NotificationsScreen({
               </Text>
 
               <Text style={styles.settingSubtitle}>
-                Receive one reminder each day.
+                Receive one reminder every day.
               </Text>
             </View>
-
-            <Switch
-              value={dailyReminder}
-              onValueChange={handleReminderToggle}
-              disabled={isLoading || isSaving}
-              trackColor={{
-                false: "#D7E1D9",
-                true: "#91D5A7",
-              }}
-              thumbColor={
-                dailyReminder
-                  ? FOREST
-                  : WHITE
-              }
-              ios_backgroundColor="#D7E1D9"
-            />
           </View>
 
-          <Divider />
+          <View style={styles.reminderActionArea}>
+            {isSaving ? (
+              <View style={styles.loadingAction}>
+                <ActivityIndicator
+                  size="small"
+                  color={FOREST}
+                />
+
+                <Text style={styles.loadingActionText}>
+                  Updating reminder...
+                </Text>
+              </View>
+            ) : dailyReminder ? (
+              <View style={styles.activeReminderArea}>
+                <View style={styles.activeReminderBadge}>
+                  <MaterialCommunityIcons
+                    name="check-circle"
+                    size={15}
+                    color={FOREST}
+                  />
+
+                  <Text style={styles.activeReminderText}>
+                    Reminder on
+                  </Text>
+                </View>
+
+                <Pressable
+                  style={styles.turnOffButton}
+                  onPress={disableReminder}
+                  accessibilityRole="button"
+                  accessibilityLabel="Turn off daily reminder"
+                >
+                  <Text style={styles.turnOffButtonText}>
+                    Turn off
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                style={styles.enableButton}
+                onPress={enableReminder}
+                accessibilityRole="button"
+                accessibilityLabel="Enable daily reminder"
+              >
+                <MaterialCommunityIcons
+                  name="bell-plus-outline"
+                  size={17}
+                  color={WHITE}
+                />
+
+                <Text style={styles.enableButtonText}>
+                  Enable reminder
+                </Text>
+              </Pressable>
+            )}
+          </View>
+
+          <View style={styles.divider} />
 
           <Pressable
             style={({ pressed }) => [
-              styles.settingRow,
+              styles.timeRow,
               !dailyReminder && styles.disabledRow,
               pressed &&
                 dailyReminder &&
                 styles.pressedRow,
             ]}
-            onPress={() => setShowTimePicker(true)}
+            onPress={openTimeSheet}
             disabled={
               !dailyReminder ||
               isLoading ||
@@ -536,7 +639,7 @@ export default function NotificationsScreen({
                 color={
                   dailyReminder
                     ? FOREST
-                    : "#A5B1A8"
+                    : DISABLED
                 }
               />
             </View>
@@ -582,11 +685,11 @@ export default function NotificationsScreen({
 
               <MaterialCommunityIcons
                 name="chevron-right"
-                size={16}
+                size={15}
                 color={
                   dailyReminder
                     ? FOREST
-                    : "#A5B1A8"
+                    : DISABLED
                 }
               />
             </View>
@@ -597,7 +700,7 @@ export default function NotificationsScreen({
           <View style={styles.privacyIcon}>
             <MaterialCommunityIcons
               name="shield-check-outline"
-              size={19}
+              size={18}
               color={FOREST}
             />
           </View>
@@ -608,36 +711,172 @@ export default function NotificationsScreen({
             </Text>
 
             <Text style={styles.privacyText}>
-              This reminder is scheduled locally on your device.
-              You can disable it at any time.
+              Your reminder is scheduled locally on your device.
+              You can disable it whenever you want.
             </Text>
           </View>
         </View>
 
         <Text style={styles.footerText}>
-          Notification permission is managed in your device settings.
+          Notification permission is controlled in device settings.
         </Text>
       </ScrollView>
 
-      {showTimePicker ? (
-        <DateTimePicker
-          value={reminderTime}
-          mode="time"
-          is24Hour={false}
-          display={
-            Platform.OS === "ios"
-              ? "spinner"
-              : "default"
-          }
-          onChange={handleTimeChange}
-        />
-      ) : null}
+      <Modal
+        visible={showTimeSheet}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={closeTimeSheet}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={closeTimeSheet}
+            accessibilityRole="button"
+            accessibilityLabel="Close time picker"
+          />
+
+          <View
+            style={[
+              styles.timeSheet,
+              {
+                paddingBottom: Math.max(
+                  insets.bottom + 15,
+                  25
+                ),
+              },
+            ]}
+          >
+            <View style={styles.sheetHandle} />
+
+            <View style={styles.sheetHeader}>
+              <View>
+                <Text style={styles.sheetEyebrow}>
+                  DAILY REMINDER
+                </Text>
+
+                <Text style={styles.sheetTitle}>
+                  Choose reminder time
+                </Text>
+              </View>
+
+              <Pressable
+                style={styles.sheetCloseButton}
+                onPress={closeTimeSheet}
+                disabled={isSaving}
+                accessibilityRole="button"
+                accessibilityLabel="Close reminder time picker"
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={18}
+                  color={MUTED}
+                />
+              </Pressable>
+            </View>
+
+            <View style={styles.timePreview}>
+              <View style={styles.timePreviewIcon}>
+                <MaterialCommunityIcons
+                  name="clock-outline"
+                  size={19}
+                  color={FOREST}
+                />
+              </View>
+
+              <View style={styles.timePreviewCopy}>
+                <Text style={styles.timePreviewLabel}>
+                  SELECTED TIME
+                </Text>
+
+                <Text style={styles.timePreviewValue}>
+                  {formattedDraftTime}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.pickerArea}>
+              <DateTimePicker
+                value={draftReminderTime}
+                mode="time"
+                is24Hour={false}
+                display={
+                  Platform.OS === "ios"
+                    ? "spinner"
+                    : "clock"
+                }
+                onChange={handleTimeChange}
+                accentColor={FOREST}
+              />
+            </View>
+
+            <View style={styles.sheetActionRow}>
+              <Pressable
+                style={styles.cancelButton}
+                onPress={closeTimeSheet}
+                disabled={isSaving}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel reminder time changes"
+              >
+                <Text style={styles.cancelButtonText}>
+                  Cancel
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.saveButton,
+                  isSaving && styles.saveButtonDisabled,
+                ]}
+                onPress={saveNewReminderTime}
+                disabled={isSaving}
+                accessibilityRole="button"
+                accessibilityLabel="Save reminder time"
+              >
+                {isSaving ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={WHITE}
+                  />
+                ) : (
+                  <>
+                    <Text style={styles.saveButtonText}>
+                      Save time
+                    </Text>
+
+                    <MaterialCommunityIcons
+                      name="check"
+                      size={17}
+                      color={WHITE}
+                    />
+                  </>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
-function Divider() {
-  return <View style={styles.divider} />;
+function createDefaultReminderTime() {
+  const date = new Date();
+
+  date.setHours(19);
+  date.setMinutes(0);
+  date.setSeconds(0);
+  date.setMilliseconds(0);
+
+  return date;
+}
+
+function formatTime(time: Date) {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(time);
 }
 
 const styles = StyleSheet.create({
@@ -687,18 +926,18 @@ const styles = StyleSheet.create({
   },
 
   heroIconRing: {
-    width: 67,
-    height: 67,
-    borderRadius: 34,
+    width: 66,
+    height: 66,
+    borderRadius: 33,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#D7F0DE",
   },
 
   heroIcon: {
-    width: 53,
-    height: 53,
-    borderRadius: 27,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: FOREST,
@@ -712,7 +951,7 @@ const styles = StyleSheet.create({
   },
 
   pageDescription: {
-    maxWidth: 285,
+    maxWidth: 280,
     fontFamily: "Poppins_400Regular",
     color: MUTED,
     fontSize: 10,
@@ -740,8 +979,8 @@ const styles = StyleSheet.create({
   },
 
   statusIcon: {
-    width: 42,
-    height: 42,
+    width: 41,
+    height: 41,
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
@@ -786,7 +1025,7 @@ const styles = StyleSheet.create({
   },
 
   settingsCard: {
-    paddingHorizontal: 14,
+    overflow: "hidden",
     borderRadius: 21,
     backgroundColor: WHITE,
     borderWidth: 1,
@@ -797,14 +1036,14 @@ const styles = StyleSheet.create({
     minHeight: 70,
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 14,
   },
 
-  disabledRow: {
-    opacity: 0.52,
-  },
-
-  pressedRow: {
-    opacity: 0.65,
+  timeRow: {
+    minHeight: 70,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
   },
 
   settingIcon: {
@@ -817,7 +1056,7 @@ const styles = StyleSheet.create({
   },
 
   disabledSettingIcon: {
-    backgroundColor: "#F0F3F0",
+    backgroundColor: DISABLED_BACKGROUND,
   },
 
   settingCopy: {
@@ -840,7 +1079,100 @@ const styles = StyleSheet.create({
   },
 
   disabledText: {
-    color: "#A5B1A8",
+    color: DISABLED,
+  },
+
+  reminderActionArea: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+  },
+
+  enableButton: {
+    height: 46,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 23,
+    backgroundColor: FOREST,
+  },
+
+  enableButtonText: {
+    fontFamily: "Poppins_600SemiBold",
+    color: WHITE,
+    fontSize: 11,
+    marginLeft: 7,
+  },
+
+  loadingAction: {
+    height: 46,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 23,
+    backgroundColor: PALE_GREEN,
+  },
+
+  loadingActionText: {
+    fontFamily: "Poppins_500Medium",
+    color: FOREST,
+    fontSize: 10,
+    marginLeft: 7,
+  },
+
+  activeReminderArea: {
+    height: 46,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingLeft: 12,
+    paddingRight: 5,
+    borderRadius: 23,
+    backgroundColor: PALE_GREEN,
+    borderWidth: 1,
+    borderColor: "#D3EAD9",
+  },
+
+  activeReminderBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  activeReminderText: {
+    fontFamily: "Poppins_600SemiBold",
+    color: FOREST,
+    fontSize: 10,
+    marginLeft: 5,
+  },
+
+  turnOffButton: {
+    height: 36,
+    paddingHorizontal: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 18,
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: "#D3EAD9",
+  },
+
+  turnOffButtonText: {
+    fontFamily: "Poppins_600SemiBold",
+    color: MUTED,
+    fontSize: 9,
+  },
+
+  divider: {
+    height: 1,
+    marginLeft: 65,
+    backgroundColor: "#E7EEE8",
+  },
+
+  disabledRow: {
+    opacity: 0.52,
+  },
+
+  pressedRow: {
+    opacity: 0.68,
   },
 
   timePill: {
@@ -854,7 +1186,7 @@ const styles = StyleSheet.create({
   },
 
   disabledTimePill: {
-    backgroundColor: "#F0F3F0",
+    backgroundColor: DISABLED_BACKGROUND,
   },
 
   timePillText: {
@@ -862,12 +1194,6 @@ const styles = StyleSheet.create({
     color: FOREST,
     fontSize: 9,
     marginRight: 2,
-  },
-
-  divider: {
-    height: 1,
-    marginLeft: 51,
-    backgroundColor: "#E7EEE8",
   },
 
   privacyCard: {
@@ -915,5 +1241,149 @@ const styles = StyleSheet.create({
     fontSize: 9,
     textAlign: "center",
     marginTop: 20,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: OVERLAY,
+  },
+
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  timeSheet: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 11,
+    backgroundColor: WHITE,
+  },
+
+  sheetHandle: {
+    width: 39,
+    height: 4,
+    alignSelf: "center",
+    borderRadius: 2,
+    backgroundColor: "#D9E3DB",
+  },
+
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 18,
+  },
+
+  sheetEyebrow: {
+    fontFamily: "Poppins_600SemiBold",
+    color: FOREST,
+    fontSize: 8,
+    letterSpacing: 1.15,
+  },
+
+  sheetTitle: {
+    fontFamily: "Poppins_700Bold",
+    color: TEXT,
+    fontSize: 18,
+    marginTop: 2,
+  },
+
+  sheetCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F2F6F2",
+  },
+
+  timePreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 13,
+    marginTop: 17,
+    borderRadius: 18,
+    backgroundColor: PALE_GREEN,
+    borderWidth: 1,
+    borderColor: "#D8ECDD",
+  },
+
+  timePreviewIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: WHITE,
+  },
+
+  timePreviewCopy: {
+    marginLeft: 10,
+  },
+
+  timePreviewLabel: {
+    fontFamily: "Poppins_600SemiBold",
+    color: FOREST,
+    fontSize: 8,
+    letterSpacing: 1.1,
+  },
+
+  timePreviewValue: {
+    fontFamily: "Poppins_700Bold",
+    color: TEXT,
+    fontSize: 18,
+    marginTop: 1,
+  },
+
+  pickerArea: {
+    minHeight: Platform.OS === "ios" ? 185 : 270,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+  },
+
+  sheetActionRow: {
+    flexDirection: "row",
+    marginTop: 8,
+  },
+
+  cancelButton: {
+    flex: 1,
+    height: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 6,
+    borderRadius: 25,
+    backgroundColor: "#F2F6F2",
+  },
+
+  cancelButtonText: {
+    fontFamily: "Poppins_600SemiBold",
+    color: MUTED,
+    fontSize: 11,
+  },
+
+  saveButton: {
+    flex: 1,
+    height: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 6,
+    borderRadius: 25,
+    backgroundColor: FOREST,
+  },
+
+  saveButtonDisabled: {
+    opacity: 0.62,
+  },
+
+  saveButtonText: {
+    fontFamily: "Poppins_600SemiBold",
+    color: WHITE,
+    fontSize: 11,
+    marginRight: 6,
   },
 });
