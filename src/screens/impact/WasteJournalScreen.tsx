@@ -58,15 +58,15 @@ type CategoryStat = CategoryMeta & {
 };
 
 const WHITE = "#FFFFFF";
-const BACKGROUND = "#F7FAF7";
+const BACKGROUND = "#F8FBF8";
 const FOREST = "#075C34";
-const DARK_FOREST = "#04351E";
+const DARK_FOREST = "#053D23";
 const TEXT = "#17271D";
 const MUTED = "#6D7B72";
 const LIGHT_GREEN = "#EAF7EE";
 const PALE_GREEN = "#F1FAF3";
 const LIGHT_GOLD = "#FFF3DB";
-const GOLD = "#B97812";
+const GOLD = "#C98718";
 const BORDER = "#E1EBE3";
 const ORANGE = "#F57C22";
 const SOFT_ORANGE = "#FFF0E3";
@@ -201,6 +201,30 @@ function getStartOfWeek(): Date {
   return start;
 }
 
+function getJournalMessage({
+  totalScans,
+  averageScore,
+  topCategory,
+}: {
+  totalScans: number;
+  averageScore: number;
+  topCategory: CategoryStat | null;
+}) {
+  if (!totalScans) {
+    return "Start with one scan. Your journal will show a clearer picture of the habits you build over time.";
+  }
+
+  if (averageScore >= 8) {
+    return "Your average eco score is strong. Keep using each scan to make clear and thoughtful decisions.";
+  }
+
+  if (topCategory) {
+    return `${topCategory.label} is your most used pathway so far. Every saved scan helps you understand your habits better.`;
+  }
+
+  return "Every saved scan helps you build a clearer picture of your disposal habits.";
+}
+
 export default function WasteJournalScreen({
   navigation,
 }: Props) {
@@ -293,8 +317,6 @@ export default function WasteJournalScreen({
     1
   );
 
-  const weeklyStreak = scansThisWeek > 0 ? 1 : 0;
-
   const categoryStats = useMemo(() => {
     const keys: CategoryKey[] = [
       "recycle",
@@ -350,13 +372,15 @@ export default function WasteJournalScreen({
     0
   );
 
-  const journalMessage = !totalScans
-    ? "Start with one scan. Your journal will show a clearer picture of the habits you build over time."
-    : averageScore >= 8
-      ? "Your average eco score is strong. Keep using each scan to make clear and thoughtful decisions."
-      : topCategory
-        ? `${topCategory.label} is your most used pathway so far. Every saved scan helps you understand your habits better.`
-        : "Every saved scan helps you build a clearer picture of your disposal habits.";
+  const journalMessage = useMemo(
+    () =>
+      getJournalMessage({
+        totalScans,
+        averageScore,
+        topCategory,
+      }),
+    [totalScans, averageScore, topCategory]
+  );
 
   if (!user) {
     return (
@@ -429,52 +453,54 @@ export default function WasteJournalScreen({
       >
         <ImageBackground
           source={journalHeroImage}
-          style={[
-            styles.hero,
-            {
-              paddingTop: Math.max(
-                insets.top + 10,
-                20
-              ),
-            },
-          ]}
+          style={styles.hero}
           imageStyle={styles.heroImage}
         >
           <LinearGradient
             colors={[
-              "rgba(2,28,16,0.68)",
-              "rgba(3,40,23,0.74)",
-              "rgba(3,43,25,0.97)",
+              "rgba(3,32,24,0.30)",
+              "rgba(3,32,24,0.04)",
+              "rgba(3,32,24,0.90)",
             ]}
             locations={[0, 0.42, 1]}
             style={styles.heroOverlay}
           >
-            <View style={styles.heroNavigation}>
+            <View
+              style={[
+                styles.topBar,
+                {
+                  paddingTop: Math.max(
+                    insets.top,
+                    10
+                  ),
+                },
+              ]}
+            >
               <Pressable
-                style={styles.heroNavButtonGreen}
+                style={styles.backButton}
                 onPress={() => navigation.goBack()}
                 accessibilityRole="button"
                 accessibilityLabel="Go back"
               >
                 <MaterialCommunityIcons
                   name="arrow-left"
-                  size={21}
+                  size={23}
                   color={WHITE}
                 />
               </Pressable>
 
-              <View style={styles.heroNavigationCenter}>
-                <Text style={styles.heroNavigationTitle}>
+              <View style={styles.headerCenter}>
+                <Text style={styles.brand}>
                   Waste Journal
                 </Text>
 
-                <Text style={styles.heroNavigationSubtitle}>
+                <Text style={styles.headerSubtitle}>
                   YOUR ACTIVITY
                 </Text>
               </View>
 
               <Pressable
-                style={styles.heroNavButton}
+                style={styles.headerButton}
                 onPress={() => loadJournal(true)}
                 disabled={isRefreshing}
                 accessibilityRole="button"
@@ -488,54 +514,47 @@ export default function WasteJournalScreen({
                 ) : (
                   <MaterialCommunityIcons
                     name="refresh"
-                    size={19}
+                    size={22}
                     color={WHITE}
                   />
                 )}
               </Pressable>
             </View>
 
-            <View style={styles.heroContent}>
+            <View style={styles.heroCopy}>
+              <Text style={styles.heroKicker}>
+                YOUR WASTE JOURNEY
+              </Text>
+
               <Text style={styles.heroTitle}>
-                Progress starts
+                Progress starts,
                 {"\n"}
                 with one choice.
               </Text>
 
               <Text style={styles.heroDescription}>
-                Review the actions you have saved and build
-                better disposal habits one scan at a time.
+                Review your decisions, understand your habits,
+                and make a positive impact with every scan.
               </Text>
 
-              <View style={styles.heroStatsGrid}>
-                <HeroStatNumber
-                  value={totalScans}
-                  label="Total"
+              <View style={styles.heroSummaryRow}>
+                <HeroMetric
+                  value={String(totalScans)}
+                  label="Saved scans"
                 />
 
-                <HeroStatNumber
-                  value={averageScore}
-                  label="Avg score"
+                <View style={styles.heroSummaryDivider} />
+
+                <HeroMetric
+                  value={averageScore.toFixed(1)}
+                  label="Eco score"
                 />
 
-                <HeroStatNumber
-                  value={categoryStats.length}
+                <View style={styles.heroSummaryDivider} />
+
+                <HeroMetric
+                  value={String(categoryStats.length)}
                   label="Pathways"
-                />
-
-                <HeroStatNumber
-                  value={scansThisWeek}
-                  label="This week"
-                />
-
-                <HeroStatNumber
-                  value={WEEKLY_GOAL}
-                  label="Goal"
-                />
-
-                <HeroStatNumber
-                  value={weeklyStreak}
-                  label="Streak"
                 />
               </View>
             </View>
@@ -543,69 +562,44 @@ export default function WasteJournalScreen({
         </ImageBackground>
 
         <View style={styles.body}>
-          <View style={styles.weekCard}>
-            <View style={styles.weekIcon}>
-              <MaterialCommunityIcons
-                name={
-                  scansThisWeek >= WEEKLY_GOAL
-                    ? "check-circle-outline"
-                    : "calendar-check-outline"
-                }
-                size={21}
-                color={FOREST}
-              />
-            </View>
-
-            <View style={styles.weekCopy}>
-              <View style={styles.weekTopRow}>
-                <Text style={styles.weekTitle}>
-                  This week
-                </Text>
-
-                <Text style={styles.weekProgressText}>
-                  <Text style={styles.weekProgressNumber}>
-                    {scansThisWeek}
-                  </Text>
-                  /{WEEKLY_GOAL}
-                </Text>
-              </View>
-
-              <Text style={styles.weekSubtitle}>
-                {scansThisWeek >= WEEKLY_GOAL
-                  ? "Weekly goal completed"
-                  : `${remainingWeeklyScans} more scan${
-                      remainingWeeklyScans === 1
-                        ? ""
-                        : "s"
-                    } to reach your goal`}
-              </Text>
-
-              <View style={styles.weekBottomRow}>
-                <View style={styles.progressTrack}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${weeklyProgress * 100}%`,
-                      },
-                    ]}
+          <View style={styles.weeklyCard}>
+            <View style={styles.weeklyTop}>
+              <View style={styles.weeklyLeft}>
+                <View style={styles.weeklyIcon}>
+                  <MaterialCommunityIcons
+                    name="calendar-check-outline"
+                    size={18}
+                    color={FOREST}
                   />
                 </View>
 
-                {weeklyStreak > 0 ? (
-                  <View style={styles.streakBadge}>
-                    <MaterialCommunityIcons
-                      name="fire"
-                      size={12}
-                      color={ORANGE}
-                    />
+                <View style={styles.weeklyTextContainer}>
+                  <Text style={styles.weeklyTitle}>
+                    This week
+                  </Text>
 
-                    <Text style={styles.streakText}>
-                      {weeklyStreak} week streak
-                    </Text>
-                  </View>
-                ) : null}
+                  <Text style={styles.weeklySubtitle}>
+                    {scansThisWeek} of {WEEKLY_GOAL} scans completed
+                  </Text>
+                </View>
               </View>
+
+              <Text style={styles.weeklyPercent}>
+                {Math.round(weeklyProgress * 100)}%
+              </Text>
+            </View>
+
+            <View style={styles.weeklyTrack}>
+              <View
+                style={[
+                  styles.weeklyValue,
+                  {
+                    width: `${
+                      weeklyProgress * 100
+                    }%`,
+                  },
+                ]}
+              />
             </View>
           </View>
 
@@ -720,41 +714,43 @@ export default function WasteJournalScreen({
             />
           )}
 
-          <View style={styles.featureCard}>
-            <View style={styles.featureIcon}>
+          <View style={styles.targetCard}>
+            <View style={styles.targetIcon}>
               <MaterialCommunityIcons
                 name="target"
-                size={22}
+                size={23}
                 color={FOREST}
               />
             </View>
 
-            <View style={styles.featureCopy}>
-              <Text style={styles.featureLabel}>
-                NEW FEATURE
+            <View style={styles.targetCopy}>
+              <Text style={styles.targetLabel}>
+                WEEKLY ECO TARGET
               </Text>
 
-              <Text style={styles.featureTitle}>
-                Your weekly eco target
+              <Text style={styles.targetTitle}>
+                Keep your momentum growing
               </Text>
 
-              <Text style={styles.featureText}>
+              <Text style={styles.targetText}>
                 {scansThisWeek >= WEEKLY_GOAL
-                  ? "You reached this week's target. Keep the momentum going."
-                  : `Complete ${remainingWeeklyScans} more scan${
+                  ? "You completed your goal for this week. Great work keeping your sustainable habit active."
+                  : `You need ${remainingWeeklyScans} more scan${
                       remainingWeeklyScans === 1
                         ? ""
                         : "s"
-                    } this week to reach your target.`}
+                    } to complete this week's goal.`}
               </Text>
             </View>
 
-            <Text style={styles.featureValue}>
-              {Math.round(weeklyProgress * 100)}%
-            </Text>
+            <View style={styles.targetProgress}>
+              <Text style={styles.targetProgressText}>
+                {Math.round(weeklyProgress * 100)}%
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.journalInsightSection}>
+          <View style={styles.insightSection}>
             <Text style={styles.sectionLabel}>
               JOURNAL INSIGHT
             </Text>
@@ -799,6 +795,8 @@ export default function WasteJournalScreen({
               <Pressable
                 style={styles.historyButton}
                 onPress={() => navigation.navigate("History")}
+                accessibilityRole="button"
+                accessibilityLabel="View full scan history"
               >
                 <Text style={styles.historyButtonText}>
                   History
@@ -839,6 +837,8 @@ export default function WasteJournalScreen({
               pressed && styles.scanButtonPressed,
             ]}
             onPress={() => navigation.navigate("Camera")}
+            accessibilityRole="button"
+            accessibilityLabel="Scan a new item"
           >
             <View style={styles.scanButtonIcon}>
               <MaterialCommunityIcons
@@ -876,20 +876,20 @@ export default function WasteJournalScreen({
   );
 }
 
-function HeroStatNumber({
+function HeroMetric({
   value,
   label,
 }: {
-  value: number;
+  value: string;
   label: string;
 }) {
   return (
-    <View style={styles.heroStatNumber}>
-      <Text style={styles.heroStatNumberValue}>
+    <View style={styles.heroMetric}>
+      <Text style={styles.heroMetricValue}>
         {value}
       </Text>
 
-      <Text style={styles.heroStatNumberLabel}>
+      <Text style={styles.heroMetricLabel}>
         {label}
       </Text>
     </View>
@@ -994,7 +994,7 @@ const styles = StyleSheet.create({
   },
 
   hero: {
-    height: 360,
+    height: 470,
     overflow: "hidden",
     backgroundColor: DARK_FOREST,
   },
@@ -1006,17 +1006,17 @@ const styles = StyleSheet.create({
   heroOverlay: {
     flex: 1,
     justifyContent: "space-between",
-    paddingBottom: 22,
+    paddingBottom: 31,
   },
 
-  heroNavigation: {
+  topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 22,
   },
 
-  heroNavButtonGreen: {
+  backButton: {
     width: 42,
     height: 42,
     borderRadius: 21,
@@ -1024,195 +1024,178 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: FOREST,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.22)",
+    borderColor: "rgba(255,255,255,0.32)",
   },
 
-  heroNavButton: {
+  headerButton: {
     width: 42,
     height: 42,
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.23)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.22)",
+    backgroundColor: "rgba(0,0,0,0.14)",
   },
 
-  heroNavigationCenter: {
+  headerCenter: {
     alignItems: "center",
   },
 
-  heroNavigationTitle: {
-    fontFamily: "Poppins_600SemiBold",
+  brand: {
+    fontFamily: "Poppins_700Bold",
     color: WHITE,
-    fontSize: 14,
+    fontSize: 17,
+    letterSpacing: -0.4,
   },
 
-  heroNavigationSubtitle: {
+  headerSubtitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: "rgba(255,255,255,0.72)",
+    color: "#D7F7E2",
     fontSize: 7,
-    letterSpacing: 1,
+    letterSpacing: 1.25,
     marginTop: 1,
   },
 
-  heroContent: {
-    paddingHorizontal: 22,
+  heroCopy: {
+    maxWidth: 350,
+    paddingHorizontal: 24,
+  },
+
+  heroKicker: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#D7F7E2",
+    fontSize: 9,
+    letterSpacing: 1.3,
+    marginBottom: 10,
   },
 
   heroTitle: {
-    maxWidth: 300,
     fontFamily: "Poppins_700Bold",
     color: WHITE,
-    fontSize: 28,
-    lineHeight: 34,
-    letterSpacing: -0.7,
+    fontSize: 34,
+    lineHeight: 41,
+    letterSpacing: -1,
   },
 
   heroDescription: {
-    maxWidth: 315,
+    maxWidth: 320,
     fontFamily: "Poppins_400Regular",
-    color: "rgba(255,255,255,0.87)",
-    fontSize: 10,
-    lineHeight: 16,
-    marginTop: 6,
+    color: "#F2FFF6",
+    fontSize: 12,
+    lineHeight: 19,
+    marginTop: 11,
   },
 
-  heroStatsGrid: {
+  heroSummaryRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.24)",
-  },
-
-  heroStatNumber: {
-    width: "33.33%",
     alignItems: "center",
-    paddingVertical: 8,
+    marginTop: 22,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.25)",
   },
 
-  heroStatNumberValue: {
+  heroMetric: {
+    flex: 1,
+    alignItems: "center",
+  },
+
+  heroMetricValue: {
     fontFamily: "Poppins_700Bold",
     color: ORANGE,
     fontSize: 22,
   },
 
-  heroStatNumberLabel: {
+  heroMetricLabel: {
     fontFamily: "Poppins_400Regular",
-    color: "rgba(255,255,255,0.78)",
+    color: "rgba(255,255,255,0.82)",
     fontSize: 8,
     marginTop: 1,
   },
 
-  body: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+  heroSummaryDivider: {
+    width: 1,
+    height: 34,
+    backgroundColor: "rgba(255,255,255,0.25)",
   },
 
-  weekCard: {
-    minHeight: 92,
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 22,
+  body: {
+    paddingHorizontal: 22,
+    paddingTop: 24,
+  },
+
+  weeklyCard: {
+    padding: 13,
+    borderRadius: 19,
     backgroundColor: PALE_GREEN,
     borderWidth: 1,
-    borderColor: "#D5EADB",
+    borderColor: "#D8EBDC",
   },
 
-  weekIcon: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
+  weeklyTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  weeklyLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  weeklyIcon: {
+    width: 39,
+    height: 39,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: WHITE,
   },
 
-  weekCopy: {
+  weeklyTextContainer: {
     flex: 1,
-    minWidth: 0,
     marginLeft: 10,
   },
 
-  weekTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  weekTitle: {
+  weeklyTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: TEXT,
-    fontSize: 11,
+    fontSize: 12,
   },
 
-  weekProgressText: {
-    fontFamily: "Poppins_500Medium",
-    color: MUTED,
-    fontSize: 10,
-  },
-
-  weekProgressNumber: {
-    fontFamily: "Poppins_700Bold",
-    color: FOREST,
-    fontSize: 11,
-  },
-
-  weekSubtitle: {
+  weeklySubtitle: {
     fontFamily: "Poppins_400Regular",
     color: MUTED,
     fontSize: 9,
-    marginTop: 2,
+    marginTop: 1,
   },
 
-  weekBottomRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 8,
+  weeklyPercent: {
+    fontFamily: "Poppins_700Bold",
+    color: FOREST,
+    fontSize: 13,
   },
 
-  progressTrack: {
-    flex: 1,
-    height: 7,
+  weeklyTrack: {
+    height: 6,
     overflow: "hidden",
     borderRadius: 4,
-    backgroundColor: "#D5E8D9",
+    marginTop: 11,
+    backgroundColor: "#CEE3D3",
   },
 
-  progressFill: {
+  weeklyValue: {
     height: "100%",
     borderRadius: 4,
     backgroundColor: FOREST,
-  },
-
-  streakBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: SOFT_ORANGE,
-    marginLeft: 8,
-  },
-
-  streakText: {
-    fontFamily: "Poppins_600SemiBold",
-    color: ORANGE,
-    fontSize: 8,
-    marginLeft: 4,
   },
 
   sectionHeader: {
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
-    marginTop: 27,
-    marginBottom: 9,
-    marginLeft: 2,
+    marginTop: 30,
+    marginBottom: 13,
   },
 
   sectionLabel: {
@@ -1225,7 +1208,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: "Poppins_700Bold",
     color: TEXT,
-    fontSize: 16,
+    fontSize: 20,
+    letterSpacing: -0.4,
     marginTop: 2,
   },
 
@@ -1248,7 +1232,7 @@ const styles = StyleSheet.create({
 
   chartCard: {
     padding: 14,
-    borderRadius: 22,
+    borderRadius: 21,
     backgroundColor: WHITE,
     borderWidth: 1,
     borderColor: BORDER,
@@ -1324,18 +1308,19 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
 
-  featureCard: {
+  targetCard: {
+    minHeight: 88,
     flexDirection: "row",
     alignItems: "center",
     padding: 14,
     marginTop: 22,
-    borderRadius: 21,
+    borderRadius: 19,
     backgroundColor: LIGHT_GREEN,
     borderWidth: 1,
     borderColor: "#CBE8D3",
   },
 
-  featureIcon: {
+  targetIcon: {
     width: 43,
     height: 43,
     borderRadius: 22,
@@ -1344,27 +1329,27 @@ const styles = StyleSheet.create({
     backgroundColor: WHITE,
   },
 
-  featureCopy: {
+  targetCopy: {
     flex: 1,
     minWidth: 0,
     marginLeft: 10,
   },
 
-  featureLabel: {
+  targetLabel: {
     fontFamily: "Poppins_600SemiBold",
     color: FOREST,
     fontSize: 8,
     letterSpacing: 1,
   },
 
-  featureTitle: {
+  targetTitle: {
     fontFamily: "Poppins_600SemiBold",
     color: TEXT,
-    fontSize: 10,
+    fontSize: 11,
     marginTop: 2,
   },
 
-  featureText: {
+  targetText: {
     fontFamily: "Poppins_400Regular",
     color: MUTED,
     fontSize: 9,
@@ -1372,23 +1357,32 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
 
-  featureValue: {
-    fontFamily: "Poppins_700Bold",
-    color: ORANGE,
-    fontSize: 18,
-    marginLeft: 8,
+  targetProgress: {
+    width: 45,
+    height: 45,
+    borderRadius: 23,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 9,
+    backgroundColor: SOFT_ORANGE,
   },
 
-  journalInsightSection: {
-    marginTop: 22,
+  targetProgressText: {
+    fontFamily: "Poppins_700Bold",
+    color: ORANGE,
+    fontSize: 12,
+  },
+
+  insightSection: {
+    marginTop: 28,
   },
 
   insightCard: {
     flexDirection: "row",
     alignItems: "flex-start",
     padding: 14,
-    marginTop: 7,
-    borderRadius: 21,
+    marginTop: 8,
+    borderRadius: 19,
     backgroundColor: LIGHT_GOLD,
     borderWidth: 1,
     borderColor: "#F0DFB7",
@@ -1435,15 +1429,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
-    marginTop: 27,
-    marginBottom: 9,
-    marginLeft: 2,
+    marginTop: 30,
+    marginBottom: 12,
   },
 
   historyButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingBottom: 2,
+    paddingBottom: 3,
   },
 
   historyButtonText: {
@@ -1455,7 +1448,7 @@ const styles = StyleSheet.create({
 
   entriesCard: {
     paddingHorizontal: 14,
-    borderRadius: 21,
+    borderRadius: 19,
     backgroundColor: WHITE,
     borderWidth: 1,
     borderColor: BORDER,
@@ -1526,7 +1519,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 13,
     marginTop: 24,
-    borderRadius: 23,
+    borderRadius: 20,
     backgroundColor: LIGHT_GREEN,
     borderWidth: 1,
     borderColor: "#CBE8D3",
@@ -1584,7 +1577,7 @@ const styles = StyleSheet.create({
   emptyCard: {
     alignItems: "center",
     padding: 24,
-    borderRadius: 21,
+    borderRadius: 19,
     backgroundColor: WHITE,
     borderWidth: 1,
     borderColor: BORDER,
@@ -1639,7 +1632,6 @@ const styles = StyleSheet.create({
     color: TEXT,
     fontSize: 18,
     textAlign: "center",
-    marginTop: 14,
   },
 
   centerText: {
