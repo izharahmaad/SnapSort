@@ -434,15 +434,15 @@ export default function ResultScreen({
           </View>
 
           <View style={styles.scoreTrack}>
-            <View
-              style={[
-                styles.scoreFill,
-                {
-                  width: scorePercentage,
-                },
-              ]}
-            />
-          </View>
+  <View
+    style={[
+      styles.scoreFill,
+      {
+        width: `${ecoScore * 10}%` as `${number}%`,
+      },
+    ]}
+  />
+</View>
 
           <View style={styles.scoreScale}>
             <Text style={styles.scoreScaleText}>
