@@ -25,7 +25,6 @@ type Props = NativeStackScreenProps<
 
 const WHITE = "#FFFFFF";
 const FOREST = "#075C34";
-const DARK_FOREST = "#053D23";
 const TEXT = "#17271D";
 const MUTED = "#6D7B72";
 const BORDER = "#E1EBE3";
@@ -148,11 +147,13 @@ export default function PreviewScreen({
             Open camera
           </Text>
 
-          <MaterialCommunityIcons
-            name="arrow-right"
-            size={18}
-            color={FOREST}
-          />
+          <View style={styles.emptyActionArrow}>
+            <MaterialCommunityIcons
+              name="arrow-right"
+              size={17}
+              color={FOREST}
+            />
+          </View>
         </Pressable>
       </View>
     );
@@ -312,7 +313,7 @@ export default function PreviewScreen({
             READY WHEN YOU ARE
           </Text>
 
-          <View style={styles.actionCard}>
+          <View style={styles.actionRow}>
             <Pressable
               style={[
                 styles.retakeAction,
@@ -326,7 +327,7 @@ export default function PreviewScreen({
               <View style={styles.retakeActionIcon}>
                 <MaterialCommunityIcons
                   name="camera-retake-outline"
-                  size={19}
+                  size={20}
                   color={FOREST}
                 />
               </View>
@@ -335,8 +336,6 @@ export default function PreviewScreen({
                 Retake
               </Text>
             </Pressable>
-
-            <View style={styles.actionDivider} />
 
             <Pressable
               style={[
@@ -381,10 +380,12 @@ export default function PreviewScreen({
 
         {isAnalyzing ? (
           <View style={styles.analyzingInfo}>
-            <ActivityIndicator
-              size="small"
-              color={FOREST}
-            />
+            <View style={styles.analyzingInfoIcon}>
+              <ActivityIndicator
+                size="small"
+                color={FOREST}
+              />
+            </View>
 
             <Text style={styles.analyzingInfoText}>
               SnapSort AI is checking material, disposal guidance,
@@ -430,9 +431,9 @@ const styles = StyleSheet.create({
   },
 
   circleButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: FOREST,
@@ -466,9 +467,9 @@ const styles = StyleSheet.create({
   },
 
   headerStatus: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: LIGHT_GREEN,
@@ -481,7 +482,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 390,
     overflow: "hidden",
-    borderRadius: 24,
+    borderRadius: 28,
     backgroundColor: "#DCE8DF",
   },
 
@@ -508,16 +509,17 @@ const styles = StyleSheet.create({
   readyBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 9,
+    paddingLeft: 7,
+    paddingRight: 12,
     paddingVertical: 7,
-    borderRadius: 17,
-    backgroundColor: "rgba(5,61,35,0.90)",
+    borderRadius: 100,
+    backgroundColor: "rgba(5,61,35,0.92)",
   },
 
   readyDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#22965A",
@@ -528,16 +530,16 @@ const styles = StyleSheet.create({
     color: WHITE,
     fontSize: 8,
     letterSpacing: 0.8,
-    marginLeft: 5,
+    marginLeft: 6,
   },
 
   cameraBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(5,61,35,0.88)",
+    backgroundColor: "rgba(5,61,35,0.90)",
   },
 
   previewBottom: {
@@ -548,14 +550,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 11,
-    borderRadius: 18,
-    backgroundColor: "rgba(3,37,23,0.73)",
+    borderRadius: 22,
+    backgroundColor: "rgba(3,37,23,0.76)",
   },
 
   previewBottomIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.19)",
@@ -583,16 +585,16 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     padding: 14,
     marginTop: 14,
-    borderRadius: 19,
+    borderRadius: 22,
     backgroundColor: PALE_GREEN,
     borderWidth: 1,
     borderColor: "#D6EBDC",
   },
 
   instructionIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: WHITE,
@@ -623,16 +625,16 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     padding: 14,
     marginTop: 12,
-    borderRadius: 19,
+    borderRadius: 22,
     backgroundColor: LIGHT_GOLD,
     borderWidth: 1,
     borderColor: "#F0DFB7",
   },
 
   tipIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: WHITE,
@@ -675,32 +677,31 @@ const styles = StyleSheet.create({
     color: FOREST,
     fontSize: 8,
     letterSpacing: 1.25,
-    marginBottom: 9,
+    marginBottom: 10,
     marginLeft: 2,
   },
 
-  actionCard: {
-    height: 70,
+  actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    overflow: "hidden",
-    borderRadius: 22,
-    backgroundColor: WHITE,
-    borderWidth: 1,
-    borderColor: BORDER,
   },
 
   retakeAction: {
-    flex: 0.9,
-    height: "100%",
+    height: 58,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 16,
+    borderRadius: 29,
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: "#CBE8D3",
   },
 
   retakeActionIcon: {
-    width: 29,
-    height: 29,
-    borderRadius: 15,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: LIGHT_GREEN,
@@ -709,23 +710,22 @@ const styles = StyleSheet.create({
   retakeActionText: {
     fontFamily: "Poppins_600SemiBold",
     color: FOREST,
-    fontSize: 9,
-    marginTop: 3,
-  },
-
-  actionDivider: {
-    width: 1,
-    height: 42,
-    backgroundColor: BORDER,
+    fontSize: 10,
+    marginLeft: 7,
   },
 
   analyzeAction: {
-    flex: 1.45,
-    height: "100%",
+    flex: 1,
+    height: 58,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 14,
+    marginLeft: 10,
+    borderRadius: 29,
     backgroundColor: FOREST,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.20)",
   },
 
   disabledAnalyzeAction: {
@@ -733,9 +733,9 @@ const styles = StyleSheet.create({
   },
 
   analyzeActionIcon: {
-    width: 29,
-    height: 29,
-    borderRadius: 15,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.16)",
@@ -744,17 +744,28 @@ const styles = StyleSheet.create({
   analyzeActionText: {
     fontFamily: "Poppins_600SemiBold",
     color: WHITE,
-    fontSize: 11,
+    fontSize: 10,
     marginLeft: 7,
   },
 
   analyzingInfo: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     padding: 11,
     marginTop: 11,
-    borderRadius: 16,
+    borderRadius: 22,
     backgroundColor: LIGHT_GREEN,
+    borderWidth: 1,
+    borderColor: "#D4EAD9",
+  },
+
+  analyzingInfoIcon: {
+    width: 31,
+    height: 31,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: WHITE,
   },
 
   analyzingInfoText: {
@@ -770,13 +781,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     paddingHorizontal: 4,
-    marginTop: 17,
+    marginTop: 18,
   },
 
   disclaimerIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 25,
+    height: 25,
+    borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#EEF2EE",
@@ -801,9 +812,9 @@ const styles = StyleSheet.create({
   },
 
   emptyIcon: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
+    width: 86,
+    height: 86,
+    borderRadius: 43,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: LIGHT_GREEN,
@@ -835,22 +846,22 @@ const styles = StyleSheet.create({
   },
 
   emptyAction: {
-    minWidth: 182,
-    height: 58,
+    minWidth: 195,
+    height: 60,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 9,
-    marginTop: 19,
-    borderRadius: 29,
+    marginTop: 20,
+    borderRadius: 30,
     backgroundColor: LIGHT_GREEN,
     borderWidth: 1,
     borderColor: "#CBE8D3",
   },
 
   emptyActionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: FOREST,
@@ -862,5 +873,14 @@ const styles = StyleSheet.create({
     color: TEXT,
     fontSize: 11,
     marginLeft: 9,
+  },
+
+  emptyActionArrow: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: WHITE,
   },
 });
