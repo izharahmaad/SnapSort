@@ -10,22 +10,29 @@ import {
   View,
 } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { Button, Text } from "react-native-paper";
+import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors } from "../../constants/theme";
-import { RootStackParamList } from "../../navigation/types";
-import { useScanStore } from "../../stores/scan.store";
+import type { RootStackParamList } from "../../navigation/types";
 import { analyzeScanImage } from "../../services/api/scan-api.service";
+import { useScanStore } from "../../stores/scan.store";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
   "Preview"
 >;
 
-type IconName = React.ComponentProps<
-  typeof MaterialCommunityIcons
->["name"];
+const WHITE = "#FFFFFF";
+const FOREST = "#075C34";
+const DARK_FOREST = "#053D23";
+const TEXT = "#17271D";
+const MUTED = "#6D7B72";
+const BORDER = "#E1EBE3";
+const LIGHT_GREEN = "#EAF7EE";
+const PALE_GREEN = "#F1FAF3";
+const GOLD = "#C98718";
+const LIGHT_GOLD = "#FFF3DB";
 
 export default function PreviewScreen({
   navigation,
@@ -106,8 +113,8 @@ export default function PreviewScreen({
         <View style={styles.emptyIcon}>
           <MaterialCommunityIcons
             name="image-off-outline"
-            size={45}
-            color={colors.primary}
+            size={42}
+            color={FOREST}
           />
         </View>
 
@@ -123,14 +130,30 @@ export default function PreviewScreen({
           Capture or choose an image before continuing.
         </Text>
 
-        <Button
-          mode="contained"
-          icon="camera-outline"
+        <Pressable
+          style={styles.emptyAction}
           onPress={() => navigation.navigate("Camera")}
-          contentStyle={styles.emptyButton}
+          accessibilityRole="button"
+          accessibilityLabel="Open camera"
         >
-          Open camera
-        </Button>
+          <View style={styles.emptyActionIcon}>
+            <MaterialCommunityIcons
+              name="camera-outline"
+              size={19}
+              color={WHITE}
+            />
+          </View>
+
+          <Text style={styles.emptyActionText}>
+            Open camera
+          </Text>
+
+          <MaterialCommunityIcons
+            name="arrow-right"
+            size={18}
+            color={FOREST}
+          />
+        </Pressable>
       </View>
     );
   }
@@ -138,18 +161,21 @@ export default function PreviewScreen({
   return (
     <View style={styles.screen}>
       <ScrollView
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.container,
           {
-            paddingTop: Math.max(insets.top, 12),
-            paddingBottom: insets.bottom + 28,
+            paddingTop: Math.max(insets.top + 8, 20),
+            paddingBottom: insets.bottom + 30,
           },
         ]}
-        showsVerticalScrollIndicator={false}
       >
         <View style={styles.headerRow}>
           <Pressable
-            style={styles.backButton}
+            style={[
+              styles.circleButton,
+              isAnalyzing && styles.disabledButton,
+            ]}
             onPress={retakePhoto}
             disabled={isAnalyzing}
             accessibilityRole="button"
@@ -157,8 +183,8 @@ export default function PreviewScreen({
           >
             <MaterialCommunityIcons
               name="arrow-left"
-              size={21}
-              color="#FFFFFF"
+              size={22}
+              color={WHITE}
             />
           </Pressable>
 
@@ -168,15 +194,15 @@ export default function PreviewScreen({
             </Text>
 
             <Text style={styles.headerSubtitle}>
-              SnapSort AI scanner
+              CHECK YOUR PHOTO
             </Text>
           </View>
 
-          <View style={styles.headerIcon}>
+          <View style={styles.headerStatus}>
             <MaterialCommunityIcons
               name="image-check-outline"
-              size={21}
-              color={colors.primary}
+              size={20}
+              color={FOREST}
             />
           </View>
         </View>
@@ -190,44 +216,68 @@ export default function PreviewScreen({
 
           <View style={styles.previewOverlay} />
 
-          <View style={styles.previewBadge}>
-            <MaterialCommunityIcons
-              name="check"
-              size={13}
-              color="#FFFFFF"
-            />
+          <View style={styles.previewTopRow}>
+            <View style={styles.readyBadge}>
+              <View style={styles.readyDot}>
+                <MaterialCommunityIcons
+                  name="check"
+                  size={10}
+                  color={WHITE}
+                />
+              </View>
 
-            <Text style={styles.previewBadgeText}>
-              READY TO ANALYZE
-            </Text>
+              <Text style={styles.readyBadgeText}>
+                READY TO ANALYZE
+              </Text>
+            </View>
+
+            <View style={styles.cameraBadge}>
+              <MaterialCommunityIcons
+                name="camera-outline"
+                size={19}
+                color={WHITE}
+              />
+            </View>
           </View>
 
-          <View style={styles.previewCornerTop}>
-            <MaterialCommunityIcons
-              name="camera-outline"
-              size={22}
-              color="#FFFFFF"
-            />
+          <View style={styles.previewBottom}>
+            <View style={styles.previewBottomIcon}>
+              <MaterialCommunityIcons
+                name="image-outline"
+                size={18}
+                color={WHITE}
+              />
+            </View>
+
+            <View style={styles.previewBottomCopy}>
+              <Text style={styles.previewBottomTitle}>
+                Photo captured
+              </Text>
+
+              <Text style={styles.previewBottomText}>
+                Ready for AI analysis
+              </Text>
+            </View>
           </View>
         </View>
 
-        <View style={styles.photoMeta}>
-          <View style={styles.photoMetaIcon}>
+        <View style={styles.instructionCard}>
+          <View style={styles.instructionIcon}>
             <MaterialCommunityIcons
-              name="image-outline"
-              size={18}
-              color={colors.primary}
+              name="image-search-outline"
+              size={20}
+              color={FOREST}
             />
           </View>
 
-          <View style={styles.photoMetaCopy}>
-            <Text style={styles.photoMetaTitle}>
-              One item per scan
+          <View style={styles.instructionCopy}>
+            <Text style={styles.instructionTitle}>
+              One item works best
             </Text>
 
-            <Text style={styles.photoMetaText}>
-              A clear, well-lit image helps SnapSort AI provide
-              better guidance.
+            <Text style={styles.instructionText}>
+              A clear image with one main item helps SnapSort
+              identify the material and provide better guidance.
             </Text>
           </View>
         </View>
@@ -236,19 +286,23 @@ export default function PreviewScreen({
           <View style={styles.tipIcon}>
             <MaterialCommunityIcons
               name="lightbulb-on-outline"
-              size={21}
-              color="#B5650B"
+              size={20}
+              color={GOLD}
             />
           </View>
 
           <View style={styles.tipCopy}>
+            <Text style={styles.tipLabel}>
+              PHOTO TIP
+            </Text>
+
             <Text style={styles.tipTitle}>
-              Clear photo = better result
+              Better photo, clearer result
             </Text>
 
             <Text style={styles.tipText}>
-              Keep one main item visible and make sure important
-              details are not covered.
+              Keep labels and important details visible. Avoid
+              shadows, blur, or covering the item.
             </Text>
           </View>
         </View>
@@ -258,59 +312,99 @@ export default function PreviewScreen({
             READY WHEN YOU ARE
           </Text>
 
-          <View style={styles.actions}>
-            <Button
-              mode="outlined"
-              icon="camera-retake-outline"
-              textColor={colors.primary}
-              style={styles.retakeButton}
-              contentStyle={styles.actionButton}
-              disabled={isAnalyzing}
+          <View style={styles.actionCard}>
+            <Pressable
+              style={[
+                styles.retakeAction,
+                isAnalyzing && styles.disabledButton,
+              ]}
               onPress={retakePhoto}
+              disabled={isAnalyzing}
+              accessibilityRole="button"
+              accessibilityLabel="Retake photo"
             >
-              Retake
-            </Button>
+              <View style={styles.retakeActionIcon}>
+                <MaterialCommunityIcons
+                  name="camera-retake-outline"
+                  size={19}
+                  color={FOREST}
+                />
+              </View>
 
-            <View style={styles.analyzeArea}>
+              <Text style={styles.retakeActionText}>
+                Retake
+              </Text>
+            </Pressable>
+
+            <View style={styles.actionDivider} />
+
+            <Pressable
+              style={[
+                styles.analyzeAction,
+                (!imageReady || isAnalyzing) &&
+                  styles.disabledAnalyzeAction,
+              ]}
+              onPress={analyzeItem}
+              disabled={!imageReady || isAnalyzing}
+              accessibilityRole="button"
+              accessibilityLabel="Analyze item"
+            >
               {isAnalyzing ? (
-                <View style={styles.analyzingContainer}>
+                <>
                   <ActivityIndicator
                     size="small"
-                    color="#FFFFFF"
+                    color={WHITE}
                   />
 
-                  <Text style={styles.analyzingText}>
-                    Understanding...
+                  <Text style={styles.analyzeActionText}>
+                    Analyzing...
                   </Text>
-                </View>
+                </>
               ) : (
-                <Button
-                  mode="contained"
-                  icon="star-four-points-outline"
-                  buttonColor={colors.primary}
-                  textColor="#FFFFFF"
-                  style={styles.analyzeButton}
-                  contentStyle={styles.actionButton}
-                  onPress={analyzeItem}
-                  disabled={!imageReady}
-                >
-                  Analyze item
-                </Button>
+                <>
+                  <View style={styles.analyzeActionIcon}>
+                    <MaterialCommunityIcons
+                      name="star-four-points-outline"
+                      size={19}
+                      color={WHITE}
+                    />
+                  </View>
+
+                  <Text style={styles.analyzeActionText}>
+                    Analyze item
+                  </Text>
+                </>
               )}
-            </View>
+            </Pressable>
           </View>
         </View>
 
+        {isAnalyzing ? (
+          <View style={styles.analyzingInfo}>
+            <ActivityIndicator
+              size="small"
+              color={FOREST}
+            />
+
+            <Text style={styles.analyzingInfoText}>
+              SnapSort AI is checking material, disposal guidance,
+              and reuse possibilities.
+            </Text>
+          </View>
+        ) : null}
+
         <View style={styles.disclaimerCard}>
-          <MaterialCommunityIcons
-            name="information-outline"
-            size={17}
-            color={colors.muted}
-          />
+          <View style={styles.disclaimerIcon}>
+            <MaterialCommunityIcons
+              name="information-outline"
+              size={17}
+              color={MUTED}
+            />
+          </View>
 
           <Text style={styles.disclaimer}>
             SnapSort AI provides general guidance only. Local
-            disposal rules may vary.
+            disposal rules may vary by area.
           </Text>
         </View>
       </ScrollView>
@@ -323,254 +417,450 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+
   container: {
     paddingHorizontal: 20,
   },
+
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 17,
+    justifyContent: "space-between",
+    marginBottom: 18,
   },
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+
+  circleButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: FOREST,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
   },
+
+  disabledButton: {
+    opacity: 0.55,
+  },
+
   headerTitleArea: {
     flex: 1,
     alignItems: "center",
-    marginHorizontal: 10,
+    marginHorizontal: 12,
   },
+
   headerTitle: {
     fontFamily: "Poppins_700Bold",
-    color: colors.text,
-    fontSize: 22,
+    color: TEXT,
+    fontSize: 19,
+    letterSpacing: -0.3,
   },
+
   headerSubtitle: {
-    fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 9,
+    fontFamily: "Poppins_600SemiBold",
+    color: MUTED,
+    fontSize: 7,
+    letterSpacing: 1.15,
     marginTop: 2,
   },
-  headerIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+
+  headerStatus: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primaryLight,
+    backgroundColor: LIGHT_GREEN,
+    borderWidth: 1,
+    borderColor: "#D3EBD9",
   },
+
   previewCard: {
     position: "relative",
     width: "100%",
     height: 390,
     overflow: "hidden",
-    borderRadius: 25,
+    borderRadius: 24,
     backgroundColor: "#DCE8DF",
   },
+
   previewImage: {
     width: "100%",
     height: "100%",
   },
+
   previewOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(3,35,25,0.10)",
+    backgroundColor: "rgba(3,35,25,0.14)",
   },
-  previewBadge: {
+
+  previewTopRow: {
     position: "absolute",
     top: 14,
     left: 14,
+    right: 14,
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 18,
-    backgroundColor: "rgba(11,78,62,0.9)",
+    justifyContent: "space-between",
   },
-  previewBadgeText: {
+
+  readyBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    borderRadius: 17,
+    backgroundColor: "rgba(5,61,35,0.90)",
+  },
+
+  readyDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#22965A",
+  },
+
+  readyBadgeText: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#FFFFFF",
+    color: WHITE,
     fontSize: 8,
     letterSpacing: 0.8,
+    marginLeft: 5,
   },
-  previewCornerTop: {
-    position: "absolute",
-    right: 14,
-    top: 14,
+
+  cameraBadge: {
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(11,78,62,0.86)",
+    backgroundColor: "rgba(5,61,35,0.88)",
   },
-  photoMeta: {
+
+  previewBottom: {
+    position: "absolute",
+    left: 14,
+    right: 14,
+    bottom: 14,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    padding: 13,
+    padding: 11,
+    borderRadius: 18,
+    backgroundColor: "rgba(3,37,23,0.73)",
+  },
+
+  previewBottomIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.19)",
+  },
+
+  previewBottomCopy: {
+    marginLeft: 9,
+  },
+
+  previewBottomTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: WHITE,
+    fontSize: 10,
+  },
+
+  previewBottomText: {
+    fontFamily: "Poppins_400Regular",
+    color: "rgba(255,255,255,0.82)",
+    fontSize: 8,
+    marginTop: 1,
+  },
+
+  instructionCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: 14,
     marginTop: 14,
-    borderRadius: 17,
-    backgroundColor: "#EAF6EE",
+    borderRadius: 19,
+    backgroundColor: PALE_GREEN,
     borderWidth: 1,
     borderColor: "#D6EBDC",
   },
-  photoMetaIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 20,
+
+  instructionIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: WHITE,
   },
-  photoMetaCopy: {
+
+  instructionCopy: {
     flex: 1,
+    minWidth: 0,
+    marginLeft: 10,
   },
-  photoMetaTitle: {
+
+  instructionTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
-    fontSize: 13,
+    color: TEXT,
+    fontSize: 11,
   },
-  photoMetaText: {
+
+  instructionText: {
     fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 10,
+    color: MUTED,
+    fontSize: 9,
     lineHeight: 15,
-    marginTop: 2,
+    marginTop: 3,
   },
+
   tipCard: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 10,
-    padding: 13,
+    padding: 14,
     marginTop: 12,
-    borderRadius: 18,
-    backgroundColor: "#FFF1D5",
+    borderRadius: 19,
+    backgroundColor: LIGHT_GOLD,
     borderWidth: 1,
-    borderColor: "#F1D6A0",
+    borderColor: "#F0DFB7",
   },
+
   tipIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFE2AE",
+    backgroundColor: WHITE,
   },
+
   tipCopy: {
     flex: 1,
+    minWidth: 0,
+    marginLeft: 10,
   },
+
+  tipLabel: {
+    fontFamily: "Poppins_600SemiBold",
+    color: GOLD,
+    fontSize: 8,
+    letterSpacing: 1,
+  },
+
   tipTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#523915",
-    fontSize: 13,
+    color: "#453619",
+    fontSize: 11,
+    marginTop: 2,
   },
+
   tipText: {
     fontFamily: "Poppins_400Regular",
-    color: "#765D2C",
-    fontSize: 10,
-    lineHeight: 16,
+    color: "#786441",
+    fontSize: 9,
+    lineHeight: 15,
     marginTop: 3,
   },
+
   actionSection: {
     marginTop: 25,
   },
+
   actionLabel: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.muted,
-    fontSize: 9,
-    letterSpacing: 1.4,
-    marginLeft: 3,
+    color: FOREST,
+    fontSize: 8,
+    letterSpacing: 1.25,
     marginBottom: 9,
+    marginLeft: 2,
   },
-  actions: {
+
+  actionCard: {
+    height: 70,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    overflow: "hidden",
+    borderRadius: 22,
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
-  retakeButton: {
-    flex: 0.85,
-    borderColor: colors.primary,
-    borderRadius: 13,
+
+  retakeAction: {
+    flex: 0.9,
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  analyzeArea: {
-    flex: 1.35,
+
+  retakeActionIcon: {
+    width: 29,
+    height: 29,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: LIGHT_GREEN,
   },
-  analyzeButton: {
-    borderRadius: 13,
+
+  retakeActionText: {
+    fontFamily: "Poppins_600SemiBold",
+    color: FOREST,
+    fontSize: 9,
+    marginTop: 3,
   },
-  actionButton: {
-    height: 52,
+
+  actionDivider: {
+    width: 1,
+    height: 42,
+    backgroundColor: BORDER,
   },
-  analyzingContainer: {
-    height: 52,
+
+  analyzeAction: {
+    flex: 1.45,
+    height: "100%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    borderRadius: 13,
-    backgroundColor: colors.primary,
+    backgroundColor: FOREST,
   },
-  analyzingText: {
+
+  disabledAnalyzeAction: {
+    opacity: 0.55,
+  },
+
+  analyzeActionIcon: {
+    width: 29,
+    height: 29,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.16)",
+  },
+
+  analyzeActionText: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#FFFFFF",
+    color: WHITE,
     fontSize: 11,
+    marginLeft: 7,
   },
+
+  analyzingInfo: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: 11,
+    marginTop: 11,
+    borderRadius: 16,
+    backgroundColor: LIGHT_GREEN,
+  },
+
+  analyzingInfoText: {
+    flex: 1,
+    fontFamily: "Poppins_400Regular",
+    color: FOREST,
+    fontSize: 9,
+    lineHeight: 14,
+    marginLeft: 8,
+  },
+
   disclaimerCard: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 7,
-    paddingHorizontal: 9,
-    marginTop: 15,
+    paddingHorizontal: 4,
+    marginTop: 17,
   },
+
+  disclaimerIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EEF2EE",
+  },
+
   disclaimer: {
     flex: 1,
     fontFamily: "Poppins_400Regular",
-    color: colors.muted,
+    color: MUTED,
     fontSize: 9,
     lineHeight: 15,
+    marginLeft: 7,
+    marginTop: 3,
   },
+
   emptyScreen: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
-    padding: 24,
+    paddingHorizontal: 24,
     backgroundColor: colors.background,
   },
+
   emptyIcon: {
-    width: 88,
-    height: 88,
-    borderRadius: 30,
+    width: 82,
+    height: 82,
+    borderRadius: 41,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primaryLight,
-    marginBottom: 5,
+    backgroundColor: LIGHT_GREEN,
   },
+
   emptyBrand: {
     fontFamily: "Poppins_700Bold",
-    color: colors.primary,
-    fontSize: 16,
+    color: FOREST,
+    fontSize: 15,
+    marginTop: 15,
   },
+
   emptyTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: colors.text,
+    color: TEXT,
     fontSize: 19,
     textAlign: "center",
+    marginTop: 8,
   },
+
   emptyText: {
-    maxWidth: 290,
+    maxWidth: 280,
     fontFamily: "Poppins_400Regular",
-    color: colors.muted,
-    fontSize: 13,
-    lineHeight: 20,
+    color: MUTED,
+    fontSize: 11,
+    lineHeight: 18,
     textAlign: "center",
+    marginTop: 5,
   },
-  emptyButton: {
-    height: 50,
+
+  emptyAction: {
+    minWidth: 182,
+    height: 58,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 9,
+    marginTop: 19,
+    borderRadius: 29,
+    backgroundColor: LIGHT_GREEN,
+    borderWidth: 1,
+    borderColor: "#CBE8D3",
+  },
+
+  emptyActionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: FOREST,
+  },
+
+  emptyActionText: {
+    flex: 1,
+    fontFamily: "Poppins_600SemiBold",
+    color: TEXT,
+    fontSize: 11,
+    marginLeft: 9,
   },
 });
