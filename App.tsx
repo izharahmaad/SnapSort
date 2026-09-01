@@ -28,10 +28,10 @@ import { useAuthStore } from "./src/stores/auth.store";
 import { useOnboardingStore } from "./src/stores/onboarding.store";
 
 const WHITE = "#FFFFFF";
-const FOREST = "#075C34";
-const DARK_FOREST = "#053D23";
-const LIGHT_GREEN = "#DDF4E4";
-const SOFT_GREEN = "#A6DDB8";
+const FOREST = "#064226";
+const DARK_FOREST = "#022716";
+const LIGHT_GREEN = "#D8F2E0";
+const LOADING_GREEN = "#9ED8AE";
 
 const SPLASH_DURATION = 3000;
 
@@ -42,8 +42,10 @@ export default function App() {
     Poppins_700Bold,
   });
 
-  const [minimumSplashFinished, setMinimumSplashFinished] =
-    useState(false);
+  const [
+    minimumSplashFinished,
+    setMinimumSplashFinished,
+  ] = useState(false);
 
   const setUser = useAuthStore((state) => state.setUser);
   const setReady = useAuthStore((state) => state.setReady);
@@ -108,18 +110,16 @@ export default function App() {
 }
 
 function SnapSortSplashScreen() {
-  const progress = useRef(new Animated.Value(0)).current;
+  const progress = useRef(
+    new Animated.Value(0)
+  ).current;
 
-  const logoOpacity = useRef(
+  const contentOpacity = useRef(
     new Animated.Value(0)
   ).current;
 
   const logoScale = useRef(
     new Animated.Value(0.92)
-  ).current;
-
-  const contentOpacity = useRef(
-    new Animated.Value(0)
   ).current;
 
   useEffect(() => {
@@ -131,40 +131,26 @@ function SnapSortSplashScreen() {
         useNativeDriver: false,
       }),
 
-      Animated.sequence([
-        Animated.timing(logoOpacity, {
-          toValue: 1,
-          duration: 450,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-
-        Animated.timing(logoScale, {
-          toValue: 1,
-          duration: 550,
-          easing: Easing.out(Easing.back(1.1)),
-          useNativeDriver: true,
-        }),
-      ]),
-
       Animated.timing(contentOpacity, {
         toValue: 1,
-        duration: 650,
-        delay: 260,
+        duration: 550,
         easing: Easing.out(Easing.ease),
         useNativeDriver: true,
       }),
+
+      Animated.spring(logoScale, {
+        toValue: 1,
+        friction: 7,
+        tension: 55,
+        useNativeDriver: true,
+      }),
     ]).start();
-  }, [
-    contentOpacity,
-    logoOpacity,
-    logoScale,
-    progress,
-  ]);
+  }, [contentOpacity, logoScale, progress]);
 
   const progressWidth = progress.interpolate({
     inputRange: [0, 1],
     outputRange: ["0%", "100%"],
+    extrapolate: "clamp",
   });
 
   return (
@@ -177,7 +163,7 @@ function SnapSortSplashScreen() {
 
       <Animated.View
         style={[
-          styles.centerArea,
+          styles.content,
           {
             opacity: contentOpacity,
           },
@@ -185,9 +171,8 @@ function SnapSortSplashScreen() {
       >
         <Animated.View
           style={[
-            styles.logoWrap,
+            styles.logoOuter,
             {
-              opacity: logoOpacity,
               transform: [
                 {
                   scale: logoScale,
@@ -196,10 +181,10 @@ function SnapSortSplashScreen() {
             },
           ]}
         >
-          <View style={styles.logoCircle}>
+          <View style={styles.logoInner}>
             <MaterialCommunityIcons
               name="leaf"
-              size={43}
+              size={42}
               color={FOREST}
             />
           </View>
@@ -212,24 +197,24 @@ function SnapSortSplashScreen() {
         <Text style={styles.slogan}>
           Smarter choices. Smaller footprint.
         </Text>
-      </Animated.View>
 
-      <View style={styles.bottomArea}>
-        <View style={styles.progressTrack}>
-          <Animated.View
-            style={[
-              styles.progressFill,
-              {
-                width: progressWidth,
-              },
-            ]}
-          />
+        <View style={styles.progressArea}>
+          <View style={styles.progressTrack}>
+            <Animated.View
+              style={[
+                styles.progressFill,
+                {
+                  width: progressWidth,
+                },
+              ]}
+            />
+          </View>
+
+          <Text style={styles.loadingLabel}>
+            PREPARING YOUR EXPERIENCE
+          </Text>
         </View>
-
-        <Text style={styles.loadingLabel}>
-          PREPARING YOUR EXPERIENCE
-        </Text>
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -238,50 +223,49 @@ const styles = StyleSheet.create({
   splashScreen: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     overflow: "hidden",
-    paddingTop: "40%",
-    paddingBottom: "15%",
+    paddingHorizontal: 42,
     backgroundColor: DARK_FOREST,
   },
 
   topGlow: {
     position: "absolute",
-    top: -145,
-    right: -120,
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: "rgba(98, 186, 124, 0.16)",
+    top: -130,
+    right: -135,
+    width: 310,
+    height: 310,
+    borderRadius: 155,
+    backgroundColor: "rgba(43, 135, 75, 0.20)",
   },
 
   bottomGlow: {
     position: "absolute",
-    left: -105,
-    bottom: -110,
-    width: 270,
-    height: 270,
-    borderRadius: 135,
-    backgroundColor: "rgba(91, 180, 117, 0.12)",
+    left: -115,
+    bottom: -130,
+    width: 285,
+    height: 285,
+    borderRadius: 143,
+    backgroundColor: "rgba(44, 129, 72, 0.16)",
   },
 
-  centerArea: {
+  content: {
+    width: "100%",
     alignItems: "center",
-    paddingHorizontal: 24,
   },
 
-  logoWrap: {
+  logoOuter: {
     width: 110,
     height: 110,
     borderRadius: 55,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: "rgba(255,255,255,0.09)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.13)",
+    borderColor: "rgba(255,255,255,0.12)",
   },
 
-  logoCircle: {
+  logoInner: {
     width: 82,
     height: 82,
     borderRadius: 41,
@@ -300,16 +284,15 @@ const styles = StyleSheet.create({
 
   slogan: {
     fontFamily: "Poppins_400Regular",
-    color: "rgba(238,255,243,0.80)",
+    color: "rgba(235,255,241,0.78)",
     fontSize: 11,
     textAlign: "center",
     marginTop: 5,
   },
 
-  bottomArea: {
+  progressArea: {
     width: "100%",
-    alignItems: "center",
-    paddingHorizontal: 48,
+    marginTop: 31,
   },
 
   progressTrack: {
@@ -317,20 +300,21 @@ const styles = StyleSheet.create({
     height: 4,
     overflow: "hidden",
     borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.20)",
+    backgroundColor: "rgba(255,255,255,0.17)",
   },
 
   progressFill: {
     height: "100%",
     borderRadius: 2,
-    backgroundColor: SOFT_GREEN,
+    backgroundColor: LOADING_GREEN,
   },
 
   loadingLabel: {
     fontFamily: "Poppins_600SemiBold",
-    color: "rgba(220,248,228,0.68)",
+    color: "rgba(216,244,224,0.65)",
     fontSize: 7,
-    letterSpacing: 1.45,
+    letterSpacing: 1.35,
+    textAlign: "center",
     marginTop: 10,
   },
 });
