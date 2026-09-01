@@ -157,10 +157,6 @@ function SnapSortSplashScreen() {
     <View style={styles.splashScreen}>
       <StatusBar style="light" />
 
-      <View style={styles.topGlow} />
-
-      <View style={styles.bottomGlow} />
-
       <Animated.View
         style={[
           styles.content,
@@ -224,29 +220,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
     paddingHorizontal: 42,
     backgroundColor: DARK_FOREST,
-  },
-
-  topGlow: {
-    position: "absolute",
-    top: -130,
-    right: -135,
-    width: 310,
-    height: 310,
-    borderRadius: 155,
-    backgroundColor: "rgba(43, 135, 75, 0.20)",
-  },
-
-  bottomGlow: {
-    position: "absolute",
-    left: -115,
-    bottom: -130,
-    width: 285,
-    height: 285,
-    borderRadius: 143,
-    backgroundColor: "rgba(44, 129, 72, 0.16)",
   },
 
   content: {
