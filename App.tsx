@@ -1,6 +1,11 @@
-import { useEffect } from "react";
 import {
-  ActivityIndicator,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  Animated,
+  Easing,
   StyleSheet,
   View,
 } from "react-native";
@@ -25,10 +30,10 @@ import { useOnboardingStore } from "./src/stores/onboarding.store";
 const WHITE = "#FFFFFF";
 const FOREST = "#075C34";
 const DARK_FOREST = "#053D23";
-const DEEP_FOREST = "#032817";
 const LIGHT_GREEN = "#DDF4E4";
-const SOFT_GREEN = "#88CBA0";
-const ACCENT_GREEN = "#45A96A";
+const SOFT_GREEN = "#A6DDB8";
+
+const SPLASH_DURATION = 3000;
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -36,6 +41,9 @@ export default function App() {
     Poppins_600SemiBold,
     Poppins_700Bold,
   });
+
+  const [minimumSplashFinished, setMinimumSplashFinished] =
+    useState(false);
 
   const setUser = useAuthStore((state) => state.setUser);
   const setReady = useAuthStore((state) => state.setReady);
@@ -67,14 +75,27 @@ export default function App() {
     return unsubscribe;
   }, [loadOnboardingStatus, setReady, setUser]);
 
-  if (!fontsLoaded || onboardingLoading) {
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setMinimumSplashFinished(true);
+    }, SPLASH_DURATION);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
+  const appIsReady =
+    fontsLoaded &&
+    !onboardingLoading &&
+    minimumSplashFinished;
+
+  if (!appIsReady) {
     return <SnapSortSplashScreen />;
   }
 
   return (
     <SafeAreaProvider>
       <PaperProvider theme={appTheme}>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
 
         {hasCompletedOnboarding ? (
           <RootNavigator />
@@ -87,64 +108,126 @@ export default function App() {
 }
 
 function SnapSortSplashScreen() {
+  const progress = useRef(new Animated.Value(0)).current;
+
+  const logoOpacity = useRef(
+    new Animated.Value(0)
+  ).current;
+
+  const logoScale = useRef(
+    new Animated.Value(0.92)
+  ).current;
+
+  const contentOpacity = useRef(
+    new Animated.Value(0)
+  ).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: SPLASH_DURATION,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: false,
+      }),
+
+      Animated.sequence([
+        Animated.timing(logoOpacity, {
+          toValue: 1,
+          duration: 450,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+
+        Animated.timing(logoScale, {
+          toValue: 1,
+          duration: 550,
+          easing: Easing.out(Easing.back(1.1)),
+          useNativeDriver: true,
+        }),
+      ]),
+
+      Animated.timing(contentOpacity, {
+        toValue: 1,
+        duration: 650,
+        delay: 260,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [
+    contentOpacity,
+    logoOpacity,
+    logoScale,
+    progress,
+  ]);
+
+  const progressWidth = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0%", "100%"],
+  });
+
   return (
-    <View style={styles.screen}>
+    <View style={styles.splashScreen}>
       <StatusBar style="light" />
 
-      <View style={styles.largeGlow} />
-      <View style={styles.mediumGlow} />
+      <View style={styles.topGlow} />
+
       <View style={styles.bottomGlow} />
 
-      <View style={styles.topText}>
-        <Text style={styles.topLabel}>
-          MINDFUL DISPOSAL
-        </Text>
-      </View>
-
-      <View style={styles.centerContent}>
-        <View style={styles.outerRing}>
-          <View style={styles.middleRing}>
-            <View style={styles.iconCircle}>
-              <MaterialCommunityIcons
-                name="leaf"
-                size={48}
-                color={FOREST}
-              />
-            </View>
+      <Animated.View
+        style={[
+          styles.centerArea,
+          {
+            opacity: contentOpacity,
+          },
+        ]}
+      >
+        <Animated.View
+          style={[
+            styles.logoWrap,
+            {
+              opacity: logoOpacity,
+              transform: [
+                {
+                  scale: logoScale,
+                },
+              ],
+            },
+          ]}
+        >
+          <View style={styles.logoCircle}>
+            <MaterialCommunityIcons
+              name="leaf"
+              size={43}
+              color={FOREST}
+            />
           </View>
-        </View>
+        </Animated.View>
 
-        <Text style={styles.brand}>
+        <Text style={styles.brandName}>
           SnapSort AI
         </Text>
 
-        <Text style={styles.tagline}>
-          Smarter choices.
+        <Text style={styles.slogan}>
+          Smarter choices. Smaller footprint.
         </Text>
+      </Animated.View>
 
-        <Text style={styles.tagline}>
-          Smaller footprint.
-        </Text>
-
-        <View style={styles.brandLine} />
-      </View>
-
-      <View style={styles.bottomContent}>
-        <View style={styles.loadingRow}>
-          <View style={styles.loadingIndicator}>
-            <ActivityIndicator
-              size="small"
-              color={WHITE}
-            />
-          </View>
-
-          <Text style={styles.loadingText}>
-            Preparing your experience
-          </Text>
+      <View style={styles.bottomArea}>
+        <View style={styles.progressTrack}>
+          <Animated.View
+            style={[
+              styles.progressFill,
+              {
+                width: progressWidth,
+              },
+            ]}
+          />
         </View>
 
-        <Text style={styles.footerText}>
-          EVERY CHOICE CAN CREATE CHANGE
+        <Text style={styles.loadingLabel}>
+          PREPARING YOUR EXPERIENCE
         </Text>
       </View>
     </View>
@@ -152,157 +235,102 @@ function SnapSortSplashScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  splashScreen: {
     flex: 1,
     alignItems: "center",
     justifyContent: "space-between",
     overflow: "hidden",
-    paddingTop: "18%",
-    paddingBottom: "13%",
+    paddingTop: "40%",
+    paddingBottom: "15%",
     backgroundColor: DARK_FOREST,
   },
 
-  largeGlow: {
+  topGlow: {
     position: "absolute",
     top: -145,
-    right: -125,
-    width: 350,
-    height: 350,
-    borderRadius: 175,
-    backgroundColor: "rgba(91, 189, 122, 0.20)",
-  },
-
-  mediumGlow: {
-    position: "absolute",
-    top: 145,
-    left: -150,
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: "rgba(58, 151, 92, 0.17)",
+    right: -120,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: "rgba(98, 186, 124, 0.16)",
   },
 
   bottomGlow: {
     position: "absolute",
-    right: -90,
-    bottom: -105,
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: "rgba(106, 197, 132, 0.14)",
+    left: -105,
+    bottom: -110,
+    width: 270,
+    height: 270,
+    borderRadius: 135,
+    backgroundColor: "rgba(91, 180, 117, 0.12)",
   },
 
-  topText: {
+  centerArea: {
     alignItems: "center",
+    paddingHorizontal: 24,
   },
 
-  topLabel: {
-    fontFamily: "Poppins_600SemiBold",
-    color: "rgba(222, 255, 232, 0.78)",
-    fontSize: 8,
-    letterSpacing: 2.1,
-  },
-
-  centerContent: {
-    alignItems: "center",
-    marginTop: 20,
-  },
-
-  outerRing: {
-    width: 144,
-    height: 144,
-    borderRadius: 72,
+  logoWrap: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.10)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-  },
-
-  middleRing: {
-    width: 113,
-    height: 113,
-    borderRadius: 57,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(215, 247, 225, 0.16)",
-    borderWidth: 1,
     borderColor: "rgba(255,255,255,0.13)",
   },
 
-  iconCircle: {
+  logoCircle: {
     width: 82,
     height: 82,
     borderRadius: 41,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: LIGHT_GREEN,
-    shadowColor: "#001A0D",
-    shadowOffset: {
-      width: 0,
-      height: 9,
-    },
-    shadowOpacity: 0.24,
-    shadowRadius: 15,
-    elevation: 8,
   },
 
-  brand: {
+  brandName: {
     fontFamily: "Poppins_700Bold",
     color: WHITE,
-    fontSize: 31,
-    letterSpacing: -0.9,
-    marginTop: 20,
+    fontSize: 29,
+    letterSpacing: -0.8,
+    marginTop: 18,
   },
 
-  tagline: {
+  slogan: {
     fontFamily: "Poppins_400Regular",
-    color: "rgba(238, 255, 243, 0.82)",
-    fontSize: 13,
-    lineHeight: 20,
+    color: "rgba(238,255,243,0.80)",
+    fontSize: 11,
     textAlign: "center",
+    marginTop: 5,
   },
 
-  brandLine: {
-    width: 42,
+  bottomArea: {
+    width: "100%",
+    alignItems: "center",
+    paddingHorizontal: 48,
+  },
+
+  progressTrack: {
+    width: "100%",
     height: 4,
+    overflow: "hidden",
     borderRadius: 2,
-    marginTop: 15,
-    backgroundColor: ACCENT_GREEN,
+    backgroundColor: "rgba(255,255,255,0.20)",
   },
 
-  bottomContent: {
-    alignItems: "center",
+  progressFill: {
+    height: "100%",
+    borderRadius: 2,
+    backgroundColor: SOFT_GREEN,
   },
 
-  loadingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  loadingIndicator: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.13)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
-  },
-
-  loadingText: {
-    fontFamily: "Poppins_500Medium",
-    color: "rgba(238, 255, 243, 0.78)",
-    fontSize: 10,
-    marginLeft: 8,
-  },
-
-  footerText: {
+  loadingLabel: {
     fontFamily: "Poppins_600SemiBold",
-    color: "rgba(209, 244, 220, 0.56)",
+    color: "rgba(220,248,228,0.68)",
     fontSize: 7,
-    letterSpacing: 1.35,
-    marginTop: 20,
+    letterSpacing: 1.45,
+    marginTop: 10,
   },
 });
