@@ -1,307 +1,149 @@
-<div align="center">
 
-# SnapSort AI
-
-### AI-Powered Waste Sorting and Disposal Guidance for Everyday Life
-
-**Computer Vision • Gemini AI • FastAPI • React Native • Firebase • Mobile-First Design**
-
-<p>
-  <a href="#overview"><img src="https://img.shields.io/badge/Domain-Sustainability-2ea44f?style=for-the-badge" alt="Sustainability"></a>
-  <a href="#architecture"><img src="https://img.shields.io/badge/AI-Gemini%20Vision-4285F4?style=for-the-badge" alt="Gemini Vision"></a>
-  <a href="#running-the-backend"><img src="https://img.shields.io/badge/API-FastAPI-009688?style=for-the-badge" alt="FastAPI"></a>
-  <a href="#mobile-app"><img src="https://img.shields.io/badge/Mobile-Expo%20%2B%20React%20Native-000020?style=for-the-badge" alt="Expo React Native"></a>
-  <a href="#authentication--data"><img src="https://img.shields.io/badge/Backend-Firebase-FFCA28?style=for-the-badge" alt="Firebase"></a>
-</p>
-
-</div>
-
----
-
-## Project Preview
+<h1 align="center">SnapSort AI</h1>
 
 <p align="center">
-  <img src="docs/assets/home-screen.png" alt="SnapSort AI Home Dashboard" width="260">
-  <img src="docs/assets/result-screen.png" alt="SnapSort AI Scan Result" width="260">
-  <img src="docs/assets/waste-journal.png" alt="SnapSort AI Waste Journal" width="260">
+  <strong>AI-powered waste sorting and disposal guidance from a single photo.</strong>
 </p>
 
 <p align="center">
-  <sub>SnapSort AI — home dashboard, AI scan result, and personal Waste Journal.</sub>
+  Gemini multimodal analysis • Python + FastAPI backend • Expo + React Native mobile app • Firebase-secured personal history
 </p>
 
-> **Note:** Keep screenshots inside `docs/assets/` in the repository so GitHub renders the preview above.
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white" alt="Python 3.11">
+  <img src="https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white" alt="FastAPI">
+  <img src="https://img.shields.io/badge/TypeScript-Mobile-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Expo-React%20Native-000020?logo=expo&logoColor=white" alt="Expo React Native">
+  <img src="https://img.shields.io/badge/Firebase-Auth%20%2B%20Firestore-FFCA28?logo=firebase&logoColor=black" alt="Firebase">
+  <img src="https://img.shields.io/badge/AI-Gemini%20Vision-4285F4?logo=google&logoColor=white" alt="Gemini Vision">
+  <img src="https://img.shields.io/badge/License-MIT-black" alt="MIT License">
+</p>
 
 ---
 
-# Project Structure
+## Overview
 
-```text
-SnapSort/
-│
-├── App.tsx
-│   └── App bootstrap, animated startup splash, font loading, Firebase auth listener
-│
-├── app.json
-│   └── Expo configuration, Android icon, adaptive icon, splash settings
-│
-├── assets/
-│   ├── icon.png
-│   ├── adaptive-icon.png
-│   ├── splash-icon.png
-│   └── images/
-│       ├── hero-leaf.png
-│       ├── pathway-recycle.png
-│       ├── pathway-reuse.png
-│       ├── pathway-compost.png
-│       ├── pathway-dispose.png
-│       └── waste-journal-hero.png
-│
-├── backend/
-│   ├── requirements.txt
-│   └── app/
-│       ├── main.py
-│       │   └── FastAPI application entry point
-│       │
-│       ├── api/
-│       │   └── scans.py
-│       │       └── Image-analysis and scan API routes
-│       │
-│       ├── config.py
-│       │   └── Environment and application configuration
-│       │
-│       ├── firebase_auth.py
-│       │   └── Firebase ID token verification
-│       │
-│       ├── gemini_service.py
-│       │   └── Gemini multimodal analysis integration
-│       │
-│       ├── prompts.py
-│       │   └── Structured AI prompt templates
-│       │
-│       ├── schemas/
-│       │   └── Request and response models
-│       │
-│       ├── services/
-│       │   └── Backend business logic
-│       │
-│       └── utils/
-│           └── Shared backend utilities
-│
-├── src/
-│   ├── components/
-│   │   ├── common/
-│   │   └── scan/
-│   │
-│   ├── constants/
-│   │   ├── categories.ts
-│   │   │   └── Disposal pathway metadata (recycle, reuse, compost, trash, hazardous)
-│   │   └── theme.ts
-│   │       └── Shared color tokens and typography
-│   │
-│   ├── navigation/
-│   │   ├── RootNavigator.tsx
-│   │   └── types.ts
-│   │
-│   ├── screens/
-│   │   ├── auth/
-│   │   │   ├── LoginScreen.tsx
-│   │   │   ├── RegisterScreen.tsx
-│   │   │   └── ForgotPasswordScreen.tsx
-│   │   │
-│   │   ├── onboarding/
-│   │   │   └── OnboardingScreen.tsx
-│   │   │
-│   │   ├── home/
-│   │   │   └── HomeScreen.tsx
-│   │   │
-│   │   ├── scan/
-│   │   │   ├── CameraScreen.tsx
-│   │   │   ├── PreviewScreen.tsx
-│   │   │   └── ResultScreen.tsx
-│   │   │
-│   │   ├── history/
-│   │   │   └── HistoryScreen.tsx
-│   │   │
-│   │   ├── impact/
-│   │   │   └── WasteJournalScreen.tsx
-│   │   │
-│   │   └── profile/
-│   │       ├── ProfileScreen.tsx
-│   │       ├── NotificationsScreen.tsx
-│   │       ├── PrivacyPolicyScreen.tsx
-│   │       └── AboutScreen.tsx
-│   │
-│   ├── services/
-│   │   ├── api/
-│   │   │   └── scan-api.service.ts
-│   │   │       └── Backend API client for AI analysis requests
-│   │   │
-│   │   └── firebase/
-│   │       ├── firebase.ts
-│   │       │   └── Firebase app, auth, and Firestore initialization
-│   │       └── scans.service.ts
-│   │           └── Firestore read/write operations for saved scans
-│   │
-│   ├── stores/
-│   │   ├── auth.store.ts
-│   │   ├── onboarding.store.ts
-│   │   └── scan.store.ts
-│   │
-│   └── types/
-│       └── scan.ts
-│
-├── docs/
-│   └── assets/
-│       ├── home-screen.png
-│       ├── result-screen.png
-│       └── waste-journal.png
-│
-├── index.ts
-├── package.json
-├── tsconfig.json
-└── README.md
-```
+**SnapSort AI** is a mobile application and backend service for identifying how to responsibly dispose of everyday items using multimodal AI image analysis.
+
+The core idea is simple:
+
+> **Capture a photo of an item, and let a Python-powered AI backend determine how it should be sorted, scored, and safely disposed of.**
+
+A user opens the SnapSort AI mobile app, captures or selects a photo, and the image is sent to a Python **FastAPI** backend. The backend constructs a structured prompt and sends the image to a **Gemini multimodal model**, which returns a disposal category, an eco score, practical guidance, an optional reuse idea, and an optional safety warning. The result is displayed instantly and can be saved to the user's private, Firebase-secured Waste Journal.
+
+The project is designed as a complete engineering pipeline connecting mobile UI, a Python API service, generative AI reasoning, and per-user cloud storage — not just an isolated model demo.
+
+> **Development note:** the project currently ships with a working end-to-end pipeline (mobile capture → Python API → Gemini analysis → Firestore storage). Production deployment requires hosting the Python backend on a public HTTPS server instead of a local development machine.
 
 ---
 
-# Overview
+## Why SnapSort AI?
 
-**SnapSort AI** is a mobile application that helps people make more thoughtful disposal decisions using multimodal AI image analysis.
+Correct disposal decisions are not always obvious, and most people do not have time to research every item they throw away.
 
-The workflow combines three connected layers:
+Common everyday questions include:
 
-```text
-Item Photo
-      +
-On-Device Camera / Gallery
-      ↓
-Gemini Multimodal Analysis
-      ↓
-Disposal Classification
-      ↓
-Eco Score + Guidance
-      ↓
-Personal Scan History
-```
+- Is this item recyclable, reusable, compostable, or hazardous?
+- Does it need to be cleaned or disassembled first?
+- Could it be reused instead of discarded?
+- Are there safety precautions to be aware of?
 
-The project connects mobile engineering, backend API design, generative AI integration, and secure per-user data storage into a single production-style application rather than a single isolated model demo.
+SnapSort AI focuses on the last-mile workflow between a photo and a confident disposal decision.
 
----
+### Core capabilities
 
-# Why SnapSort AI?
-
-Correct disposal decisions are not always obvious.
-
-Everyday items often raise practical questions such as:
-
-- Is this recyclable, reusable, compostable, or hazardous?
-- Should this be cleaned before recycling?
-- Can this item be reused instead of thrown away?
-- Are there safety precautions for disposal?
-
-SnapSort AI investigates a practical, mobile-first workflow for this problem:
-
-```text
-Capture Item Photo
-      ↓
-Multimodal AI Analysis
-      ↓
-Disposal Category Prediction
-      ↓
-Eco Score + Explanation
-      ↓
-Reuse Suggestion (when relevant)
-      ↓
-Safety Warning (when relevant)
-      ↓
-Saved to Personal Waste Journal
-```
-
-The system is designed as an end-to-end engineering project connecting the mobile UI layer, API layer, AI reasoning layer, and secure data layer.
-
----
-
-# Key Features
-
-| Feature | Description |
+| Capability | What it does |
 |---|---|
-| **Photo-Based Analysis** | Captures or selects a photo and sends it for AI-driven disposal analysis |
-| **Disposal Classification** | Classifies items into recycle, reuse, compost, trash, or hazardous pathways |
-| **Eco Score** | Produces a 0–10 score reflecting the environmental impact of the item |
-| **Actionable Guidance** | Returns clear disposal instructions in natural language |
-| **Reuse Suggestions** | Suggests creative reuse ideas when applicable |
-| **Safety Warnings** | Flags hazardous or sensitive items with explicit warnings |
-| **Firebase Authentication** | Secure per-user sign-in and session handling |
-| **Private Scan History** | Stores each user's results under their own Firestore subcollection |
-| **Waste Journal** | Visual summary of scan activity, sorting distribution, and weekly progress |
-| **Daily Reminders** | Local, on-device reminders to build a consistent sorting habit |
-| **Custom Animated Splash** | Branded startup experience with a smooth 3-second loading transition |
-| **Cross-Network API Access** | Works with local development servers and production HTTPS deployments |
+| **Photo-based AI analysis** | Sends a captured or selected photo to a Python backend for Gemini-powered reasoning |
+| **Disposal classification** | Assigns each item to recycle, reuse, compost, trash, or hazardous |
+| **Eco score** | Produces a 0–10 score reflecting the relative environmental impact of the item |
+| **Actionable guidance** | Returns clear, natural-language disposal instructions |
+| **Reuse suggestions** | Suggests a creative reuse idea when applicable |
+| **Safety warnings** | Flags hazardous or sensitive items explicitly |
+| **Firebase authentication** | Secure per-user sign-in and session handling |
+| **Private Waste Journal** | Stores each user's results under their own Firestore subcollection |
+| **Weekly progress tracking** | Summarizes scan activity, sorting distribution, and weekly goals |
+| **Local daily reminders** | On-device notifications to build a consistent sorting habit |
+| **Cross-network API access** | Works with local development servers and production HTTPS deployments |
 
 ---
 
-# Architecture
+## System Architecture
 
 ```text
-                     Mobile Application (Expo)
-                              │
-                 ┌────────────┼────────────┐
-                 │            │             │
-              Camera      Firebase       FastAPI
-             / Gallery      Auth          Client
-                 │            │             │
-                 ▼            ▼             ▼
-          ┌────────────┐ ┌─────────┐ ┌──────────────┐
-          │ Image Data │ │  Auth   │ │ HTTP Request │
-          └─────┬──────┘ └────┬────┘ └──────┬───────┘
-                │             │             │
-                └─────────────┼─────────────┘
-                              ▼
-                    ┌───────────────────┐
-                    │   FastAPI Backend │
-                    └─────────┬─────────┘
-                              │
-                              ▼
-                    ┌───────────────────┐
-                    │  Gemini Service   │
-                    └─────────┬─────────┘
-                              │
-                              ▼
-                    ┌───────────────────┐
-                    │ Structured Result │
-                    │  (Category, Score,│
-                    │  Advice, Warning) │
-                    └─────────┬─────────┘
-                              │
-                              ▼
-                     Mobile Result Screen
-                              │
-                              ▼
-                    ┌───────────────────┐
-                    │  Cloud Firestore  │
-                    │  (per-user scans) │
-                    └───────────────────┘
+                 ┌─────────────────────────────┐
+                 │   Mobile Application (Expo) │
+                 │   Camera / Gallery Capture  │
+                 └──────────────┬──────────────┘
+                                │
+                                ▼
+                 ┌─────────────────────────────┐
+                 │      Firebase Authentication │
+                 │   Sign in / session state    │
+                 └──────────────┬──────────────┘
+                                │
+                                ▼
+                 ┌─────────────────────────────┐
+                 │   Python FastAPI Backend    │
+                 │ /api/scans/analyze endpoint │
+                 └──────────────┬──────────────┘
+                                │
+                                ▼
+                 ┌─────────────────────────────┐
+                 │  Prompt Construction        │
+                 │  (backend/app/prompts.py)   │
+                 └──────────────┬──────────────┘
+                                │
+                                ▼
+                 ┌─────────────────────────────┐
+                 │   Gemini Multimodal Model   │
+                 │ Image + Prompt → JSON Result│
+                 └──────────────┬──────────────┘
+                                │
+                                ▼
+                 ┌─────────────────────────────┐
+                 │  Structured Analysis Result │
+                 │  category, ecoScore, advice,│
+                 │  reuseIdea, warning         │
+                 └──────────────┬──────────────┘
+                                │
+                     ┌──────────┴──────────┐
+                     ▼                     ▼
+            ┌────────────────┐    ┌────────────────────┐
+            │ Result Screen  │    │  Cloud Firestore   │
+            │ (Mobile UI)    │    │ users/{uid}/scans/*│
+            └────────────────┘    └────────────────────┘
 ```
 
 ---
 
-# AI Analysis Pipeline
+## Analysis Pipeline
+
+SnapSort AI's Python backend is the core reasoning layer of the application.
 
 ```text
 Item Photo (Base64)
-        ↓
-FastAPI /api/scans endpoint
-        ↓
+        │
+        ▼
+FastAPI /api/scans/analyze
+        │
+        ▼
 Prompt Construction (prompts.py)
-        ↓
+        │
+        ▼
 Gemini Multimodal Model
-        ↓
+        │
+        ▼
 Structured JSON Response
-        ↓
+        │
+        ▼
 Validation + Normalization
-        ↓
+        │
+        ▼
 Mobile Result Rendering
+        │
+        ▼
+Optional Save to Firestore
 ```
 
 Expected structured output fields:
@@ -318,136 +160,195 @@ warning          (optional)
 
 ---
 
-# Data Model
+## Data Representation
 
-## Firestore structure
+### Firestore document structure
 
 ```text
 users/
 └── {userId}/
     └── scans/
         └── {scanId}
-            ├── itemName
-            ├── category
-            ├── ecoScore
-            ├── confidence
-            ├── disposalAdvice
-            ├── reuseIdea
-            ├── warning
-            └── createdAt
+            ├── itemName        : string
+            ├── category        : "recycle" | "reuse" | "compost" | "trash" | "hazardous"
+            ├── ecoScore         : number (0–10)
+            ├── confidence       : "low" | "medium" | "high"
+            ├── disposalAdvice   : string
+            ├── reuseIdea        : string (optional)
+            ├── warning          : string (optional)
+            └── createdAt        : timestamp
 ```
 
-## Local application state
+### Local application state (mobile)
 
 ```text
 auth.store.ts        → current authenticated user
 onboarding.store.ts  → first-run onboarding completion state
-scan.store.ts        → active image, analysis result, and loading state
+scan.store.ts        → active image, analysis result, loading state
 ```
 
 ---
 
-# Technology Stack
+## Backend (Python)
 
-### Mobile Application
+The backend is a lightweight Python **FastAPI** service responsible for receiving images, verifying Firebase identity, calling the Gemini model, and returning a structured disposal-analysis result.
+
+### Backend responsibilities
 
 ```text
-TypeScript
-React Native
-Expo
-React Navigation
-React Native Paper
-Zustand
-Expo Vector Icons
-Expo Notifications
-AsyncStorage
+Receive Base64 image
+        │
+        ▼
+Verify Firebase ID token (firebase_auth.py)
+        │
+        ▼
+Build Gemini prompt (prompts.py)
+        │
+        ▼
+Call Gemini service (gemini_service.py)
+        │
+        ▼
+Validate/normalize AI response (schemas)
+        │
+        ▼
+Return JSON result to mobile app
 ```
 
-### Backend
+### Backend structure
 
 ```text
-Python 3.11
-FastAPI
-Uvicorn
-```
-
-### AI
-
-```text
-Gemini Multimodal API
-```
-
-### Data and Authentication
-
-```text
-Firebase Authentication
-Cloud Firestore
-```
-
-### Tooling
-
-```text
-EAS Build
-Git
-GitHub
-VS Code
-PowerShell
+backend/
+├── requirements.txt
+└── app/
+    ├── main.py              # FastAPI application entry point
+    ├── api/
+    │   └── scans.py         # Image-analysis and scan API routes
+    ├── config.py            # Environment and application configuration
+    ├── firebase_auth.py     # Firebase ID token verification
+    ├── gemini_service.py    # Gemini multimodal analysis integration
+    ├── prompts.py           # Structured AI prompt templates
+    ├── schemas/             # Request and response models
+    ├── services/            # Backend business logic
+    └── utils/               # Shared backend utilities
 ```
 
 ---
 
-# Installation
+## Project Structure
 
-## 1. Clone
+```text
+SnapSort/
+│
+├── App.tsx                    # App bootstrap, animated splash, Firebase auth listener
+├── app.json                   # Expo configuration, icons, splash settings
+│
+├── assets/
+│   ├── icon.png
+│   ├── adaptive-icon.png
+│   ├── splash-icon.png
+│   └── images/
+│       ├── hero-leaf.png
+│       ├── pathway-recycle.png
+│       ├── pathway-reuse.png
+│       ├── pathway-compost.png
+│       ├── pathway-dispose.png
+│       └── waste-journal-hero.png
+│
+├── backend/                    # Python FastAPI service (see above)
+│
+├── src/
+│   ├── components/
+│   │   ├── common/
+│   │   └── scan/
+│   │
+│   ├── constants/
+│   │   ├── categories.ts       # Disposal pathway metadata
+│   │   └── theme.ts             # Shared color tokens and typography
+│   │
+│   ├── navigation/
+│   │   ├── RootNavigator.tsx
+│   │   └── types.ts
+│   │
+│   ├── screens/
+│   │   ├── auth/                # Login, register, forgot password
+│   │   ├── onboarding/          # First-run onboarding
+│   │   ├── home/                # Dashboard
+│   │   ├── scan/                # Camera, preview, result
+│   │   ├── history/             # Saved scan history
+│   │   ├── impact/              # Waste Journal
+│   │   └── profile/             # Profile, notifications, privacy, about
+│   │
+│   ├── services/
+│   │   ├── api/
+│   │   │   └── scan-api.service.ts   # Python backend API client
+│   │   └── firebase/
+│   │       ├── firebase.ts           # Firebase app/auth/Firestore init
+│   │       └── scans.service.ts      # Firestore read/write for scans
+│   │
+│   ├── stores/
+│   │   ├── auth.store.ts
+│   │   ├── onboarding.store.ts
+│   │   └── scan.store.ts
+│   │
+│   └── types/
+│       └── scan.ts
+│
+├── docs/
+│   └── assets/
+│       ├── snapsort-logo.svg
+│       └── dashboard.png
+│
+├── index.ts
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+---
+
+## Quick Start
+
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/<YOUR_USERNAME>/SnapSort.git
 cd SnapSort
 ```
 
-Replace `<YOUR_USERNAME>` with the GitHub account hosting the repository.
-
----
-
-## 2. Install mobile dependencies
+### 2. Install mobile dependencies
 
 ```bash
 npm install
 ```
 
----
+### 3. Create the Python virtual environment
 
-## 3. Create backend virtual environment
-
-### Windows PowerShell
+Windows PowerShell:
 
 ```powershell
 cd backend
-python -m venv .venv
+py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-### macOS / Linux
+Linux/macOS:
 
 ```bash
 cd backend
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
 ```
 
----
-
-## 4. Install backend dependencies
+### 4. Install Python dependencies
 
 ```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
----
+### 5. Configure environment variables
 
-# Environment Configuration
-
-## Mobile environment (`.env` in project root)
+Create `.env` in the project root (mobile):
 
 ```env
 EXPO_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
@@ -456,13 +357,10 @@ EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
 EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.firebasestorage.app
 EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 EXPO_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id
-
 EXPO_PUBLIC_API_URL=http://192.168.x.x:8000
 ```
 
-> Values prefixed with `EXPO_PUBLIC_` are bundled into the client application. Never place private server keys, Gemini API keys, or Firebase Admin credentials in this file.
-
-## Backend environment (`backend/.env`)
+Create `backend/.env` (Python):
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key
@@ -471,11 +369,11 @@ FIREBASE_CLIENT_EMAIL=your_service_account_email
 FIREBASE_PRIVATE_KEY="your_private_key"
 ```
 
-Never commit `backend/.env` or any service-account credential file.
+> Never commit `.env`, `backend/.env`, or any Firebase service-account file to Git.
 
 ---
 
-# Running the Backend
+## Run the Backend (Python)
 
 ```powershell
 cd backend
@@ -483,7 +381,7 @@ cd backend
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-API base URL:
+Default development address:
 
 ```text
 http://localhost:8000
@@ -503,7 +401,7 @@ http://localhost:8000/redoc
 
 ---
 
-# Mobile App
+## Run the Mobile App
 
 ```bash
 npx expo start --clear
@@ -518,9 +416,7 @@ Scan QR code   → open in Expo Go on a physical device
 
 Native features such as push notifications require an Expo development build rather than Expo Go.
 
----
-
-# API URL by Device
+### API URL by environment
 
 | Environment | `EXPO_PUBLIC_API_URL` |
 |---|---|
@@ -528,25 +424,19 @@ Native features such as push notifications require an Expo development build rat
 | Android Studio emulator | `http://10.0.2.2:8000` |
 | Production APK | `https://your-deployed-api-domain.com` |
 
-Run `ipconfig` on Windows to find the active Wi-Fi IPv4 address for physical-device testing.
-
 ---
 
-# API Endpoints
+## API Endpoints
 
-## `GET /`
+### `GET /`
 
 Health check for the backend service.
 
----
-
-## `GET /docs`
+### `GET /docs`
 
 Interactive Swagger documentation generated by FastAPI.
 
----
-
-## `POST /api/scans/analyze`
+### `POST /api/scans/analyze`
 
 Runs multimodal AI analysis on a submitted image.
 
@@ -576,9 +466,38 @@ Example response:
 
 ---
 
-# Authentication & Data
+## API Example (Python)
 
-## Firebase Authentication
+```python
+import base64
+import requests
+
+url = "http://127.0.0.1:8000/api/scans/analyze"
+
+with open("item.jpg", "rb") as image_file:
+    encoded_image = base64.b64encode(image_file.read()).decode("utf-8")
+
+response = requests.post(
+    url,
+    json={"imageBase64": encoded_image},
+    timeout=60,
+)
+
+response.raise_for_status()
+
+result = response.json()
+
+print(result["itemName"])
+print(result["category"])
+print(result["ecoScore"])
+print(result["disposalAdvice"])
+```
+
+---
+
+## Authentication & Data Security
+
+### Firebase Authentication
 
 Enable required sign-in methods in Firebase Console:
 
@@ -586,7 +505,7 @@ Enable required sign-in methods in Firebase Console:
 Firebase Console → Build → Authentication → Sign-in method
 ```
 
-## Firestore Security Rules
+### Firestore Security Rules
 
 ```js
 rules_version = '2';
@@ -614,9 +533,27 @@ These rules ensure a signed-in user can only access their own profile document a
 
 ---
 
-# Waste Journal
+## Waste Journal
 
-The Waste Journal screen aggregates a user's saved scans into:
+The Waste Journal screen aggregates a user's saved scans into a personal sustainability dashboard.
+
+```text
+Saved Scans
+     │
+     ▼
+Weekly Aggregation
+     │
+     ▼
+Category Distribution
+     │
+     ▼
+Personalized Insight Message
+     │
+     ▼
+Journal Dashboard
+```
+
+Displayed metrics include:
 
 ```text
 Total scans
@@ -624,25 +561,12 @@ Average eco score
 Pathway diversity
 Weekly scan progress
 Disposal category distribution
-Personalized activity insight
 Recent scan entries
-```
-
-```text
-Saved Scans
-     ↓
-Weekly Aggregation
-     ↓
-Category Distribution
-     ↓
-Personal Insight Message
-     ↓
-Journal Dashboard
 ```
 
 ---
 
-# Notifications
+## Notifications
 
 SnapSort AI supports local daily reminders to build a consistent sorting habit.
 
@@ -664,16 +588,16 @@ Open the installed SnapSort development build instead of Expo Go.
 
 ---
 
-# Build an Android APK
+## Build an Android APK
 
-## Development build
+### Development build
 
 ```bash
 npx expo prebuild --clean
 npx expo run:android
 ```
 
-## EAS build
+### EAS build
 
 ```bash
 npm install -g eas-cli
@@ -693,11 +617,11 @@ Play Store bundle:
 eas build --platform android --profile production
 ```
 
-> Deploy the FastAPI backend to a public HTTPS host before producing a release APK. A local address such as `http://192.168.x.x:8000` only works while the developer's computer is running on the same network.
+> Deploy the Python backend to a public HTTPS host before producing a release APK. A local address such as `http://192.168.x.x:8000` only works while the developer's computer is running on the same network.
 
 ---
 
-# Production Deployment
+## Production Deployment
 
 Target production architecture:
 
@@ -705,7 +629,7 @@ Target production architecture:
 SnapSort Android Application
              │
              ▼  HTTPS
-   Deployed FastAPI Backend
+   Deployed Python FastAPI Backend
              │
              ▼
    Gemini Analysis + Firebase
@@ -726,192 +650,112 @@ Keep Gemini and Firebase Admin credentials out of the mobile bundle
 
 ---
 
-# Security Notes
+## Important Engineering Decisions
+
+### Server-side AI reasoning
+
+All Gemini calls happen inside the Python backend rather than directly from the mobile app. This keeps the Gemini API key off the device, allows centralized prompt engineering, and makes it possible to change AI providers without shipping a new mobile release.
+
+### Per-user data isolation
+
+Every saved scan is stored under `users/{userId}/scans/{scanId}` rather than a single shared collection. Firestore Security Rules enforce that a user can only read or write their own documents.
+
+### Environment-aware API URL
+
+The mobile app resolves the backend address from `EXPO_PUBLIC_API_URL` rather than hardcoding it, allowing the same codebase to target a local development server, an Android emulator, or a deployed production API.
+
+### Graceful loading and startup state
+
+The app waits for font loading, onboarding status, and Firebase auth state before rendering the main navigator, avoiding a flash of the wrong screen during startup.
+
+---
+
+## Current Development Status
+
+### Implemented
+
+- [x] Camera and gallery image capture
+- [x] Python FastAPI backend
+- [x] Gemini multimodal analysis integration
+- [x] Structured disposal-analysis response
+- [x] Firebase Authentication
+- [x] Per-user Firestore scan storage
+- [x] Firestore Security Rules
+- [x] Waste Journal dashboard
+- [x] Local daily reminders
+- [x] Animated startup splash screen
+- [x] Circular, consistent mobile UI system
+
+### Next steps
+
+- [ ] Deploy Python backend to a production HTTPS host
+- [ ] Add image compression before upload
+- [ ] Add offline scan queue with automatic sync
+- [ ] Expand Waste Journal analytics and date filters
+- [ ] Add region-specific disposal-rule customization
+- [ ] Add automated backend and mobile tests
+- [ ] Add CI/CD for Android preview and production builds
+
+---
+
+## Limitations
+
+SnapSort AI is currently a research/production-style prototype rather than a certified waste-management authority.
+
+1. **AI-generated disposal guidance is general** and may not reflect local municipal rules.
+2. **Image quality, lighting, and framing affect analysis accuracy.**
+3. **The eco score is a relative indicator**, not a certified environmental measurement.
+4. **Local backend testing requires the developer machine and phone to share the same network.**
+5. **Production use requires a deployed, secured, and monitored backend** rather than a local development server.
+
+---
+
+## Reproducible Local Setup
+
+For consistent testing, keep this information documented per environment:
 
 ```text
-Firebase client configuration values are public identifiers by design;
-real protection comes from Firestore Security Rules.
-
-Keep .env, backend/.env, .venv, and service-account files out of Git.
-
-Use HTTPS for any production API endpoint.
-
-Never embed Gemini or Firebase Admin secrets inside the mobile bundle.
-```
-
-Recommended `.gitignore`:
-
-```gitignore
-.env
-.env.local
-.env.production
-backend/.env
-backend/.venv/
-backend/venv/
-*.pem
-*.key
-service-account*.json
-__pycache__/
-*.pyc
-node_modules/
-.expo/
+Python version
+Node.js version
+Firebase project ID
+Backend .env keys (names only, never values)
+EXPO_PUBLIC_API_URL used for testing
+Device type (emulator / physical phone)
 ```
 
 ---
 
-# Development Workflow
-
-```powershell
-# Terminal 1 — backend
-cd backend
-.\.venv\Scripts\Activate.ps1
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-# Terminal 2 — mobile app
-cd ..
-npx expo start --clear
-```
-
----
-
-# Git Workflow
-
-Check status:
+## Git Workflow
 
 ```bash
 git status
-```
-
-Review changes:
-
-```bash
 git diff
-```
-
-Stage changes:
-
-```bash
 git add .
-```
-
-Commit:
-
-```bash
 git commit -m "feat: describe your change"
-```
-
-Push:
-
-```bash
 git push origin main
 ```
 
 ---
 
-# Limitations
+## License
 
-SnapSort AI is currently a research/production-style prototype, not a certified waste-management authority.
+This project is released under the **MIT License**.
 
-```text
-1. AI-generated disposal guidance is general and may not reflect
-   local municipal rules.
+See [`LICENSE`](LICENSE) for details.
 
-2. Image quality, lighting, and framing affect analysis accuracy.
-
-3. The eco score is a relative indicator, not a certified
-   environmental measurement.
-
-4. Local backend testing requires the developer machine and phone
-   to share the same network.
-
-5. Production use requires a deployed, secured, and monitored
-   backend rather than a local development server.
-```
+> Firebase and the Gemini API are subject to their own separate terms of use. Review each provider's license and usage requirements before production deployment.
 
 ---
 
-# Future Roadmap
-
-```text
-Current
-│
-├── Camera + Gallery Capture
-├── Gemini-Based Analysis
-├── Firebase Auth + Firestore
-├── Waste Journal Dashboard
-└── Local Daily Reminders
-        │
-        ▼
-Near-Term
-│
-├── Production Backend Deployment
-├── Offline Scan Queue + Sync
-├── Image Compression Before Upload
-└── Expanded Waste Journal Analytics
-        │
-        ▼
-Long-Term
-│
-├── Region-Specific Disposal Rules
-├── Community/Leaderboard Features
-├── Multi-Language Support
-└── Automated CI/CD for Android Builds
-```
-
----
-
-# Project Philosophy
-
-```text
-Clear Photo Capture
-        ↓
-Reliable AI Reasoning
-        ↓
-Understandable Guidance
-        ↓
-Secure Personal History
-        ↓
-Long-Term Habit Building
-```
-
-SnapSort AI aims to turn a single everyday decision — "how do I dispose of this?" — into a fast, clear, and encouraging interaction rather than an ignored or guessed choice.
-
----
-
-# Contributing
-
-Contributions are welcome, including UI refinements, backend improvements, and documentation updates.
-
-```text
-1. Fork the repository
-2. Create a feature branch
-3. Implement and test your change
-4. Commit with a clear message
-5. Open a pull request with a summary and screenshots for UI changes
-```
-
----
-
-# License
-
-This project is released under the:
-
-**MIT License**
-
-See [`LICENSE`](LICENSE) for the full license text.
-
-Third-party services such as Firebase and the Gemini API are subject to their own separate terms of use.
-
----
-
-# Acknowledgements
+## Acknowledgements
 
 SnapSort AI builds on the following technologies and services:
 
 ```text
+Python
+FastAPI
 Expo
 React Native
-FastAPI
 Firebase
 Gemini API
 React Native Paper
@@ -922,12 +766,42 @@ All third-party tools remain subject to their respective licenses.
 
 ---
 
-<div align="center">
+## Author
 
-## SnapSort AI
+**SnapSort AI Development Team**
 
-**Smarter choices. Smaller footprint.**
+Full-Stack Mobile Engineering | Python Backend Engineering | Applied AI Integration
 
-**Mobile-first. AI-driven. Built for everyday sustainability.**
+SnapSort AI combines:
 
-</div>
+```text
+Computer Vision
++ Generative AI Integration
++ Python API Engineering
++ Mobile Application Development
++ Secure Cloud Data Design
+```
+
+---
+
+## ⭐ Why this project matters
+
+Most people discard items without knowing the best disposal path. SnapSort AI turns that single everyday decision into a fast, guided, and encouraging interaction.
+
+```text
+Item Photo
+      ↓
+Python Backend + Gemini AI
+      ↓
+Disposal Category + Eco Score
+      ↓
+Clear Guidance
+      ↓
+Saved Personal History
+      ↓
+Long-Term Sustainable Habits
+```
+
+<p align="center">
+  <strong>Smarter choices. Smaller footprint.</strong>
+</p>
